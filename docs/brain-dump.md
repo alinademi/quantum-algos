@@ -63,7 +63,7 @@ These rules beat any design skill.
 - Depth dial: all 3 levels in HTML, toggle by CSS. JS swap hides text from bots.
 - GEO: `llms.txt`, allow AI bots, cite sources, author + date.
 - Cloudflare blocks AI bots by default on new domains. Turn off.
-- Track: Google Search Console, Bing Webmaster Tools, Cloudflare Web Analytics.
+- Track: Google Search Console, Bing Webmaster Tools.
 
 ## Images
 
@@ -94,6 +94,17 @@ Target: WCAG 2.2 AA, every page.
 - Depth dial: native radio buttons.
 - Math: KaTeX MathML. Video: captions.
 - Test: axe in CI fails the build. Plus manual keyboard and screen reader (VoiceOver, NVDA).
+
+## Tracking
+
+PostHog. Generous free tier. Billing cap at $0.
+
+- Session replay + heatmaps: clicks, scrolls, mouse.
+- Custom widget events: `guess_made {correct}`, `golf_solved {gates}`, `depth_changed {level}`.
+- Goal: see where people get stuck.
+- Page views too. Replaces Cloudflare Web Analytics.
+- Consent first (EU, Canada). Load only after yes.
+- Mask typed input in replays.
 
 ## Later
 
