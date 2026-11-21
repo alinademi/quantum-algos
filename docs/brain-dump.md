@@ -76,6 +76,25 @@ These rules beat any design skill.
 - Diagrams: inline SVG, not `<Image>`.
 - OG image per page: 1200x630.
 
+## Accessibility
+
+Target: WCAG 2.2 AA, every page.
+
+- Semantic HTML first. Native elements before ARIA.
+- `lang`, landmarks, headings in order, skip link.
+- All works by keyboard. Visible `:focus-visible`.
+- Contrast: 4.5:1 text, 3:1 UI and graphics. Checked once, in tokens.
+- Never color alone. Phase color also gets a label.
+- `rem` units. Works at 200% zoom and 320px wide.
+- Targets 24x24px min.
+- Drag always has a click or key option.
+- Widgets: key controls + text readout of state (`aria-live="polite"`).
+- 3D and canvas: text alternative.
+- Respect `prefers-reduced-motion`. Animations can pause.
+- Depth dial: native radio buttons.
+- Math: KaTeX MathML. Video: captions.
+- Test: axe in CI fails the build. Plus manual keyboard and screen reader (VoiceOver, NVDA).
+
 ## Later
 
 - Company page on `/`.
