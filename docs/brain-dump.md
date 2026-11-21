@@ -53,6 +53,29 @@ These rules beat any design skill.
 - Component styles scoped in Astro, so selectors stay classless.
 - Terse. Every rule earns its place. No utility soup.
 
+## SEO, AEO, GEO
+
+- Static HTML. Widgets sit beside text, never wrap it.
+- One `<Seo>` component in base layout: title, description, canonical, Open Graph. No plugin.
+- `@astrojs/sitemap` + `robots.txt`.
+- JSON-LD: `Course`, `DefinedTerm` (A-Z), `FAQPage` (myths), `BlogPosting`, `Organization`.
+- AEO: page opens with 2-line plain answer. Question headings.
+- Depth dial: all 3 levels in HTML, toggle by CSS. JS swap hides text from bots.
+- GEO: `llms.txt`, allow AI bots, cite sources, author + date.
+- Cloudflare blocks AI bots by default on new domains. Turn off.
+- Track: Google Search Console, Bing Webmaster Tools, Cloudflare Web Analytics.
+
+## Images
+
+- `astro:assets` `<Image>` / `<Picture>` for every raster image. Built and shrunk at build time.
+- Files in `src/assets`, not `public/`. `public/` skips optimizing.
+- Big images: `<Picture formats={['avif', 'webp']}>` + `widths` + `sizes`.
+- Always width + height. No layout shift.
+- `alt` always. Empty only for decor.
+- Lazy by default. Above fold: `loading="eager"` + `fetchpriority="high"`.
+- Diagrams: inline SVG, not `<Image>`.
+- OG image per page: 1200x630.
+
 ## Later
 
 - Company page on `/`.
