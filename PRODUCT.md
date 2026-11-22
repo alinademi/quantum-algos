@@ -2,23 +2,21 @@
 
 <!-- impeccable:product-schema 1 -->
 
-Facts marked *(inferred)* come from `docs/brain-dump.md` and chat, not from an interview. Everything else the owner said directly.
-
 ## Platform
 
 web
 
 ## Users
 
-Curious beginners up to developers, learning quantum computing on their own, on phone and desktop. *(inferred)* Many readers are not native English speakers.
+Curious beginners up to developers, learning quantum computing on their own, on phone and desktop. Many readers are not native English speakers.
 
 ## Product Purpose
 
-Quantum Computing Era teaches quantum computing from A to Z: principles, algorithms and terms. Success: a visitor understands a concept by playing with it, then moves to the next stop. *(inferred)*
+Quantum Computing Era teaches quantum computing from A to Z: principles, algorithms and terms. Success: a visitor understands a concept by playing with it, then moves to the next stop.
 
 ## Positioning
 
-Learn by doing, not reading: every lesson runs a live simulator in the browser, a depth dial retells the same lesson for Kid, Student or Engineer, and a metro map shows how topics connect. *(inferred)*
+Learn by doing, not reading: every lesson runs a live simulator in the browser, a depth dial retells the same lesson for Kid, Student or Engineer, and a metro map shows how topics connect.
 
 ## Operating Context
 
