@@ -1,0 +1,56 @@
+---
+import base from '../styles/base.css?inline';
+
+interface Props {
+  title?: string;
+  description: string;
+  type?: 'website' | 'article';
+}
+const { title, description, type = 'website' } = Astro.props;
+const site = 'Quantum Computing Era';
+const full = title ? `${title} · ${site}` : site;
+const blog = '/blog/why-learn-quantum-now/';
+const onBlog = Astro.url.pathname.startsWith('/blog');
+
+// shortcut: theme picked by env for the design review; keep the winner, delete the rest and this switch.
+const themes = import.meta.glob<string>('../styles/themes/*.css', { query: '?inline', import: 'default', eager: true });
+const theme = themes[`../styles/themes/${import.meta.env.PUBLIC_THEME ?? 'notebook'}.css`];
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{full}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={full} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content={site} />
+    <style is:inline set:html={base}></style>
+    <style is:inline set:html={theme}></style>
+  </head>
+  <body>
+    <a href="#main">Skip to content</a>
+    <header>
+      <a href="/">
+        <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="16" cy="16" r="13" /><ellipse cx="16" cy="16" rx="13" ry="5" /><path d="M16 16 23 7" /><circle cx="23" cy="7" r="2.5" fill="currentColor" />
+        </svg>
+        {site}
+      </a>
+      <nav aria-label="Main">
+        <a href="/#map">Learn</a>
+        <a href={blog} aria-current={onBlog ? 'page' : undefined}>Blog</a>
+      </nav>
+    </header>
+    <main id="main"><slot /></main>
+    <footer>
+      <p>© 2026 {site}</p>
+      <nav aria-label="Footer">
+        <a href="/#map">Learn</a>
+        <a href={blog}>Blog</a>
+      </nav>
+    </footer>
+  </body>
+</html>
