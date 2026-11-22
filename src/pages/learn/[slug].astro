@@ -1,0 +1,35 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+
+export async function getStaticPaths() {
+  const lessons = await getCollection('lessons');
+  return lessons.map((lesson) => ({ params: { slug: lesson.id }, props: { lesson } }));
+}
+const { lesson } = Astro.props;
+const { Content } = await render(lesson);
+const { title, answer, track, myth, truth, next } = lesson.data;
+---
+<Base title={title} description={answer} type="article">
+  <article>
+    <header>
+      <nav aria-label="Breadcrumb">
+        <ol><li><a href="/#map">Learn</a></li><li>{track} line</li><li aria-current="page">{title}</li></ol>
+      </nav>
+      <h1>{title}</h1>
+      <p>{answer}</p>
+    </header>
+    <aside aria-label="Myth">
+      <p><strong>Myth</strong> <s>{myth}</s></p>
+      <p>{truth}</p>
+    </aside>
+    <fieldset>
+      <legend>Explain it for a</legend>
+      <label><input type="radio" name="depth" value="kid" /> Kid</label>
+      <label><input type="radio" name="depth" value="student" checked /> Student</label>
+      <label><input type="radio" name="depth" value="engineer" /> Engineer</label>
+    </fieldset>
+    <Content />
+    <footer><p>Next stop: <b>{next}</b>, coming soon.</p></footer>
+  </article>
+</Base>
