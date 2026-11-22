@@ -1,8 +1,8 @@
 # Curriculum draft
 
-Source of truth for The Map. Regions say what a stop is. Lines say the order to learn in. A stop can sit on many lines, or none.
+Source of truth for The Map. Regions say what a stop is. Lines say the order to learn in. A stop can sit on many lines.
 
-`Needs` lists stops to learn first. Open now: `superposition`. Everything else: coming soon.
+`Needs` lists stops to learn first. A need on another line is a transfer. Open now: `superposition`. Everything else: coming soon.
 
 ## Foundations (`foundations`)
 
@@ -14,9 +14,10 @@ Source of truth for The Map. Regions say what a stop is. Lines say the order to 
 | bloch | Bloch sphere | superposition |
 | phase | Phase | bloch |
 | interference | Interference | phase |
-| multi-qubit | Many qubits | qubit |
+| multi-qubit | Many qubits | superposition |
 | entanglement | Entanglement | measurement, multi-qubit |
-| no-cloning | No-cloning | superposition, measurement |
+| bell-test | Bell test (CHSH) | entanglement |
+| no-cloning | No-cloning | multi-qubit, measurement |
 | mixed-states | Mixed states | measurement, entanglement |
 
 ## Gates and circuits (`circuits`)
@@ -26,36 +27,37 @@ Source of truth for The Map. Regions say what a stop is. Lines say the order to 
 | pauli | Pauli gates | bloch |
 | hadamard | Hadamard | superposition |
 | phase-gates | Phase gates | phase |
-| rotations | Rotation gates | bloch |
+| rotations | Rotation gates | pauli |
 | cnot | CNOT | multi-qubit, pauli |
 | bell-states | Bell states | cnot, hadamard, entanglement |
 | toffoli | Toffoli and SWAP | cnot |
 | circuits | Reading a circuit | hadamard, cnot |
-| universal | Universal gate sets | phase-gates, rotations, cnot |
-| oracles | Oracles | circuits |
+| universal | Universal gate sets | hadamard, phase-gates, rotations, cnot |
+| oracles | Oracles | circuits, toffoli |
+| phase-kickback | Phase kickback | hadamard, phase-gates, cnot |
 
 ## Algorithms (`algorithms`)
 
 | id | Stop | Needs |
 |---|---|---|
-| deutsch | Deutsch | oracles, interference |
+| deutsch | Deutsch | oracles, phase-kickback, interference |
 | deutsch-jozsa | Deutsch-Jozsa | deutsch |
 | bernstein-vazirani | Bernstein-Vazirani | deutsch-jozsa |
 | simon | Simon | bernstein-vazirani |
-| qft | Quantum Fourier transform | phase-gates, interference |
-| phase-estimation | Phase estimation | qft |
+| qft | Quantum Fourier transform | hadamard, phase-gates, cnot, interference |
+| phase-estimation | Quantum phase estimation | qft, phase-kickback |
 | shor | Shor | phase-estimation |
-| grover | Grover | oracles, interference |
+| grover | Grover | oracles, phase-kickback, interference |
 | amplitude-amplification | Amplitude amplification | grover |
 | quantum-counting | Quantum counting | grover, phase-estimation |
-| hhl | HHL | phase-estimation |
+| hhl | HHL (linear systems) | phase-estimation, simulation |
 | quantum-walks | Quantum walks | interference, circuits |
 | simulation | Simulating physics | rotations, circuits |
 | variational | Variational circuits | rotations, circuits |
 | vqe | VQE | variational |
 | qaoa | QAOA | variational |
 
-15 algorithms plus 1 building block (variational circuits).
+12 algorithms plus 4 building blocks: QFT, phase estimation, amplitude amplification, variational circuits.
 
 ## Protocols and crypto (`protocols`)
 
@@ -63,24 +65,25 @@ Source of truth for The Map. Regions say what a stop is. Lines say the order to 
 |---|---|---|
 | teleportation | Teleportation | bell-states, measurement |
 | superdense | Superdense coding | bell-states |
-| bb84 | BB84 | measurement, no-cloning |
-| e91 | E91 | entanglement, bb84 |
+| bb84 | BB84 | hadamard, measurement, no-cloning |
+| e91 | E91 | bell-states, bell-test, bb84 |
 | qkd | QKD in practice | bb84 |
-| rsa | Why RSA is at risk | shor |
+| rsa | Why RSA and ECC are at risk | shor |
 | post-quantum | Post-quantum crypto | rsa |
 
 ## Hardware and machines (`hardware`)
 
 | id | Stop | Needs |
 |---|---|---|
-| decoherence | Decoherence | phase, measurement |
+| decoherence | Decoherence | phase, mixed-states |
 | superconducting | Superconducting qubits | decoherence |
 | cryogenics | Dilution refrigerators | superconducting |
 | trapped-ions | Trapped ions | decoherence |
 | neutral-atoms | Neutral atoms | decoherence |
 | photonic | Photonic qubits | decoherence |
 | spin-qubits | Spin qubits | decoherence |
-| error-correction | Error correction | decoherence, cnot |
+| annealing | Quantum annealing | decoherence |
+| error-correction | Error correction | decoherence, cnot, no-cloning |
 | surface-code | Surface code | error-correction |
 | logical-qubits | Logical qubits | surface-code |
 | nisq | NISQ era | decoherence, circuits |
@@ -103,24 +106,28 @@ Every fact here needs a source before it ships.
 | Line | Stops in order |
 |---|---|
 | First steps | qubit, superposition, measurement, bloch, phase, interference, multi-qubit, entanglement |
-| Circuit builder | pauli, hadamard, phase-gates, rotations, cnot, toffoli, circuits, universal |
-| Road to Shor | interference, qft, phase-estimation, shor, rsa, post-quantum |
-| Search | oracles, deutsch, deutsch-jozsa, bernstein-vazirani, simon, grover, amplitude-amplification, quantum-counting |
-| Sending qubits | entanglement, bell-states, teleportation, superdense |
-| Secret keys | no-cloning, bb84, e91, qkd, post-quantum |
-| Build a machine | decoherence, superconducting, cryogenics, trapped-ions, neutral-atoms, photonic, spin-qubits, error-correction, surface-code, logical-qubits |
-| Near term | variational, vqe, qaoa, nisq, advantage |
+| Circuit builder | pauli, hadamard, phase-gates, rotations, cnot, circuits, toffoli, universal |
+| Oracle problems | oracles, phase-kickback, deutsch, deutsch-jozsa, bernstein-vazirani, simon |
+| Search | oracles, phase-kickback, grover, amplitude-amplification, quantum-counting |
+| Road to Shor | simon, qft, phase-estimation, shor, rsa, post-quantum |
+| Quantum communication | entanglement, bell-states, teleportation, superdense |
+| Secret keys | no-cloning, bb84, qkd, bell-test, e91 |
+| Build a machine | mixed-states, decoherence, superconducting, cryogenics, trapped-ions, neutral-atoms, photonic, spin-qubits, annealing, error-correction, surface-code, logical-qubits |
+| Near term | nisq, variational, vqe, qaoa, advantage |
+| More algorithms | quantum-walks, simulation, hhl |
 | Quantum at work | cloud, use-cases, hype, roadmaps, careers |
 
-Off-line stops (in a region, on no line yet): mixed-states, hhl, quantum-walks, simulation.
+Off-line stops: none.
 
 ## Words (A to Z)
 
-Every stop title is a word. Extra words, each gets a page:
+Most stop titles are also words. Stops that are not words: rsa, cloud, use-cases, hype, roadmaps, careers.
 
-amplitude, ancilla, basis, Born rule, coherence time, controlled gate, eigenstate, fidelity, gate, Hamiltonian, Hilbert space, logical qubit, oracle, physical qubit, qubit register, tensor product, unitary.
+Extra words, each gets a page:
+
+amplitude, ancilla, basis, Born rule, classical bit, Clifford gates, coherence time, collapse, controlled gate, density matrix, eigenstate, error rate, expectation value, fidelity, gate, Hamiltonian, Hilbert space, ket (bra-ket notation), observable, physical qubit, quantum register, shot, syndrome, tensor product, threshold, unitary.
 
 ## Open questions
 
-- Does the owner's list of 11 algorithms match the 15 above?
+- Does the owner's list of 11 algorithms match the 12 above?
 - Industry stops need sources and a review before any copy is written.
