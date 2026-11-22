@@ -136,6 +136,22 @@ PostHog. Generous free tier. Billing cap at $0.
 - Consent first (EU, Canada). Load only after yes.
 - Mask typed input in replays.
 
+## Contributing
+
+Public repo. One repo, split by folder, so writers never touch code.
+
+- `content/`: all writing. `src/`: all code.
+- One Markdown file per stop: `content/stops/superposition.md`. Frontmatter: region, lines, needs, terms, sources. Words and posts the same. Lines in one `content/lines.yaml`. Replaces `docs/curriculum.md`.
+- Widgets are short tags (`<FourWays />`) from a documented list. No JavaScript in content.
+- CODEOWNERS: science reviewers own `content/`, developers own `src/`.
+- Pull request checks, errors in plain English: fields filled, needs exist, no loops, no broken links, math renders, style lint (simple words, no em dashes), facts have sources.
+- "Edit this page" link on every stop opens GitHub's web editor. Each pull request gets a Cloudflare preview.
+- "Report a mistake" issue form: easiest way in.
+- Bot fact-check as first pass on content pull requests, then human approval.
+- Licenses: content CC BY-SA 4.0, code MIT.
+- CONTRIBUTING.md: two guides, "Write or fix content" (no code) and "Work on the code".
+- No CMS yet. Keystatic later if writers struggle; it edits the same files.
+
 ## Later
 
 - Company page on `/`.
