@@ -1,0 +1,42 @@
+@import url("https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800;900&family=Overpass+Mono:wght@400;600&display=swap");
+/* Transit: the metro map is the brand. Signage type, bold line colors, thick black rules. Follows the OS theme. */
+:root {
+  color-scheme: light dark;
+  --font-display: "Overpass", system-ui, sans-serif;
+  --font-body: "Overpass", system-ui, sans-serif;
+  --font-mono: "Overpass Mono", ui-monospace, monospace;
+  --display-weight: 900; --display-tracking: -.025em; --radius: 0; --rule: 2px; --line-width: 10;
+  --bg: light-dark(#f7f7f4, #0e0f11);
+  --surface: light-dark(#ffffff, #17191c);
+  --ink: light-dark(#111214, #f3f3ef);
+  --muted: light-dark(#4a4e55, #b3b7bd);
+  --line: light-dark(#111214, #f3f3ef);
+  --accent: light-dark(#111214, #f3f3ef);
+  --on-accent: light-dark(#ffffff, #0e0f11);
+  --focus: var(--physics);
+  --physics: light-dark(#0067c0, #4aa3ff);
+  --gates: light-dark(#d50032, #ff5468);
+  --algorithms: light-dark(#00875a, #2bd08f);
+  --hardware: light-dark(#d4550b, #ff8c42);
+  --crypto: light-dark(#7b3fb4, #b682ff);
+}
+:root[data-theme="light"] { color-scheme: light }
+:root[data-theme="dark"] { color-scheme: dark }
+a { text-decoration-thickness: 2px }
+body > header { border-bottom-width: 4px }
+button, .cta, button[aria-pressed] { border-radius: 999px }
+h2 { display: flex; align-items: center; gap: var(--s3) }
+h2::before { content: ""; flex: none; width: .9em; height: .9em; border: .2em solid var(--ink); border-radius: 50%; background: var(--bg) }
+aside { border-left-width: 8px }
+#map text { font-weight: 800 }
+#map circle { stroke-width: 3.5 }
+#map circle[r="9"] { stroke-width: 4.5 }
+/* Poster hero: headline left, words right, the map full width under them */
+#map svg { max-width: 60rem; margin-inline: auto }
+@media (min-width: 64rem) {
+  main > header { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end }
+  main > header > h1 { grid-column: 1; grid-row: 1 / span 2; font-size: 4.5rem }
+  main > header > p { grid-column: 2 }
+  main > header > figure { grid-column: 1 / -1; grid-row: auto }
+  #map ul { justify-content: center }
+}

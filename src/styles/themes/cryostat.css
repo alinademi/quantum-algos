@@ -1,0 +1,29 @@
+@import url("https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Unbounded:wght@400;500&family=Geist+Mono:wght@400;500&display=swap");
+/* Cryostat: inside the fridge. Deep cold dark, gold-plated stages. Dark only, by choice. */
+:root {
+  color-scheme: dark;
+  --font-display: "Unbounded", system-ui, sans-serif;
+  --font-body: "Figtree", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+  --display-weight: 400; --display-tracking: -.01em; --radius: 14px; --line-width: 6;
+  --bg: #05080d;
+  --surface: #0b1119;
+  --ink: #e7ecf3;
+  --muted: #98a4b7;
+  --line: #1e2938;
+  --accent: #e8b65c;
+  --on-accent: #1a1204;
+  --physics: #6aa9ff;
+  --gates: #ff6b81;
+  --algorithms: #4fd1a5;
+  --hardware: #f59e5b;
+  --crypto: #b794ff;
+}
+body { background: radial-gradient(70rem 40rem at 85% -10%, color-mix(in oklab, var(--accent) 13%, transparent), transparent 65%) no-repeat, var(--bg) }
+body > header { border-color: color-mix(in oklab, var(--accent) 30%, var(--line)) }
+h1 { font-size: clamp(2rem, 1.3rem + 3vw, 3.4rem) }
+section > article:has(a):hover { border-color: var(--accent) }
+#map polyline { filter: drop-shadow(0 0 5px var(--c)) }
+#map circle { fill: var(--surface) }
+#map a circle { fill: var(--accent) }
+fieldset label:has(:checked), button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent) }
