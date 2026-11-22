@@ -23,15 +23,16 @@ One concept graph. Many views.
 Not a "course". Learning area = **The Map**. Lessons = **stops**. Paths = **lines**.
 
 - **Regions** say what a stop is: Foundations, Gates and circuits, Algorithms, Protocols and crypto, Hardware and machines, Industry and business.
-- **Lines** say the order to learn: lit paths across regions ("Road to Shor"). A stop can sit on many lines, or none.
-- **3D graph:** regions are clusters in space, stops are small dot clouds, links are dotted. Click flies to a stop, hover lights its prerequisites, filter by region, light one line. Visited stops glow (localStorage).
-- **Self-updating:** every stop file declares region, lines, needs, terms. The build turns that into the graph and the word index.
+- **Lines** say the order to learn: paths across regions ("Road to Shor"). A stop can sit on many lines.
+- **The Map page is a catalog:** search box, region chips, "only stops on" line filter, and two views: By region (tiles) and By line (dotted tracks, top-down on phones).
+- **Tiles:** dot-cloud icon (more links, more dots), Open or Soon, learn first, leads to, line badges. Each tile has its own link (`/map#bb84`).
+- **Each stop page** shows where it sits: learn first, this stop, leads to.
+- **Self-updating:** every stop file declares region, lines, needs, terms. The build turns that into The Map, the word index and the home counts. Plain HTML, crawlable.
 - **Build checks the graph:** missing prerequisite or a loop fails the deploy.
-- **Fixed layout:** positions computed with a fixed seed, so the map never jumps between visits.
-- **Fallback:** phones and screen readers get the same data as region lists with line badges. Crawlable.
-- **Algorithms vs protocols:** protocols (teleportation, superdense coding, BB84, E91) are not algorithms.
-- Content draft: `docs/curriculum.md`.
-
+- **Search:** instant filter on The Map now. Pagefind for full-site search in Astro (index built at deploy, no server).
+- **Algorithms vs protocols:** protocols (teleportation, superdense coding, BB84, E91) are not algorithms. 12 algorithms plus 4 building blocks.
+- **Retired:** a 3D graph of dot clouds. Beautiful, but zoom and labels did not work on phones.
+- Content: `docs/curriculum.md`.
 ## Design: Shot Noise (chosen)
 
 In quantum physics you only ever see dots: one per measurement. Everything is drawn that way.
@@ -146,5 +147,5 @@ PostHog. Generous free tier. Billing cap at $0.
 
 1. Fix all fact-check findings in the Shot Noise sample.
 2. Review `docs/curriculum.md`.
-3. 3D map prototype with the curriculum data.
+3. Catalog Map prototype (done in the Shot Noise sample).
 4. Port Shot Noise into Astro.
