@@ -1,0 +1,63 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import MetroMap from '../components/MetroMap.astro';
+
+const posts = (await getCollection('posts')).sort((a, b) => +b.data.date - +a.data.date);
+const kit = [
+  ['Depth dial', 'Kid, Student or Engineer. Same lesson, told at your level.'],
+  ['Four ways', 'One state as words, ket, matrix and circuit. Move one and all four follow.'],
+  ['Guess, then run', 'Bet on the result, then run 1,000 shots and watch the bars fill.'],
+  ['Scrubber', 'Step through an algorithm like a video and see the state at every step.'],
+  ['Gate golf', 'Reach a target state in as few gates as you can.'],
+  ['Myth trap', 'Every lesson opens by breaking one common myth.'],
+];
+const terms = [
+  ['Qb', 'Qubit', 'physics', 'The basic unit. Measures as 0 or 1.'],
+  ['Sp', 'Superposition', 'physics', 'A mix of 0 and 1 with set odds.'],
+  ['Ms', 'Measurement', 'physics', 'Reading a qubit. Gives one answer.'],
+  ['En', 'Entanglement', 'physics', 'Qubits whose results stay linked.'],
+  ['H', 'Hadamard', 'gates', 'The gate that makes an even split.'],
+  ['Cx', 'CNOT', 'gates', 'Flips one qubit when another is 1.'],
+  ['Gr', 'Grover', 'algorithms', 'Search faster than checking one by one.'],
+  ['Dc', 'Decoherence', 'hardware', 'Noise that wipes out quantum states.'],
+];
+const date = (d: Date) => d.toLocaleDateString('en', { year: 'numeric', month: 'long', day: 'numeric' });
+---
+<Base description="Free, hands-on quantum computing lessons, from your first qubit to Shor's algorithm. Every lesson runs a live simulator in your browser.">
+  <header>
+    <h1>Learn quantum computing by running it.</h1>
+    <p>Free, hands-on lessons on 5 lines and 16 stops, from your first qubit to Shor's algorithm. Every lesson runs a live simulator in your browser.</p>
+    <p><a class="cta" href="/learn/superposition/">Start with superposition</a> <a href="#kit">How lessons work</a></p>
+    <MetroMap />
+  </header>
+
+  <section aria-labelledby="kit">
+    <h2 id="kit">What every lesson gives you</h2>
+    {kit.map(([name, text]) => <article><h3>{name}</h3><p>{text}</p></article>)}
+  </section>
+
+  <section aria-labelledby="terms">
+    <h2 id="terms">Quantum words, A to Z</h2>
+    <p>Every term gets a tile and a live demo. Tile colors match the map lines.</p>
+    <dl>
+      {terms.map(([sym, name, line, text]) => (
+        <div style={`--c: var(--${line})`}>
+          <dt><abbr title={name}>{sym}</abbr> {name}</dt>
+          <dd>{text}</dd>
+        </div>
+      ))}
+    </dl>
+  </section>
+
+  <section aria-labelledby="blog">
+    <h2 id="blog">From the blog</h2>
+    {posts.map((p) => (
+      <article>
+        <h3><a href={`/blog/${p.id}/`}>{p.data.title}</a></h3>
+        <p>{p.data.description}</p>
+        <p><time datetime={p.data.date.toISOString()}>{date(p.data.date)}</time></p>
+      </article>
+    ))}
+  </section>
+</Base>
