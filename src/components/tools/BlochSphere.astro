@@ -1,0 +1,266 @@
+---
+// One qubit state set by two angles, drawn as the point its amplitudes give on the Bloch sphere, plus 100 Born-rule measurements on fresh copies.
+import { NAMED, COPIES, ket, vecText, pointOf, describe, odds, percents } from '../../lib/sims/bloch.ts';
+const uid = 'bs-' + Math.random().toString(36).slice(2, 8);
+const T0 = 60, P0 = 90, YAW = 30, TILT = 20;
+const [p0] = percents(odds(T0, P0)[0]);
+---
+<qce-bloch-sphere class="tool">
+  <div class="cols">
+    <div class="stage">
+      <canvas aria-hidden="true"></canvas>
+      <p class="key">Faint dots only draw the sphere; they are not measurements. The large dot is the state. Arcs mark θ, down from |0⟩, and φ, around from |+⟩. Under the sphere, each of the {COPIES} dots is a fresh copy measured once: filled gave 0, open gave 1. Each copy keeps its own random draw, so moving θ flips dots instead of re-rolling them. A named state slides into place only so you can follow it; the path is not a gate. Drag the sphere, or use the view sliders, to turn it. Numbers are rounded.</p>
+    </div>
+
+    <div class="tool-controls">
+      <fieldset>
+        <legend class="label">The state</legend>
+        <div class="slider">
+          <div class="row"><label for={`${uid}-t`}>θ, down from |0⟩</label><output for={`${uid}-t`} data-out="theta">{T0}°</output></div>
+          <input id={`${uid}-t`} name="theta" type="range" min="0" max="180" step="1" value={T0} aria-valuetext={`${T0} degrees. Odds of 0: ${p0}.`} />
+        </div>
+        <div class="slider">
+          <div class="row"><label for={`${uid}-p`}>φ, around from |+⟩ toward |+i⟩</label><output for={`${uid}-p`} data-out="phi">{P0}°</output></div>
+          <input id={`${uid}-p`} name="phi" type="range" min="0" max="359" step="1" value={P0} aria-valuetext={`${P0} degrees.`} />
+        </div>
+        <div class="named">
+          <span class="label" id={`${uid}-n`}>Named states</span>
+          <div class="presets" role="group" aria-labelledby={`${uid}-n`}>
+            {NAMED.map((n) => (
+              <button type="button" data-name={n.name} data-theta={n.theta} data-phi={n.phi} aria-pressed="false">{n.name}<span class="visually-hidden">: θ {n.theta}°, φ {n.phi}°</span></button>
+            ))}
+          </div>
+        </div>
+      </fieldset>
+
+      <dl class="views">
+        <div><dt class="label">State</dt><dd><code data-ket>{ket(T0, P0)}</code></dd></div>
+        <div><dt class="label">Point (x, y, z)</dt><dd><code data-vec>{vecText(pointOf(T0, P0))}</code></dd></div>
+      </dl>
+
+      <fieldset>
+        <legend class="label">The view</legend>
+        <div class="slider">
+          <div class="row"><label for={`${uid}-y`}>Turn</label><output for={`${uid}-y`} data-out="yaw">{YAW}°</output></div>
+          <input id={`${uid}-y`} name="yaw" type="range" min="0" max="359" step="1" value={YAW} />
+        </div>
+        <div class="slider">
+          <div class="row"><label for={`${uid}-l`}>Tilt</label><output for={`${uid}-l`} data-out="tilt">{TILT}°</output></div>
+          <input id={`${uid}-l`} name="tilt" type="range" min="-90" max="90" step="1" value={TILT} />
+        </div>
+      </fieldset>
+
+      <button type="button" class="btn btn-sm btn-line again">Measure {COPIES} new copies</button>
+    </div>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">{describe(T0, P0)}</p>
+</qce-bloch-sphere>
+
+<script>
+  import {
+    NAMED, COPIES, pointOf, point, odds, nameAt, results, zerosIn, ket, vecText, percents, describe,
+    between, camera, project, spherePoints, wrap, type Vec,
+  } from '../../lib/sims/bloch.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  // Drawing only: these dots draw the sphere, its equator and axes. They are not states or shots.
+  const SURFACE = spherePoints(640);
+  const EQUATOR = Array.from({ length: 120 }, (_, k) => point(90, k * 3));
+  const AXES: Vec[] = [];
+  for (let k = 0; k < 3; k++) for (let i = -20; i <= 20; i++) { const v: Vec = [0, 0, 0]; v[k] = i / 20; AXES.push(v); }
+  const ROWS = 5, COLS = COPIES / ROWS, GLIDE = 450; // GLIDE: ms for a preset to slide into place
+  const times = (v: Vec, k: number): Vec => [v[0] * k, v[1] * k, v[2] * k];
+
+  type Item = { d: number; x: number; y: number; r: number; color: string; a: number; halo?: boolean };
+
+  class BlochSphere extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const canvas = $<HTMLCanvasElement>('canvas');
+      const input = (n: string) => $<HTMLInputElement>(`input[name="${n}"]`);
+      const output = (n: string) => $<HTMLOutputElement>(`[data-out="${n}"]`);
+      const tIn = input('theta'), pIn = input('phi'), yIn = input('yaw'), lIn = input('tilt');
+      const presets = [...this.querySelectorAll<HTMLButtonElement>('[data-name]')];
+      const ketEl = $('[data-ket]'), vecEl = $('[data-vec]'), readout = $('.tool-readout');
+      const still = reduceMotion();
+
+      let ctx: CanvasRenderingContext2D | null = null, w = 0, h = 0, col = palette();
+      let theta = +tIn.value, phi = +pIn.value, yaw = +yIn.value, tilt = +lIn.value;
+      // One fixed uniform draw per copy, so the batch stays the same batch while the angles move.
+      let us = Array.from({ length: COPIES }, () => Math.random());
+      let shots = results(us, odds(theta, phi)[0]);
+      let seen = false, anim = 0, pending = 0;
+
+      function draw() {
+        if (!ctx || !w) return;
+        const g = ctx, cx = w / 2, cy = w / 2, R = w / 2 - (14 + 0.07 * w), u = R / 100;
+        const cam = camera(yaw, tilt), items: Item[] = [];
+        const put = (p: Vec, r: number, color: string, a = 1, lift = 0, halo = false) => {
+          const s = project(p, cam);
+          items.push({ d: s.depth + lift, x: cx + R * s.x, y: cy - R * s.y, r, color, a, halo });
+        };
+        const shade = (p: Vec, back: number, front: number) => { const d = project(p, cam).depth; return back + ((front - back) * (d + 1)) / 2; };
+        const line = (a: Vec, b: Vec, r: number, color: string, a0 = 0.9) => {
+          const n = Math.max(2, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) * 24));
+          for (let i = 0; i <= n; i++) { const f = i / n; put([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f], r, color, a0, 0.001); }
+        };
+        g.clearRect(0, 0, w, h);
+
+        // The sphere: an outline, surface dots (fainter at the back), the equator and the three axes.
+        for (let k = 0; k < 144; k++) dot(g, cx + R * Math.cos((k * Math.PI) / 72), cy + R * Math.sin((k * Math.PI) / 72), Math.max(0.6, u * 0.6), col.rule);
+        for (const p of SURFACE) put(p, Math.max(0.6, u * 0.85), col.ink2, shade(p, 0.12, 0.42));
+        for (const p of EQUATOR) put(p, Math.max(0.7, u * 0.95), col.ink2, shade(p, 0.3, 0.85));
+        for (const p of AXES) put(p, Math.max(0.7, u * 0.9), col.ink2, shade(p, 0.3, 0.85));
+
+        // The state, from its amplitudes, and the guides that show its two angles.
+        const v = pointOf(theta, phi), side = theta > 0 && theta < 180;
+        line([0, 0, 0], v, Math.max(1, u * 1.4), col.signal, 1);
+        if (side) {
+          const foot: Vec = [v[0], v[1], 0];
+          line([0, 0, 0], foot, Math.max(0.7, u * 0.8), col.ink, 0.7);
+          if (Math.abs(v[2]) > 0.04) line(foot, v, Math.max(0.7, u * 0.8), col.ink, 0.7);
+          for (let t = 0; t < phi; t += 4) put(times(point(90, t), 0.22), Math.max(0.8, u * 1.15), col.hot, 1, 0.002);
+        }
+        for (let t = 0; t < theta; t += 3) put(times(point(t, phi), 0.36), Math.max(0.8, u * 1.15), col.hot, 1, 0.002);
+        put(v, Math.max(4, u * 5.5), col.signal, 1, 0.05, true);
+
+        items.sort((a, b) => a.d - b.d);
+        for (const it of items) {
+          g.globalAlpha = it.a;
+          if (it.halo) dot(g, it.x, it.y, it.r + 2, col.plate);
+          dot(g, it.x, it.y, it.r, it.color);
+        }
+        g.globalAlpha = 1;
+
+        // Labels: the six named states at the axis ends, then θ and φ beside their arcs.
+        const fs = Math.round(Math.min(14, Math.max(11, R * 0.11)));
+        const sv = project(v, cam), sx = cx + R * sv.x, sy = cy - R * sv.y, clear = Math.max(4, u * 5.5) + 4;
+        const label = (p: Vec, text: string, color: string, font: string) => {
+          const s = project(p, cam);
+          g.font = font; g.textAlign = 'center'; g.textBaseline = 'middle';
+          const half = g.measureText(text).width / 2 + 2;
+          // A label never covers the state: slide it outward from the center until it clears the large dot.
+          let lx = cx + R * s.x, ly = cy - R * s.y;
+          const k = Math.hypot(lx - cx, ly - cy) || 1, ux = (lx - cx) / k || 0, uy = (ly - cy) / k || -1;
+          for (let i = 0; i < 24 && Math.abs(lx - sx) < half + clear && Math.abs(ly - sy) < fs / 2 + clear; i++) { lx += ux * 3; ly += uy * 3; }
+          const x = Math.min(w - half, Math.max(half, lx)), y = Math.min(w - fs, Math.max(fs, ly));
+          g.lineWidth = 4; g.lineJoin = 'round'; g.strokeStyle = col.plate; g.strokeText(text, x, y);
+          g.fillStyle = color; g.fillText(text, x, y);
+        };
+        const mono = `500 ${fs}px ${token('--mono')}`, sans = `italic 600 ${fs + 2}px ${token('--sans')}`;
+        for (const n of NAMED) label(times(point(n.theta, n.phi), 1.2), n.name, col.ink, mono);
+        if (theta >= 16) label(times(point(theta / 2, phi), 0.5), 'θ', col.hot, sans);
+        if (side && phi >= 24) label(times(point(90, phi / 2), 0.38), 'φ', col.hot, sans);
+
+        // The batch: one dot per fresh copy measured once. Filled gave 0, open gave 1.
+        const top = w + 4, pitch = Math.min((w - 16) / COLS, (h - top - 4) / ROWS, 16), r = pitch * 0.36;
+        const x0 = (w - COLS * pitch) / 2 + pitch / 2;
+        g.lineWidth = Math.max(1, pitch * 0.12); g.strokeStyle = col.ink2;
+        shots.forEach((s, i) => {
+          const x = x0 + (i % COLS) * pitch, y = top + (Math.floor(i / COLS) + 0.5) * pitch;
+          if (s === 0) dot(g, x, y, r, col.signal);
+          else { g.beginPath(); g.arc(x, y, r - g.lineWidth / 2, 0, Math.PI * 2); g.stroke(); }
+        });
+      }
+
+      const redraw = () => { if (!pending) pending = requestAnimationFrame(() => { pending = 0; draw(); }); };
+
+      // Show the state at whole-degree angles. quiet: skip the spoken readout (while a preset glides).
+      const show = (t: number, p: number, quiet = false) => {
+        theta = t; phi = wrap(p);
+        const p0 = odds(theta, phi)[0], pole = theta === 0 || theta === 180;
+        shots = results(us, p0);
+        tIn.value = String(theta); pIn.value = String(phi);
+        output('theta').textContent = `${theta}°`; output('phi').textContent = `${phi}°`;
+        tIn.setAttribute('aria-valuetext', `${theta} degrees. Odds of 0: ${percents(p0)[0]}.`);
+        pIn.setAttribute('aria-valuetext', `${phi} degrees.${pole ? ' At a pole, φ does not move the point.' : ''}`);
+        ketEl.textContent = ket(theta, phi);
+        vecEl.textContent = vecText(pointOf(theta, phi));
+        const name = nameAt(theta, phi);
+        presets.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.name === name)));
+        if (!quiet) readout.textContent = describe(theta, phi, zerosIn(shots));
+        draw();
+      };
+
+      const showView = () => {
+        yIn.value = String(wrap(Math.round(yaw))); lIn.value = String(Math.round(tilt));
+        output('yaw').textContent = `${yIn.value}°`; output('tilt').textContent = `${lIn.value}°`;
+        yIn.setAttribute('aria-valuetext', `${yIn.value} degrees`);
+        lIn.setAttribute('aria-valuetext', `${Math.abs(+lIn.value)} degrees ${+lIn.value < 0 ? 'below' : 'above'} the equator`);
+      };
+
+      const stop = () => { if (anim) { cancelAnimationFrame(anim); anim = 0; } };
+
+      // Presets slide along the sphere so the eye can follow. The path is only for the eye: it is not a gate.
+      const go = (t: number, p: number) => {
+        stop();
+        if (still || !seen) return show(t, p);
+        const from = { theta, phi }, to = { theta: t, phi: p }, t0 = performance.now();
+        const step = (now: number) => {
+          const f = Math.min(1, (now - t0) / GLIDE), m = between(from, to, f * f * (3 - 2 * f));
+          show(m.theta, m.phi, f < 1);
+          anim = f < 1 ? requestAnimationFrame(step) : 0;
+        };
+        anim = requestAnimationFrame(step);
+      };
+
+      tIn.addEventListener('input', () => { stop(); show(+tIn.value, phi); });
+      pIn.addEventListener('input', () => { stop(); show(theta, +pIn.value); });
+      presets.forEach((b) => b.addEventListener('click', () => go(+b.dataset.theta!, +b.dataset.phi!)));
+      yIn.addEventListener('input', () => { yaw = +yIn.value; showView(); redraw(); });
+      lIn.addEventListener('input', () => { tilt = +lIn.value; showView(); redraw(); });
+      $('.again').addEventListener('click', () => { stop(); us = us.map(() => Math.random()); show(theta, phi); });
+
+      // Drag to turn the view. Sideways turns it, up and down tilts it. The view sliders do the same by keyboard.
+      let drag: { x: number; y: number } | null = null;
+      canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); });
+      canvas.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        yaw = wrap(yaw - (e.clientX - drag.x) * 0.6);
+        // On touch, up and down scrolls the page, so only a mouse or pen tilts.
+        if (e.pointerType !== 'touch') tilt = Math.max(-90, Math.min(90, tilt + (e.clientY - drag.y) * 0.6));
+        drag = { x: e.clientX, y: e.clientY };
+        showView(); redraw();
+      });
+      for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.addEventListener(t, () => { drag = null; });
+
+      const size = () => { ({ ctx, w, h } = fit(canvas)); draw(); };
+      onResize(canvas, size);
+      onTheme(() => { col = palette(); draw(); });
+      onSeen(this, (v) => { seen = v; });
+      showView(); size(); show(theta, phi);
+    }
+  }
+  customElements.define('qce-bloch-sphere', BlochSphere);
+</script>
+
+<style>
+  qce-bloch-sphere { display: grid; container-type: inline-size }
+  .cols { display: grid; gap: var(--s4); min-width: 0 }
+  .stage { display: grid; gap: var(--s3); align-content: start; min-width: 0 }
+  canvas { aspect-ratio: 4 / 5; max-width: 26rem; justify-self: center; touch-action: pan-y; cursor: grab }
+  canvas:active { cursor: grabbing }
+  .key { font-size: .875rem; color: var(--ink-2); max-width: var(--read) }
+  .tool-controls { display: grid; gap: var(--s4); align-content: start; align-items: start; min-width: 0 }
+  fieldset { display: grid; gap: var(--s3); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { padding: 0; margin-bottom: var(--s2) }
+  .slider { display: grid; gap: var(--s1); min-width: 0 }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2) }
+  .row output { flex: none; font-size: 1.25rem }
+  .named { display: grid; gap: var(--s2) }
+  .presets { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .presets button { min-width: 3.5rem; min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer }
+  .presets button:hover { border-color: var(--ink) }
+  .presets button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .views { display: grid; gap: var(--s3) }
+  .views div { display: grid; gap: var(--s1); min-width: 0 }
+  dd { margin: 0; font-size: 1.0625rem; overflow-wrap: anywhere }
+  .again { justify-self: start }
+  .tool-readout { min-height: 6.4em }
+  @container (min-width: 38rem) {
+    .cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--s5); align-items: start }
+    canvas { max-width: none }
+    .tool-readout { min-height: 4.8em }
+  }
+</style>
