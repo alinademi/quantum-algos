@@ -1,0 +1,31 @@
+/* Design tokens: every color, font, size and space on the site. Change them here only. */
+:root {
+  --paper: #f2f2ef; --plate: #e7e8e3; --ink: #111316; --ink-2: #4b5058; --rule: #c6c8c1;
+  --signal: #2438f0; --on-signal: #ffffff; --hot: #b42f0c;
+  --physics: #2438f0; --gates: #c8360e; --algorithms: #0f7a55; --hardware: #9a630b; --crypto: #5c6672;
+  --r-foundations: var(--physics); --r-circuits: var(--gates); --r-algorithms: var(--algorithms); --r-protocols: var(--hardware); --r-hardware: var(--teal); --r-industry: var(--crypto); --teal: #0b6e82;
+  --r-math: #8b5a2b; --r-theory: #6b7a00; --r-information: #8b3a8b; --r-networks: #b0306a; --r-qec: #2f5d8a; --r-software: #4a5a9a;
+  --sans: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --dots: "Doto", var(--mono);
+  --max: 78rem; --read: 40rem; --gut: 1rem;
+  --s1: .25rem; --s2: .5rem; --s3: 1rem; --s4: 1.5rem; --s5: 2.5rem; --s6: 4rem; --s7: 6rem;
+  --r: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0c0d0f; --plate: #060708; --ink: #ecede8; --ink-2: #a2a7ae; --rule: #2d3035;
+    --signal: #8291ff; --on-signal: #0c0d0f; --hot: #ff7a52;
+    --physics: #8291ff; --gates: #ff7a52; --algorithms: #3fcf97; --hardware: #e2a33c; --crypto: #9aa4b0; --teal: #45c3d8;
+    --r-math: #d9a066; --r-theory: #c5d24a; --r-information: #d38fd3; --r-networks: #ff7fb0; --r-qec: #8fb6e6; --r-software: #a3b0f0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0c0d0f; --plate: #060708; --ink: #ecede8; --ink-2: #a2a7ae; --rule: #2d3035;
+  --signal: #8291ff; --on-signal: #0c0d0f; --hot: #ff7a52;
+  --physics: #8291ff; --gates: #ff7a52; --algorithms: #3fcf97; --hardware: #e2a33c; --crypto: #9aa4b0; --teal: #45c3d8;
+  --r-math: #d9a066; --r-theory: #c5d24a; --r-information: #d38fd3; --r-networks: #ff7fb0; --r-qec: #8fb6e6; --r-software: #a3b0f0;
+  color-scheme: dark;
+}

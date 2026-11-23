@@ -1,0 +1,12 @@
+---
+import { nav } from './nav.ts';
+---
+<footer class="wrap foot">
+  <p>© 2026 Quantum Computing Era</p>
+  <nav aria-label="Footer">{nav.map((n) => <a href={n.href}>{n.label}</a>)}</nav>
+</footer>
+
+<style>
+  .foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s3); padding-block: var(--s5); color: var(--ink-2); font-size: .9375rem }
+  nav { display: flex; gap: var(--s4) }
+</style>

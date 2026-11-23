@@ -1,162 +1,48 @@
-/* Quantum Computing Era. Classless: style elements; data-* only for state and widgets; one class (.cta).
-   Mobile first. Breakpoints are min-width only: 40rem, 64rem. Nothing else.
-   Themes (themes/*.css) set fonts, colors and shape tokens. This file uses tokens only. */
+/* Base styles shared by every page. Component styles live in each component.
+   Mobile first: min-width breakpoints only (40rem, 64rem). */
+@import './tokens.css';
 
-:root {
-  --s1: .25rem; --s2: .5rem; --s3: 1rem; --s4: 1.5rem; --s5: 2.5rem; --s6: 4rem;
-  --t-1: .875rem; --t0: 1.0625rem; --t1: 1.25rem;
-  --t2: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
-  --t3: clamp(2.25rem, 1.5rem + 3.2vw, 3.75rem);
-  --measure: 65ch; --max: 76rem; --gutter: 1rem;
-  --radius: .5rem; --rule: 1px;
-  --display-weight: 700; --display-tracking: -.02em;
-}
-
-/* Base */
 *, *::before, *::after { box-sizing: border-box }
-body { margin: 0; background: var(--bg); color: var(--ink); font: var(--t0)/1.6 var(--font-body); -webkit-text-size-adjust: 100% }
-body > * {
-  padding-left: max(var(--gutter), env(safe-area-inset-left, 0px), (100% - var(--max)) / 2);
-  padding-right: max(var(--gutter), env(safe-area-inset-right, 0px), (100% - var(--max)) / 2);
-}
-h1, h2, h3, p, ul, ol, dl, dd, figure, blockquote { margin: 0 }
-h1, h2, h3 { font-family: var(--font-display); font-weight: var(--display-weight); letter-spacing: var(--display-tracking); line-height: 1.1; text-wrap: balance }
-h1 { font-size: var(--t3) }
-h2 { font-size: var(--t2) }
-h3 { font-size: var(--t1) }
-a { color: var(--accent); text-underline-offset: .2em; text-decoration-thickness: 1px }
+html { -webkit-text-size-adjust: 100% }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 1.0625rem/1.6 var(--sans); font-feature-settings: "ss01" }
+h1, h2, h3, h4, p, ul, ol, dl, dd, figure { margin: 0 }
+ul, ol { padding: 0; list-style: none }
+h1, h2, h3, h4 { font-weight: 600; line-height: 1.04; letter-spacing: -.035em; text-wrap: balance }
+a { color: inherit; text-underline-offset: .22em; text-decoration-thickness: 1px }
 a:hover { text-decoration-thickness: 2px }
-:focus-visible { outline: 3px solid var(--focus, var(--accent)); outline-offset: 3px }
-code { font: .95em var(--font-mono) }
-math[display="block"] { overflow-x: auto; padding-block: var(--s2) }
-blockquote { padding-left: var(--s4); border-left: 3px solid var(--line); font-size: var(--t1) }
-svg { max-width: 100% }
+:focus-visible { outline: 3px solid var(--signal); outline-offset: 3px; border-radius: 4px }
+img, svg, canvas { display: block; max-width: 100% }
+code { font: 500 .92em var(--mono) }
+math[display="block"] { overflow-x: auto; padding-block: var(--s2); font-size: 1.2em }
 
-/* Skip link */
-body > a:first-child { position: absolute; left: -999rem }
-body > a:first-child:focus { left: var(--s3); top: var(--s3); z-index: 1; padding: var(--s2) var(--s3); background: var(--surface) }
+.wrap { width: 100%; max-width: calc(var(--max) + 2 * var(--gut)); margin-inline: auto; padding-left: max(var(--gut), env(safe-area-inset-left, 0px)); padding-right: max(var(--gut), env(safe-area-inset-right, 0px)) }
+.doto { font-family: var(--dots); font-weight: 900; letter-spacing: .02em }
+.label { font: 500 .75rem/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2) }
+.skip { position: absolute; left: -999rem; z-index: 9; padding: var(--s2) var(--s3); background: var(--ink); color: var(--paper) }
+.skip:focus { left: var(--s3); top: var(--s3) }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap }
 
-/* Site header and footer */
-body > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s3); padding-block: var(--s3); border-bottom: var(--rule) solid var(--line) }
-body > header > a { display: inline-flex; align-items: center; gap: var(--s2); color: inherit; text-decoration: none; font: var(--display-weight) var(--t0)/1.1 var(--font-display); letter-spacing: var(--display-tracking) }
-body > header svg { color: var(--accent) }
-nav { display: flex; flex-wrap: wrap; gap: var(--s3) }
-nav a { color: inherit; text-decoration: none }
-nav a:hover, nav [aria-current] { text-decoration: underline; text-underline-offset: .35em }
-nav ol { display: flex; flex-wrap: wrap; gap: var(--s2); padding: 0; list-style: none; font-size: var(--t-1); color: var(--muted) }
-nav li + li::before { content: "/"; margin-right: var(--s2) }
-body > footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s3); padding-block: var(--s5); border-top: var(--rule) solid var(--line); color: var(--muted); font-size: var(--t-1) }
+/* Buttons: used by pages and tools */
+.btn { display: inline-flex; align-items: center; gap: .6em; min-height: 3rem; padding: 0 1.4rem; border: 0; border-radius: var(--r); background: var(--ink); color: var(--paper); font: 600 1rem/1 var(--sans); text-decoration: none; cursor: pointer; transition: background .2s, transform .15s }
+.btn:hover { background: var(--signal); color: var(--on-signal) }
+.btn:active { transform: translateY(1px) }
+.btn:disabled { opacity: .45; cursor: not-allowed; background: var(--ink); color: var(--paper) }
+.btn-sm { min-height: 2.75rem; padding: 0 1rem; font-size: .9375rem }
+.btn-line { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink) }
+.btn-line:hover { background: var(--ink); color: var(--paper) }
 
-/* Page */
-main { display: grid; gap: var(--s6); padding-block: var(--s5) var(--s6) }
+/* Live tools: the shared frame every tool uses. Each tool adds its own scoped styles. */
+.tool { display: grid; gap: var(--s4); min-width: 0 }
+.tool canvas { width: 100% }
+.tool-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3) }
+.tool-readout { min-height: 1.6em; font-size: 1.0625rem; max-width: var(--read) }
+.tool input[type="range"] { width: 100%; height: 2.75rem; accent-color: var(--signal); cursor: pointer }
+.tool label { font-weight: 600 }
+.tool output { font: 500 1rem var(--mono) }
 
-/* Hero: the page header right under main */
-main > header { display: grid; gap: var(--s4); align-items: center }
-main > header > p:first-of-type { max-width: 42ch; font-size: var(--t1); color: var(--muted) }
-main > header > p:has(a) { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4) }
-
-/* Sections: articles flow as cards, everything else spans the row */
-/* max(..., 30%) caps rows at 3 cards so 6 cards never leave one alone */
-section { display: grid; gap: var(--s4); grid-template-columns: repeat(auto-fill, minmax(max(min(17rem, 100%), 30%), 1fr)) }
-section > :not(article) { grid-column: 1 / -1 }
-section > h2 + p { max-width: var(--measure); color: var(--muted) }
-article { display: grid; gap: var(--s3); align-content: start; min-width: 0 }
-section > article { position: relative; padding: var(--s4); background: var(--surface); border: var(--rule) solid var(--line); border-radius: var(--radius); transition: transform .2s, border-color .2s }
-section > article p { color: var(--muted) }
-section > article h3 a { color: inherit; text-decoration: none }
-section > article h3 a::after { content: ""; position: absolute; inset: 0 }
-section > article:has(a):hover { transform: translateY(-2px); border-color: var(--ink) }
-
-/* Prose: lessons and posts */
-main > article { width: min(100%, 48rem); margin-inline: auto }
-main > article > h2 { margin-top: var(--s4) }
-article > header { display: grid; gap: var(--s3) }
-article > header > p:first-of-type { font-size: var(--t1) }
-article > header > p + p, article > footer { color: var(--muted); font-size: var(--t-1) }
-
-/* Term tiles. --c is the map line color */
-dl { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fill, minmax(max(min(10rem, 100%), 22%), 1fr)) }
-dl > div { display: grid; gap: var(--s1); align-content: start; min-width: 0; padding: var(--s3); background: var(--surface); border: var(--rule) solid var(--line); border-top: 4px solid var(--c, var(--line)); border-radius: var(--radius) }
-dt { font-weight: 700 }
-dt abbr { display: block; font: var(--display-weight) var(--t2)/1 var(--font-display); text-decoration: none }
-dd { color: var(--muted); font-size: var(--t-1); overflow-wrap: anywhere }
-
-/* Myth trap */
-aside { display: grid; gap: var(--s2); padding: var(--s4); background: var(--surface); border-left: 4px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0 }
-aside strong { color: var(--accent) }
-
-/* Controls */
-button, .cta { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0 var(--s4); border: var(--rule) solid var(--accent); border-radius: var(--radius); background: var(--accent); color: var(--on-accent); font: 600 var(--t0)/1 var(--font-body); text-decoration: none; cursor: pointer; transition: transform .15s }
-button:hover, .cta:hover { transform: translateY(-1px) }
-button:active, .cta:active { transform: translateY(1px) }
-button:disabled { opacity: .5; cursor: not-allowed; transform: none }
-button[aria-pressed] { min-height: 2.25rem; padding: 0 var(--s3); background: transparent; color: var(--ink); border-color: var(--line); font-family: var(--font-mono) }
-button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink) }
-input[type="range"] { width: 100%; accent-color: var(--accent) }
-
-/* A fieldset of radios is a segmented control */
-fieldset { display: flex; flex-wrap: wrap; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
-legend { padding: 0; margin-bottom: var(--s2); color: var(--muted); font-size: var(--t-1) }
-fieldset label { position: relative; display: inline-flex; align-items: center; min-height: 2.25rem; padding: 0 var(--s3); border: var(--rule) solid var(--line); border-radius: 999px; font-size: var(--t-1); cursor: pointer }
-fieldset input { position: absolute; opacity: 0; pointer-events: none }
-fieldset label:has(:checked) { background: var(--ink); color: var(--bg); border-color: var(--ink) }
-fieldset label:has(:focus-visible) { outline: 3px solid var(--focus, var(--accent)); outline-offset: 2px }
-fieldset:disabled { opacity: .6 }
-
-/* Depth dial: only the picked level shows. All levels stay in the HTML for search engines. */
-[data-depth] { display: none }
-main:has([name="depth"][value="kid"]:checked) [data-depth="kid"],
-main:has([name="depth"][value="student"]:checked) [data-depth="student"],
-main:has([name="depth"][value="engineer"]:checked) [data-depth="engineer"] { display: grid; gap: var(--s3) }
-
-/* Course map */
-figure { display: grid; gap: var(--s3); min-width: 0 }
-#map > div { overflow-x: auto }
-#map svg { display: block; width: 100%; min-width: 36rem; height: auto }
-#map polyline { fill: none; stroke: var(--c); stroke-width: var(--line-width, 8); stroke-linecap: round; stroke-linejoin: round }
-#map circle { fill: var(--bg); stroke: var(--ink); stroke-width: 2.5 }
-#map circle[r="9"] { stroke-width: 3.5 }
-#map text { fill: var(--muted); font: 600 13px var(--font-body) }
-#map a text { fill: var(--ink); text-decoration: underline }
-#map a circle { fill: var(--accent); stroke: var(--accent) }
-#map ul { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); padding: 0; list-style: none; font-size: var(--t-1) }
-#map li::before { content: ""; display: inline-block; width: 1.5em; height: .45em; margin-right: var(--s2); border-radius: 1em; background: var(--c); vertical-align: middle }
-#map li span { color: var(--muted) }
-
-/* Widgets */
-figure[data-widget] { gap: var(--s4); padding: var(--s4); background: var(--surface); border: var(--rule) solid var(--line); border-radius: var(--radius) }
-figure[data-widget] > label { display: flex; justify-content: space-between; font-weight: 600 }
-figure[data-widget] output { font: 400 var(--t0) var(--font-mono) }
-figure[data-widget] > p:has(button) { display: flex; flex-wrap: wrap; gap: var(--s2) }
-figure[data-widget] dl { grid-template-columns: repeat(auto-fill, minmax(max(min(13rem, 100%), 40%), 1fr)) }
-figure[data-widget] dl > div { background: var(--bg) }
-figure[data-widget] dt { font: 600 var(--t-1) var(--font-mono); color: var(--muted) }
-figure[data-widget] dd { color: var(--ink); font-size: var(--t0) }
-figure[data-widget] svg { display: block; width: 100%; max-width: 15rem; height: auto; fill: none; stroke: var(--ink); stroke-width: 2 }
-figure[data-widget] svg text { fill: var(--ink); stroke: none; font: 13px var(--font-mono) }
-figure[data-widget] table { border-collapse: separate; border-spacing: .6em .1em; border-inline: 2px solid var(--ink); border-radius: .6em; font-family: var(--font-mono) }
-figure[data-widget] ul { display: grid; gap: var(--s2); padding: 0; list-style: none; font-family: var(--font-mono); font-variant-numeric: tabular-nums }
-figure[data-widget] li { display: grid; grid-template-columns: 1.5ch 1fr 5ch; align-items: center; gap: var(--s3); text-align: right }
-figure[data-widget] li span { display: block; width: calc(var(--n) * 100%); height: 1.25rem; background: var(--accent); border-radius: 2px }
-
-/* Motion: hero enters once */
-@media (prefers-reduced-motion: no-preference) {
-  main > header > * { animation: rise .7s cubic-bezier(.2, .7, .2, 1) both }
-  main > header > figure { animation-delay: .15s }
-}
-@keyframes rise { from { opacity: 0; transform: translateY(12px) } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important }
 }
-
-/* Wide screens */
 @media (min-width: 40rem) {
-  :root { --gutter: 2rem }
-  body > header > a { font-size: var(--t1) }
-  nav { gap: var(--s4) }
-}
-@media (min-width: 64rem) {
-  main > header { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); column-gap: var(--s6) }
-  main > header > :not(figure) { grid-column: 1 }
-  main > header > figure { grid-column: 2; grid-row: 1 / span 3 }
+  :root { --gut: 2rem }
 }
