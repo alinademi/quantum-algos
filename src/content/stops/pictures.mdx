@@ -1,0 +1,66 @@
+---
+description: "Let the state change in time, or let the measurement change instead: the Schrödinger and Heisenberg pictures. Both give the same odds."
+answer: "The Schrödinger and Heisenberg pictures are two ways to write change in time in quantum theory. In the Schrödinger picture the state changes and observables stay fixed. In the Heisenberg picture the state stays fixed and observables change. Both give the same odds for every measurement."
+myth:
+  claim: "In the Heisenberg picture nothing happens, because the state never changes."
+  truth: "The state stays still, but the observables change in time, by just the amount that gives the same odds as the Schrödinger picture. Results change exactly as they do there."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import TwoPictures from '../../components/tools/TwoPictures.astro';
+
+<Depth level="kid">
+
+Draw a qubit as an arrow. Started as 0, it points straight up. A measurement picks a line and asks: does the arrow go with this end, or that one? The answer can be random. Its odds depend only on the angle between the arrow and the line.
+
+Now a steady push slowly turns the arrow. You can tell this story two ways. In one, the arrow turns and the line stays put. In the other, the arrow stays put and the line turns the other way. The angle between them is the same in both stories, so the odds are the same too. No test can tell the stories apart.
+
+It is like a photo of a toy. Turn the toy a quarter turn one way, or walk the camera a quarter turn around it the other way: same photo of the toy (the room behind it would change, so the picture only works for the toy).
+
+The arrow is only a picture. You never see it, only answers.
+
+</Depth>
+
+<Depth level="student">
+
+A qubit started as 0. A steady drive (a Hamiltonian) turns the state on the [Bloch sphere](/learn/bloch/), here about the x axis. Then you measure Z, which reads 0 or 1.
+
+**Schrödinger picture.** The state changes and the measurement stays fixed. After a 90° turn the state is (|0⟩ − i|1⟩)/√2: amplitudes of equal size for 0 and 1, so a measurement gives either with equal chance.
+
+**Heisenberg picture.** The state stays |0⟩, and the [observable](/learn/observables/) changes instead: it turns by the same angle, the other way. After the 90° turn, measuring Z gives the same odds as measuring Y on the start state, and Y on |0⟩ gives 50/50.
+
+Either way, the angle between the state and the measurement axis is the same, so the odds match. After a 60° turn that angle is 60°, and P(0) = cos²(30°) = 75% in both pictures.
+
+</Depth>
+
+<Depth level="engineer">
+
+For a time-independent $H$, let $U(t) = e^{-iHt/\hbar}$ ([time evolution](/learn/time-evolution/)). The Schrödinger picture moves the state, $|\psi(t)\rangle = U(t)|\psi\rangle$, and keeps each observable $A$ fixed. The Heisenberg picture keeps $|\psi\rangle$ and moves the observable:
+
+$$
+A_H(t) = U^\dagger(t)\,A\,U(t).
+$$
+
+Every prediction agrees: $\langle\psi(t)|A|\psi(t)\rangle = \langle\psi|A_H(t)|\psi\rangle$. So does the whole distribution, since each spectral projector $\Pi_a$ of $A$ becomes $U^\dagger\Pi_a U$, the projector of $A_H$ for the same result $a$. Taking $d/dt$ gives the Heisenberg equation (for an $A$ with no explicit time dependence):
+
+$$
+\frac{dA_H}{dt} = \frac{i}{\hbar}\,[H, A_H].
+$$
+
+If $[A, H] = 0$, then $A_H = A$ at all times: $A$ is conserved. Products keep their form, $(AB)_H = A_H B_H$, and so do [commutators](/learn/commutators/).
+
+For one qubit, take $H = \tfrac{\hbar\omega}{2}\,\hat n\cdot\vec\sigma$. Then $U$ turns Bloch vectors by $\omega t$ about $\hat n$, while $U^\dagger(\hat m\cdot\vec\sigma)\,U = (R_{\hat n}(-\omega t)\,\hat m)\cdot\vec\sigma$, where $R_{\hat n}(\alpha)$ turns a vector by $\alpha$ about $\hat n$. The state turns one way, the measurement axis the other, and
+
+$$
+P({+1}) = \tfrac12\bigl(1 + \hat m\cdot\vec r(t)\bigr)
+$$
+
+is the same either way. With $\hat n = \hat x$, $Z_H = \cos\omega t\,Z + \sin\omega t\,Y$, so started as 0, $P(0) = \tfrac12(1 + \cos\omega t)$.
+
+Gottesman's Heisenberg representation follows Pauli operators through a circuit as $N \mapsto UNU^\dagger$: whatever $N$ did to the old state, $UNU^\dagger$ does to the new state $U|\psi\rangle$. This is the inverse of the physics map $A \mapsto U^\dagger A U$. For a self-inverse gate such as $H$, which swaps $X$ and $Z$, the two agree; for $S$ they do not ($SXS^\dagger = Y$, $S^\dagger XS = -Y$). Under [Clifford gates](/learn/clifford-group/) a Pauli stays a Pauli, so a classical computer can follow a circuit of these gates and Pauli measurements on $n$ qubits started as all 0s in time polynomial in $n$. For noisy evolution, the Heisenberg picture uses the adjoint channel.
+
+</Depth>
+
+<Lab title="Turn the state, or the measurement" intro="The qubit started as 0. Move time forward: the left sphere turns the state, the right sphere turns the measurement the other way, and both give the same odds.">
+  <TwoPictures />
+</Lab>
