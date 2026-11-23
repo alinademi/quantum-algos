@@ -1,0 +1,254 @@
+---
+// Each run measures a simulated qubit with Born rule odds (|amplitude|²), then the same qubit or two fresh copies, so the jump to the result shows as repeats that always agree.
+import { prepare, born, ket, chance, amp } from '../../lib/sims/measurement.ts';
+const uid = 'ma-' + Math.random().toString(36).slice(2, 8);
+const B0 = 0.5, start = prepare(B0), [p0, p1] = born(start);
+const presets = [['|0⟩', 0, 'amplitude of 1 is 0'], ['|+⟩', Math.SQRT1_2, 'amplitude of 1 is 0.707'], ['|−⟩', -Math.SQRT1_2, 'amplitude of 1 is minus 0.707'], ['|1⟩', 1, 'amplitude of 1 is 1']] as const;
+---
+<qce-measure-again class="tool">
+  <div class="control">
+    <div class="row">
+      <label for={`${uid}-b`}>Amplitude of 1</label>
+      <output for={`${uid}-b`} class="doto">{amp(B0)}</output>
+    </div>
+    <input id={`${uid}-b`} type="range" min="-1" max="1" step="0.01" value={B0} aria-valuetext={`${amp(B0)}. Chance of 0: 75%, chance of 1: 25%.`} />
+    <p class="hint">The amplitude of 0 is set for you, √(1 − b²), so the chances add up to 100%. Here amplitudes are real; real qubits can also have complex ones.</p>
+    <div class="picks" role="group" aria-label="Preset states">
+      {presets.map(([name, b, said]) => (
+        <button type="button" class="pick" data-b={b} aria-pressed="false">{name}<span class="visually-hidden">, {said}</span></button>
+      ))}
+    </div>
+  </div>
+
+  <div class="state">
+    <p><code data-ket>|ψ⟩ = {ket(start)}</code></p>
+    <p data-odds>Chance of 0: {chance(start[0].re, p0)}. Chance of 1: {chance(start[1].re, p1)}.</p>
+  </div>
+
+  <fieldset class="mode">
+    <legend>After the first measurement, measure</legend>
+    <label><input type="radio" name={`${uid}-mode`} value="same" checked /> the same qubit twice more</label>
+    <label><input type="radio" name={`${uid}-mode`} value="fresh" /> two fresh copies</label>
+  </fieldset>
+
+  <div class="tool-controls">
+    <button type="button" class="btn btn-sm" data-run="1">Run once</button>
+    <button type="button" class="btn btn-sm" data-run="10">Run 10 times</button>
+    <button type="button" class="btn btn-sm btn-line" data-clear>Clear</button>
+  </div>
+
+  <figure>
+    <canvas aria-hidden="true"></canvas>
+    <figcaption>
+      <span class="key"><span class="k0">gave 0</span><span class="k1">gave 1</span><span class="kl" data-key-line>same qubit</span></span>
+      <span data-legend>Each column is one run: a new qubit in this state, measured three times, top to bottom. The line joins measurements of that one qubit.</span>
+    </figcaption>
+  </figure>
+
+  <dl class="tally">
+    <div><dt class="label">First result 0</dt><dd><b class="doto" data-n0>0</b> <span data-e0>expected about 0</span></dd></div>
+    <div><dt class="label">First result 1</dt><dd><b class="doto" data-n1>0</b> <span data-e1>expected about 0</span></dd></div>
+    <div><dt class="label">Repeats that matched</dt><dd><b class="doto" data-m>0 of 0</b> <span data-em>expected all</span></dd></div>
+  </dl>
+
+  <p class="tool-readout" aria-live="polite">The qubit is {ket(start)}. Born rule: 0 with chance 75%, 1 with chance 25%. Press Run to measure.</p>
+  <p class="note">A simulation of an ideal, noise-free qubit. Each result is drawn from your browser's random numbers with the Born rule odds. Changing the state or the mode clears the grid.</p>
+</qce-measure-again>
+
+<script>
+  import { prepare, born, run, tally, binomial, matchChance, ket, chance, percent, amp, about, type Bit, type Mode } from '../../lib/sims/measurement.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  /** Runs the grid holds; ms between new runs; ms between the three dots of a run; ms a new dot stays enlarged. */
+  const MAX = 100, STEP = 90, DELAY = 120, POP = 260;
+  type Shot = { bits: Bit[]; t: number };
+
+  /** Grid layout for a canvas width: columns per line, dot radius and spacing, and the canvas height. */
+  function layout(w: number) {
+    const cols = [50, 25, 20].find((n) => w / n >= 14) ?? 20;
+    const cell = w / cols, r = Math.max(2.5, Math.min(6, cell * 0.32)), v = 2 * r + 5, gap = 2 * r + 6, pad = r + 4;
+    const lines = Math.ceil(MAX / cols);
+    return { cols, cell, r, v, gap, pad, h: Math.ceil(2 * pad + lines * 3 * v + (lines - 1) * gap) };
+  }
+
+  class MeasureAgain extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const slider = $<HTMLInputElement>('input[type="range"]'), out = $<HTMLOutputElement>('output');
+      const picks = [...this.querySelectorAll<HTMLButtonElement>('[data-b]')];
+      const goes = [...this.querySelectorAll<HTMLButtonElement>('[data-run]')];
+      const canvas = $<HTMLCanvasElement>('canvas'), readout = $('.tool-readout');
+
+      let b = +slider.value, mode: Mode = 'same', shots: Shot[] = [], queue = 0, last = 0, raf = 0, seen = false, timer = 0;
+      let g = layout(0), ctx: CanvasRenderingContext2D | null = null, w = 0, h = 0;
+
+      const state = () => prepare(b);
+
+      function paint(now = performance.now()) {
+        if (!ctx) return;
+        const pal = palette(), { cols, cell, r, v, gap, pad } = g;
+        ctx.clearRect(0, 0, w, h);
+        for (let i = 0; i < MAX; i++) {
+          const x = (i % cols + 0.5) * cell, top = pad + Math.floor(i / cols) * (3 * v + gap), s = shots[i];
+          const shown = s ? [0, 1, 2].filter((k) => now >= s.t + k * DELAY).length : 0;
+          if (s && mode === 'same' && shown > 1) {
+            ctx.strokeStyle = pal.ink2; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(x, top + 0.5 * v); ctx.lineTo(x, top + (shown - 0.5) * v); ctx.stroke();
+          }
+          for (let k = 0; k < 3; k++) {
+            const y = top + (k + 0.5) * v;
+            if (k >= shown) { dot(ctx, x, y, Math.max(1, r * 0.3), pal.rule); continue; }
+            const age = now - (s!.t + k * DELAY), rr = r * (age < POP ? 1 + 0.5 * (1 - age / POP) : 1);
+            if (s!.bits[k] === 0) dot(ctx, x, y, rr, pal.signal);
+            else {
+              dot(ctx, x, y, rr, pal.plate);
+              ctx.strokeStyle = pal.ink2; ctx.lineWidth = Math.max(1.25, rr * 0.3);
+              ctx.beginPath(); ctx.arc(x, y, rr - ctx.lineWidth / 2, 0, Math.PI * 2); ctx.stroke();
+            }
+          }
+        }
+      }
+
+      function size() {
+        g = layout(canvas.getBoundingClientRect().width);
+        canvas.style.height = `${g.h}px`;
+        ({ ctx, w, h } = fit(canvas));
+        paint();
+      }
+
+      function count() {
+        const s = state(), [p0, p1] = born(s), t = tally(shots.map((x) => x.bits)), m = matchChance(s, mode);
+        $('[data-n0]').textContent = String(t.zeros);
+        $('[data-n1]').textContent = String(t.ones);
+        $('[data-e0]').textContent = `expected about ${about(binomial(t.runs, p0).mean)}`;
+        $('[data-e1]').textContent = `expected about ${about(binomial(t.runs, p1).mean)}`;
+        $('[data-m]').textContent = `${t.matches} of ${t.repeats}`;
+        $('[data-em]').textContent = mode === 'same' ? 'expected all' : `expected about ${percent(m)}`;
+        const full = shots.length + queue >= MAX;
+        goes.forEach((x) => x.setAttribute('aria-disabled', String(full)));
+        return { s, p0, p1, t, m };
+      }
+
+      function say() {
+        const { s, p0, p1, t, m } = count();
+        if (!t.runs) { readout.textContent = `The qubit is ${ket(s)}. Born rule: 0 with chance ${percent(p0)}, 1 with chance ${percent(p1)}. Press Run to measure.`; return; }
+        let txt = `${t.runs} ${t.runs === 1 ? 'run' : 'runs'}. First results: ${t.zeros} gave 0 and ${t.ones} gave 1. The Born rule odds predict about ${about(t.runs * p0)} and ${about(t.runs * p1)}. `;
+        if (mode === 'same') {
+          txt += t.matches === t.repeats
+            ? `${t.repeats === 2 ? 'Both' : `All ${t.repeats}`} repeats matched their first result: once measured, the qubit's state is just that result.`
+            : `${t.matches} of ${t.repeats} repeats matched their first result.`;
+        } else {
+          txt += `Fresh copies matched the first result ${t.matches} of ${t.repeats} times (${percent(t.matches / t.repeats)}); expected about ${percent(m)}. `;
+          txt += p0 * p1 === 0 ? 'This state always gives the same result, so even fresh copies agree.' : 'Each fresh copy is a new random draw.';
+        }
+        if (t.runs >= MAX) txt += ' The grid is full. Press Clear to start again.';
+        readout.textContent = txt;
+      }
+
+      const add = (t: number) => { shots.push({ bits: run(state(), mode, Math.random), t }); queue--; count(); };
+      /** Finish every queued run at once and draw the end state: for reduced motion, and when the tool is off screen. */
+      const flush = () => { while (queue > 0) add(-Infinity); shots.forEach((s) => { s.t = -Infinity; }); paint(); say(); };
+      const busy = (now: number) => queue > 0 || (shots.length > 0 && now < shots[shots.length - 1].t + 2 * DELAY + POP);
+
+      function frame(now: number) {
+        raf = 0;
+        if (!seen) { flush(); return; }
+        if (queue > 0 && now - last >= STEP) { add(now); last = now; }
+        paint(now);
+        if (busy(now)) raf = requestAnimationFrame(frame); else say();
+      }
+      const kick = () => { if (reduceMotion() || !seen) flush(); else if (!raf) raf = requestAnimationFrame(frame); };
+
+      function clear() {
+        shots = []; queue = 0;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        paint();
+      }
+
+      function setB(x: number, fromSlider = false) {
+        b = x;
+        if (!fromSlider) slider.value = String(Math.round(b * 100) / 100);
+        const s = state(), [p0, p1] = born(s);
+        out.textContent = amp(b);
+        slider.setAttribute('aria-valuetext', `${amp(b)}. Chance of 0: ${percent(p0)}, chance of 1: ${percent(p1)}.`);
+        $('[data-ket]').textContent = `|ψ⟩ = ${ket(s)}`;
+        $('[data-odds]').textContent = `Chance of 0: ${chance(s[0].re, p0)}. Chance of 1: ${chance(s[1].re, p1)}.`;
+        picks.forEach((p) => p.setAttribute('aria-pressed', String(Math.abs(+p.dataset.b! - b) < 1e-9)));
+        clear(); count();
+        // Speak the new state once the reader stops moving the slider, not on every step.
+        clearTimeout(timer); timer = window.setTimeout(say, 600);
+      }
+
+      function setMode(m: Mode) {
+        mode = m;
+        $('[data-key-line]').hidden = m !== 'same';
+        $('[data-legend]').textContent = m === 'same'
+          ? 'Each column is one run: a new qubit in this state, measured three times, top to bottom. The line joins measurements of that one qubit.'
+          : 'Each column is one run: three new qubits in this state, each measured once, top to bottom.';
+        clear(); say();
+      }
+
+      slider.addEventListener('input', () => setB(+slider.value, true));
+      picks.forEach((p) => p.addEventListener('click', () => setB(+p.dataset.b!)));
+      this.querySelectorAll<HTMLInputElement>('input[type="radio"]').forEach((x) => x.addEventListener('change', () => x.checked && setMode(x.value as Mode)));
+      goes.forEach((x) => x.addEventListener('click', () => {
+        const room = MAX - shots.length - queue;
+        if (room <= 0) { say(); return; }
+        queue += Math.min(+x.dataset.run!, room);
+        kick();
+      }));
+      $('[data-clear]').addEventListener('click', () => { clear(); say(); });
+
+      onResize(canvas, size);
+      onTheme(() => paint());
+      onSeen(this, (v) => { seen = v; if (!v && queue > 0) flush(); });
+      // Start from the controls as the page shows them: a browser can restore form values on going back.
+      setMode((this.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.value ?? 'same') as Mode);
+      setB(b, true);
+      clearTimeout(timer); say();
+    }
+  }
+  customElements.define('qce-measure-again', MeasureAgain);
+</script>
+
+<style>
+  .control { display: grid; gap: var(--s3) }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .row output { font: 900 2rem/1 var(--dots) }
+  .hint, .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  .picks { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .pick { min-width: 3rem; min-height: 2.75rem; padding: 0 .6rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer }
+  .pick:hover { border-color: var(--ink) }
+  .pick[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+
+  .state { display: grid; gap: var(--s1); padding: var(--s3); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); overflow-wrap: anywhere }
+  .state code { font-size: 1.0625rem }
+
+  .mode { display: grid; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  .mode legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  .mode label { display: flex; align-items: center; gap: var(--s2); min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); font-weight: 500; cursor: pointer }
+  .mode label:hover { border-color: var(--ink) }
+  .mode label:has(:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink) }
+  .mode input { width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--signal) }
+
+  [aria-disabled="true"] { opacity: .45; cursor: not-allowed }
+
+  figure { display: grid; gap: var(--s2); min-width: 0 }
+  figcaption { display: grid; gap: var(--s2); font-size: .9375rem; color: var(--ink-2) }
+  .key { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); font: 500 .875rem var(--mono) }
+  .key > span { display: inline-flex; align-items: center; gap: .4rem }
+  .key > span[hidden] { display: none }
+  .key > span::before { content: ""; flex: none; width: .75rem; height: .75rem; border-radius: 50% }
+  .key > .k0::before { background: var(--signal) }
+  .key > .k1::before { border: 2px solid var(--ink-2) }
+  .key > .kl::before { width: 2px; height: 1rem; border-radius: 0; background: var(--ink-2) }
+
+  .tally { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule) }
+  .tally > div { display: grid; align-content: start; gap: var(--s1); min-width: 0; padding: var(--s3); background: var(--paper) }
+  .tally dd { margin: 0; display: grid; gap: var(--s1); color: var(--ink-2); font-size: .9375rem }
+  .tally b { font-size: 1.75rem; line-height: 1; color: var(--ink) }
+
+  @media (min-width: 40rem) {
+    .mode { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  }
+</style>
