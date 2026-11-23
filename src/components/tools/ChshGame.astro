@@ -1,0 +1,316 @@
+---
+// Plays the CHSH game one round at a time: the entangled pair answers with Born rule odds computed on its state
+// vector, the hidden plan answers from a random arrow and its own dial only, so it can never beat 75%.
+import { BEST, winChance, chsh, percent } from '../../lib/sims/bell-test.ts';
+const uid = 'chsh-' + Math.random().toString(36).slice(2, 8);
+const deg = (t: number) => `${t < 0 ? '−' : ''}${Math.abs(t)}°`;
+const said = (t: number) => `${t < 0 ? 'minus ' : ''}${Math.abs(t)} degrees`;
+const sides = [
+  { who: 'Alice', key: 'a', vals: BEST.a },
+  { who: 'Bob', key: 'b', vals: BEST.b },
+] as const;
+const p0 = percent(winChance('quantum', BEST)), s0 = +chsh('quantum', BEST).toFixed(2);
+---
+<qce-chsh-game class="tool">
+  <canvas aria-hidden="true"></canvas>
+  <p class="key">Each dot is one round. The four boxes are the four question pairs, Alice's question first. In each box, the circle shows the two dials used for that pair (solid line: Alice, dotted line: Bob); the left pile holds rounds won, the right pile rounds lost. On the bottom line, from 0% to 100%, the dot is the share of rounds won and the ring is the exact prediction.</p>
+  <p class="key">A simulation of an ideal, noise-free pair, with no lost rounds. The pair is always (|00⟩ + |11⟩)/√2, and the dials turn in one plane only (real amplitudes, like the angle of a polarizing filter). For the entangled pair, your browser draws both answers in one place, so it sees both questions, which real players far apart cannot. The hidden plan's sides each answer from their own dial alone.</p>
+  <div class="tool-controls">
+    <fieldset class="mode">
+      <legend>The players share</legend>
+      <label><input type="radio" name={`${uid}-m`} value="quantum" checked /> an entangled pair</label>
+      <label><input type="radio" name={`${uid}-m`} value="hidden" /> a hidden plan (classical)</label>
+    </fieldset>
+    {sides.map((s) => (
+      <fieldset class="side">
+        <legend>{s.who}'s dial</legend>
+        {s.vals.map((v, i) => (
+          <div class="dial">
+            <div class="row"><label for={`${uid}-${s.key}${i}`}>If asked {i}</label><output for={`${uid}-${s.key}${i}`}>{deg(v)}</output></div>
+            <input id={`${uid}-${s.key}${i}`} type="range" min="-90" max="90" step="2.5" value={v} data-side={s.key} data-q={i} aria-valuetext={said(v)} />
+          </div>
+        ))}
+      </fieldset>
+    ))}
+    <div class="presets" role="group" aria-label="Set all four dials">
+      <button type="button" data-preset="best" aria-pressed="true">Best angles</button>
+      <button type="button" data-preset="same" aria-pressed="false">All at 0°</button>
+    </div>
+    <button type="button" class="btn btn-sm play">Play 250 rounds</button>
+  </div>
+  <p class="tool-readout" aria-live="polite">Entangled pair: both qubits started as 0, then a Hadamard gate and a CNOT made (|00⟩ + |11⟩)/√2. Dials: Alice 0° if asked 0 and 45° if asked 1; Bob 22.5° if asked 0 and −22.5° if asked 1. Predicted win chance: {p0} (S = {s0}). No plan fixed in advance can beat 75% (S = 2). Press Play to run rounds.</p>
+</qce-chsh-game>
+
+<script>
+  import {
+    BEST, SAME, PAIRS, TSIRELSON, CLASSICAL_MAX, between, pairWin, winChance, chsh, player, emptyTally, record,
+    percent, pileGrid, pileRoom, type Dials, type Model, type Round, type Tally,
+  } from '../../lib/sims/bell-test.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  const BATCH = 250, CAP = 1000, FLASH = 350; // FLASH: ms a new dot stays large
+  const num = (n: number) => n.toLocaleString('en');
+  const deg = (t: number) => `${t < 0 ? '−' : ''}${Math.abs(t)}°`;
+  const said = (t: number) => `${t < 0 ? 'minus ' : ''}${Math.abs(t)} degrees`;
+  const sval = (s: number) => { const v = +s.toFixed(2); return `${v < 0 ? '−' : ''}${Math.abs(v)}`; };
+  const same = (p: Dials, r: Dials) => p.a[0] === r.a[0] && p.a[1] === r.a[1] && p.b[0] === r.b[0] && p.b[1] === r.b[1];
+  const copy = (p: Dials): Dials => ({ a: [p.a[0], p.a[1]], b: [p.b[0], p.b[1]] });
+
+  type Flash = { i: number; won: boolean; k: number; t: number };
+
+  class ChshGame extends HTMLElement {
+    connectedCallback() {
+      const canvas = this.querySelector('canvas')!;
+      const radios = [...this.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+      const ranges = [...this.querySelectorAll<HTMLInputElement>('input[type="range"]')];
+      const presets = [...this.querySelectorAll<HTMLButtonElement>('[data-preset]')];
+      const playBtn = this.querySelector<HTMLButtonElement>('.play')!;
+      const readout = this.querySelector('.tool-readout')!;
+      const still = reduceMotion();
+
+      let ctx: CanvasRenderingContext2D, w = 0, h = 0;
+      let model: Model = 'quantum', d = copy(BEST);
+      let go = player(model, d), tally: Tally = emptyTally(), last: Round | null = null, flashes: Flash[] = [];
+      let queue = 0, planned = 0, credit = 0, raf = 0, prev = 0, seen = false, started = false, busy = false;
+
+      // Layout in CSS pixels: a line for the last round, four boxes (2 by 2 when narrow, 4 in a row when wide), the meter.
+      const layout = () => {
+        const cols = w >= 540 ? 4 : 2, rows = 4 / cols, top = 22, meterH = 72;
+        const cw = w / cols, ch = (h - top - meterH) / rows;
+        const R = Math.max(12, Math.min(20, cw * 0.15));
+        const gap = 8, pw = Math.min(72, (cw - 3 * gap) / 2);
+        const boxes = PAIRS.map((_, i) => {
+          const x0 = (i % cols) * cw, y0 = top + Math.floor(i / cols) * ch, cx = x0 + cw / 2, dy = y0 + 22 + R;
+          return { x0, y0, cx, dy, pileTop: dy + R + 26, base: y0 + ch - 30, left: cx - gap / 2 - pw, right: cx + gap / 2 };
+        });
+        return { cols, cw, ch, R, pw, boxes, meterY: h - meterH };
+      };
+
+      // A dial: an outline of dots, Alice's axis as a solid line, Bob's as a dotted line. Axes repeat every 180 degrees.
+      function drawDial(cx: number, cy: number, R: number, ta: number, tb: number, col: ReturnType<typeof palette>) {
+        for (let k = 0; k < 24; k++) dot(ctx, cx + R * Math.cos((k * Math.PI) / 12), cy + R * Math.sin((k * Math.PI) / 12), 0.9, col.ink2);
+        const ua = (ta * Math.PI) / 180, ub = (tb * Math.PI) / 180;
+        ctx.strokeStyle = col.ink; ctx.lineWidth = 2; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(cx - R * Math.cos(ua), cy + R * Math.sin(ua)); ctx.lineTo(cx + R * Math.cos(ua), cy - R * Math.sin(ua)); ctx.stroke();
+        for (let s = -R; s <= R + 0.01; s += R / 5) dot(ctx, cx + s * Math.cos(ub), cy - s * Math.sin(ub), 1.6, col.signal);
+      }
+
+      function drawMeter(g: ReturnType<typeof layout>, col: ReturnType<typeof palette>, mono: string) {
+        const y = g.meterY + 32, x0 = 10, x1 = w - 10, X = (p: number) => x0 + p * (x1 - x0);
+        for (let x = x0; x <= x1 + 0.01; x += 5) dot(ctx, x, y, 1, col.ink2);
+        ctx.fillStyle = col.ink2; ctx.fillRect(x0 - 1, y - 5, 2, 10); ctx.fillRect(x1 - 1, y - 5, 2, 10);
+        // The two limits: a dashed tick for the classical one, a solid tick for the quantum one.
+        ctx.strokeStyle = col.ink; ctx.lineWidth = 1.5;
+        ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(X(CLASSICAL_MAX), y - 9); ctx.lineTo(X(CLASSICAL_MAX), y + 6); ctx.stroke();
+        ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(X(TSIRELSON), y - 9); ctx.lineTo(X(TSIRELSON), y + 20); ctx.stroke();
+        ctx.font = `500 11px ${mono}`; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = col.ink;
+        const tag = (text: string, x: number, ty: number) => {
+          const tw = ctx.measureText(text).width;
+          ctx.textAlign = 'left'; ctx.fillText(text, Math.max(2, Math.min(x - tw, w - 2 - tw)), ty);
+        };
+        tag('classical max 75% (S = 2)', X(CLASSICAL_MAX), y + 18);
+        tag('quantum max 85.4% (S = 2.83)', X(TSIRELSON), y + 33);
+        // The prediction as a ring, the share won so far as a dot.
+        const p = winChance(model, d);
+        ctx.strokeStyle = col.signal; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X(p), y, 7, 0, Math.PI * 2); ctx.stroke();
+        if (tally.n) {
+          const f = tally.won / tally.n, text = `won ${percent(f)}`, tw = ctx.measureText(text).width;
+          dot(ctx, X(f), y, 4.5, col.signal);
+          ctx.fillStyle = col.ink; ctx.textAlign = 'left';
+          ctx.fillText(text, Math.max(2, Math.min(X(f) - tw / 2, w - 2 - tw)), y - 14);
+        }
+      }
+
+      function draw(now = performance.now()) {
+        if (!ctx) return;
+        const col = palette(), g = layout(), mono = token('--mono');
+        ctx.clearRect(0, 0, w, h);
+        ctx.font = `500 11px ${mono}`; ctx.textBaseline = 'alphabetic';
+
+        // The last round, in words.
+        if (last) {
+          const r = last, tail = `asked ${r.x},${r.y}, said ${r.a},${r.b}: ${r.won ? 'won' : 'lost'}`;
+          const long = `Round ${num(tally.n)}: ${tail}`;
+          ctx.fillStyle = col.ink2; ctx.textAlign = 'left';
+          ctx.fillText(ctx.measureText(long).width <= w - 4 ? long : tail, 2, 13);
+        }
+
+        // Piles share one dot pitch, so their heights compare.
+        const pileH = Math.max(10, g.boxes[0].base - g.boxes[0].pileTop);
+        const most = Math.max(...tally.pairs.map((p) => Math.max(p.won, p.n - p.won)));
+        const grid = pileGrid(g.pw, pileH, Math.max(pileRoom(planned), most));
+        const r0 = Math.max(0.7, grid.pitch * 0.36);
+        const at = (x0: number, base: number, k: number): [number, number] =>
+          [x0 + (g.pw - grid.cols * grid.pitch) / 2 + ((k % grid.cols) + 0.5) * grid.pitch, base - (Math.floor(k / grid.cols) + 0.5) * grid.pitch];
+
+        PAIRS.forEach(([x, y], i) => {
+          const b = g.boxes[i], p = tally.pairs[i], lost = p.n - p.won;
+          ctx.textAlign = 'center'; ctx.fillStyle = col.ink;
+          const rule = x & y ? 'differ' : 'same', head = `${x},${y}: win if ${rule}`;
+          ctx.fillText(ctx.measureText(head).width <= g.cw - 6 ? head : `${x},${y}: ${rule}`, b.cx, b.y0 + 12);
+          drawDial(b.cx, b.dy, g.R, d.a[x], d.b[y], col);
+          ctx.fillStyle = col.ink2;
+          ctx.fillText(`${between(d.a[x], d.b[y])}° apart`, b.cx, b.dy + g.R + 15);
+          for (let k = 0; k < Math.min(p.won, grid.cols * grid.rows); k++) { const [px, py] = at(b.left, b.base, k); dot(ctx, px, py, r0, col.signal); }
+          for (let k = 0; k < Math.min(lost, grid.cols * grid.rows); k++) { const [px, py] = at(b.right, b.base, k); dot(ctx, px, py, r0, col.ink2); }
+          ctx.fillStyle = col.rule; ctx.fillRect(b.left, b.base + 1, g.pw, 1); ctx.fillRect(b.right, b.base + 1, g.pw, 1);
+          ctx.fillStyle = col.ink;
+          ctx.fillText(`${num(p.won)} won`, b.left + g.pw / 2, b.base + 14);
+          ctx.fillText(`${num(lost)} lost`, b.right + g.pw / 2, b.base + 14);
+        });
+
+        // New rounds land as a large dot that settles into its pile.
+        for (const f of flashes) {
+          const t = Math.min(1, (now - f.t) / FLASH), b = g.boxes[f.i];
+          if (f.k >= grid.cols * grid.rows) continue;
+          const [px, py] = at(f.won ? b.left : b.right, b.base, f.k);
+          dot(ctx, px, py, r0 + 3 * (1 - t), f.won ? col.signal : col.ink);
+        }
+
+        drawMeter(g, col, mono);
+      }
+
+      function say() {
+        const n = tally.n, p = winChance(model, d), s = sval(chsh(model, d));
+        const who = model === 'quantum'
+          ? 'Entangled pair: both qubits started as 0, then a Hadamard gate and a CNOT made (|00⟩ + |11⟩)/√2.'
+          : 'Hidden plan: each pair carries a hidden arrow, and each side answers 0 if its dial is within 45° of it, else 1.';
+        const dials = `Dials: Alice ${deg(d.a[0])} if asked 0 and ${deg(d.a[1])} if asked 1; Bob ${deg(d.b[0])} if asked 0 and ${deg(d.b[1])} if asked 1.`;
+        const limit = 'No plan fixed in advance can beat 75% (S = 2).';
+        const pred = model === 'quantum'
+          ? `Born rule prediction: ${percent(p)} (S = ${s})${Math.abs(p - TSIRELSON) < 1e-9 ? ', the most any quantum strategy can reach' : p > CLASSICAL_MAX + 1e-9 ? ', above the classical limit' : ', not above the classical limit. Try the best angles'}.`
+          : `This model's exact chance: ${percent(p)} (S = ${s}).`;
+        if (!n) { readout.textContent = `${who} ${dials} ${pred} ${limit} Press Play to run rounds.`; return; }
+        const won = `Won ${num(tally.won)} of ${num(n)} rounds (${percent(tally.won / n)}).`;
+        const each = PAIRS.map(([x, y]) => pairWin(model, d, x, y)), even = each.every((v) => Math.abs(v - each[0]) < 1e-9);
+        const pairs = `Won by question pair${even ? `, each predicted ${percent(each[0])}` : ''}: ` + PAIRS.map(([x, y], i) =>
+          `${x},${y}: ${num(tally.pairs[i].won)} of ${num(tally.pairs[i].n)}${even ? '' : ` (predicted ${percent(each[i])})`}`).join('; ') + '.';
+        const alone = model === 'quantum'
+          ? ` Alone, each side's answers look like fair coin flips (Alice said 0 in ${percent(tally.aZero / n)} of rounds, Bob in ${percent(tally.bZero / n)}), so the pair carries no message.`
+          : '';
+        readout.textContent = `${who} ${dials} ${won} ${pred} ${limit} ${pairs}${alone}`;
+      }
+
+      function setControls() {
+        ranges.forEach((r) => {
+          const v = d[r.dataset.side as 'a' | 'b'][+r.dataset.q!];
+          r.value = String(v);
+          r.setAttribute('aria-valuetext', said(v));
+          r.parentElement!.querySelector('output')!.textContent = deg(v);
+        });
+        presets.forEach((b) => b.setAttribute('aria-pressed', String(same(d, b.dataset.preset === 'best' ? BEST : SAME))));
+        const full = planned >= CAP;
+        playBtn.disabled = full || busy;
+        playBtn.textContent = full ? 'Full: change a setting' : `Play ${BATCH} rounds`;
+      }
+
+      function finish() { busy = false; readout.setAttribute('aria-busy', 'false'); setControls(); say(); }
+
+      function step(now: number) {
+        raf = 0;
+        const dt = Math.max(0, Math.min(48, now - prev)); prev = now;
+        // Start slow, so single rounds can be followed in the top line, then speed up.
+        credit += dt * Math.min(0.5, 0.006 + 0.0012 * tally.n);
+        const k = Math.min(queue, Math.floor(credit));
+        credit -= k; queue -= k; if (!queue) credit = 0;
+        for (let j = 0; j < k; j++) {
+          const r = go(Math.random), i = 2 * r.x + r.y;
+          record(tally, r); last = r;
+          flashes.push({ i, won: r.won, k: (r.won ? tally.pairs[i].won : tally.pairs[i].n - tally.pairs[i].won) - 1, t: now });
+        }
+        flashes = flashes.filter((f) => now - f.t < FLASH);
+        draw(now);
+        if (busy && !queue) finish();
+        if ((queue > 0 || flashes.length) && seen) raf = requestAnimationFrame(step);
+      }
+
+      const kick = () => { if (!raf && seen && (queue > 0 || flashes.length)) { prev = performance.now(); raf = requestAnimationFrame(step); } };
+
+      function play(n: number) {
+        n = Math.min(n, CAP - planned);
+        if (n <= 0 || busy) return;
+        planned += n;
+        if (still) {
+          for (let j = 0; j < n; j++) { last = go(Math.random); record(tally, last); }
+          setControls(); draw(); say();
+          return;
+        }
+        queue += n; busy = true;
+        setControls();
+        readout.setAttribute('aria-busy', 'true');
+        readout.textContent = 'Playing rounds…';
+        kick();
+      }
+
+      // Clear the rounds for new settings. Quiet: the live readout is left alone.
+      function reset() {
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        go = player(model, d); tally = emptyTally(); last = null; flashes = [];
+        queue = 0; planned = 0; credit = 0; busy = false;
+        readout.setAttribute('aria-busy', 'false');
+        setControls(); draw();
+      }
+
+      // New settings are final (a released slider, a button, a radio): clear, then play or say so.
+      function restart() {
+        reset();
+        if (started) play(BATCH); else say();
+      }
+
+      // Boxes sit 2 by 2 on a narrow canvas, in one row on a wide one; the canvas height follows.
+      const size = () => {
+        canvas.style.height = canvas.getBoundingClientRect().width >= 540 ? '22rem' : '30rem';
+        ({ ctx, w, h } = fit(canvas));
+        draw();
+      };
+
+      radios.forEach((r) => r.addEventListener('change', () => { if (r.checked) { model = r.value as Model; restart(); } }));
+      // While a slider moves, only the picture follows; rounds and the live readout wait for its release.
+      ranges.forEach((r) => {
+        r.addEventListener('input', () => { d[r.dataset.side as 'a' | 'b'][+r.dataset.q!] = +r.value; reset(); });
+        r.addEventListener('change', () => { d[r.dataset.side as 'a' | 'b'][+r.dataset.q!] = +r.value; restart(); });
+      });
+      presets.forEach((b) => b.addEventListener('click', () => { d = copy(b.dataset.preset === 'best' ? BEST : SAME); restart(); }));
+      playBtn.addEventListener('click', () => play(BATCH));
+
+      onResize(canvas, size);
+      onTheme(() => draw());
+      onSeen(this, (v) => {
+        seen = v;
+        if (v && !started) { started = true; play(BATCH); }
+        else if (v) kick();
+      });
+      setControls(); size();
+    }
+  }
+  customElements.define('qce-chsh-game', ChshGame);
+</script>
+
+<style>
+  qce-chsh-game { display: grid }
+  canvas { height: 30rem }
+  .key { font-size: .875rem; color: var(--ink-2); max-width: var(--read) }
+  .tool-controls { display: grid; gap: var(--s4); align-items: start; min-width: 0 }
+  fieldset { display: grid; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  .mode label { display: flex; align-items: center; gap: var(--s2); min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); font-weight: 500; cursor: pointer }
+  .mode label:hover { border-color: var(--ink) }
+  .mode label:has(:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink) }
+  .mode input { flex: none; width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--signal) }
+  .dial { display: grid; min-width: 0 }
+  .side label { font-weight: 500 }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2) }
+  .row output { font-size: 1.25rem }
+  .presets { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .presets button { min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer }
+  .presets button:hover { border-color: var(--ink) }
+  .presets button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .play { justify-self: start }
+  .tool-readout { min-height: 9em }
+  @media (min-width: 40rem) {
+    .tool-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--s5) }
+    .mode, .presets, .play { grid-column: 1 / -1 }
+    .mode { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+    .mode legend { grid-column: 1 / -1 }
+  }
+</style>

@@ -1,0 +1,64 @@
+---
+description: "Play the CHSH game: a plan fixed in advance wins at most 75% of rounds, but players with an entangled pair win about 85%. See what Bell tests rule out."
+answer: "A Bell test checks whether the linked results of two far-apart measurements could come from a plan fixed in advance. In the CHSH game, every such plan wins at most 75% of rounds, but players sharing an entangled pair can win about 85.4%, and experiments agree with quantum theory."
+myth:
+  claim: "Entangled particles just carry matching answers, like a pair of socks."
+  truth: "Answers set when the pair is made are a shared plan, and no shared plan wins the CHSH game more than 75% of the time. Entangled pairs win about 85%."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import ChshGame from '../../components/tools/ChshGame.astro';
+
+<Depth level="kid">
+
+Alice and Bob play a team game in two far-apart rooms, with no talking. Each round, a referee asks each one a random question: 0 or 1. Each answers 0 or 1. They win if their answers match, except when both are asked 1: then the answers must differ.
+
+They can agree on a plan first, like matching socks: see one sock, and you know the other. But no plan wins every round. The best win 3 rounds in 4.
+
+Now give each player one qubit of an entangled pair. Each turns a dial set by the question, then measures. They win about 85 rounds in 100! Here the socks picture breaks: no plan made in advance can do that. Yet no message passes: each player's own answers look like coin flips.
+
+Real tests check that the rooms cannot signal, no rounds are dropped, and the questions are picked at random, with nothing linking them to the pair.
+
+</Depth>
+
+<Depth level="student">
+
+In the CHSH game, a simple Bell test, Alice and Bob each get a random bit, x and y. Without talking, they answer bits a and b. They win if a = b, unless both got 1: then they need a ≠ b.
+
+A plan fixes all four answers. Winning (0,0), (0,1) and (1,0) makes the two answers to 1 match, which loses (1,1). So a plan wins at most 75%, and mixing plans only averages them.
+
+Both qubits started as 0; a Hadamard gate and a CNOT made the pair $(|00\rangle + |11\rangle)/\sqrt2$. Each player measures along a dial angle set by the question. The answers match with probability cos² of the angle between the dials. With the best dials, every pair is won with probability cos²22.5° ≈ 85.4%. Alone, each side's answers look like coin flips: no message passes.
+
+Real tests must count every round, keep the sides too far apart for light-speed signals, and pick truly random questions.
+
+</Depth>
+
+<Depth level="engineer">
+
+Questions $x, y \in \{0,1\}$ are uniform; answers $a, b$ win if $a \oplus b = x \wedge y$. With $E_{xy} = P(a = b) - P(a \neq b)$, define
+
+$$
+S = E_{00} + E_{01} + E_{10} - E_{11},
+$$
+
+so that $P_{\text{win}} = \tfrac12 + S/8$.
+
+A local hidden variable model sets $a = a(x, \lambda)$ and $b = b(y, \lambda)$, with $\lambda$ independent of $(x, y)$; local randomness can be folded into $\lambda$. Each $\lambda$ is a fixed plan, and its four win conditions add up to $0 = 1 \pmod 2$, so one or three fail. Hence $\tfrac14 \le P_{\text{win}} \le \tfrac34$, that is $|S| \le 2$: the CHSH inequality.
+
+Both qubits started as 0; $H$ then CNOT gives $|\Phi^+\rangle = (|00\rangle + |11\rangle)/\sqrt2$. A dial at $\theta$ measures $A(\theta) = \cos 2\theta\, Z + \sin 2\theta\, X$, whose $+1$ eigenvector is $\cos\theta\,|0\rangle + \sin\theta\,|1\rangle$. Then $\langle\Phi^+|A(\alpha) \otimes A(\beta)|\Phi^+\rangle$ is
+
+$$
+E(\alpha, \beta) = \cos 2(\alpha - \beta).
+$$
+
+With $\alpha_0 = 0^\circ$, $\alpha_1 = 45^\circ$, $\beta_0 = 22.5^\circ$ and $\beta_1 = -22.5^\circ$, $S = 2\sqrt2$ and $P_{\text{win}} = \cos^2 22.5^\circ = (2 + \sqrt2)/4 \approx 0.854$. By [Tsirelson's bound](/learn/tsirelson/), no quantum strategy beats this, whatever the state. Each side's reduced state is $I/2$, so its answers are fair coin flips whatever the other dial: [no signaling](/learn/no-signaling/).
+
+The tool's hidden plan is one local model: an arrow $\lambda$ uniform on $[0^\circ, 180^\circ)$, and answer 0 when the dial is within $45^\circ$ of it. Then $P(a = b) = 1 - \Delta/90^\circ$ for dials $\Delta \in [0^\circ, 90^\circ]$ apart: exactly $\tfrac34$ at the dials above.
+
+The bound assumes locality, measurement independence and single outcomes (many-worlds drops this one). Tests must close the detection loophole (keeping only detected pairs lets a local model fake a violation) and the locality loophole (each side's setting and result spacelike separated from the other's). Hensen et al. (Nature, 2015) closed both at once, and two photon tests did the same later that year (Giustina et al., Shalm et al., Physical Review Letters 2015); noise keeps real data below $2\sqrt2$. No Bell test can rule out superdeterminism, which denies measurement independence. Bohmian mechanics is not a loophole: it is a nonlocal hidden-variable theory that predicts the same results as quantum theory, so it breaks the inequality too, and Bell tests cannot tell it apart.
+
+</Depth>
+
+<Lab title="Play the CHSH game" intro="Play rounds with the entangled pair, then switch to the hidden plan with the same dials. Turn the dials and see which one can beat 75%.">
+  <ChshGame />
+</Lab>
