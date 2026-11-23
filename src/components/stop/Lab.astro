@@ -1,0 +1,22 @@
+---
+// A plate that holds one live tool, with a title and one line on what to try.
+interface Props { title: string; intro: string }
+const { title, intro } = Astro.props;
+const id = 'lab-' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+---
+<section class="lab" aria-labelledby={id}>
+  <header>
+    <p class="label">Lab</p>
+    <h2 id={id}>{title}</h2>
+    <p class="intro">{intro}</p>
+  </header>
+  <slot />
+</section>
+
+<style>
+  .lab { display: grid; gap: var(--s5); margin-top: var(--s6); padding: var(--s5) var(--s4); background: var(--plate); border: 1px solid var(--rule); border-radius: var(--r); min-width: 0 }
+  header { display: grid; gap: var(--s2) }
+  h2 { font-size: clamp(1.75rem, 1.3rem + 1.8vw, 2.5rem); scroll-margin-top: var(--s4) }
+  .intro { color: var(--ink-2); max-width: 34rem }
+  @media (min-width: 40rem) { .lab { padding: var(--s5) } }
+</style>

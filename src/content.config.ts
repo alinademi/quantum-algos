@@ -2,16 +2,13 @@ import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 
-const lessons = defineCollection({
-  loader: glob({ base: './src/content/lessons', pattern: '**/*.mdx' }),
+// One MDX file per stop. The id is the file name and must match an id in docs/curriculum.md.
+const stops = defineCollection({
+  loader: glob({ base: './src/content/stops', pattern: '*.mdx' }),
   schema: z.object({
-    title: z.string(),
+    description: z.string().max(160),
     answer: z.string(),
-    track: z.enum(['Physics', 'Gates', 'Algorithms', 'Hardware', 'Crypto']),
-    myth: z.string(),
-    truth: z.string(),
-    next: z.string(),
-    prereqs: z.array(z.string()).default([]),
+    myth: z.object({ claim: z.string(), truth: z.string() }),
   }),
 });
 
@@ -25,4 +22,4 @@ const posts = defineCollection({
   }),
 });
 
-export const collections = { lessons, posts };
+export const collections = { stops, posts };

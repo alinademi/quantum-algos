@@ -1,0 +1,18 @@
+---
+// Every stop opens by breaking one common myth.
+interface Props { claim: string; truth: string }
+const { claim, truth } = Astro.props;
+---
+<aside class="myth" aria-label="Myth trap">
+  <p class="label">Myth trap</p>
+  <p class="claim"><s>{claim}</s></p>
+  <p class="truth">{truth}</p>
+</aside>
+
+<style>
+  .myth { margin-top: var(--s6); padding: var(--s4) 0 var(--s4) var(--s4); border-left: 4px solid var(--hot); max-width: var(--read) }
+  .label { color: var(--hot) }
+  .claim { margin-top: var(--s2); font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.1rem); font-weight: 600; letter-spacing: -.025em; line-height: 1.2 }
+  s { text-decoration: none; background: linear-gradient(var(--hot), var(--hot)) 0 58% / 100% 3px no-repeat }
+  .truth { margin-top: var(--s3); color: var(--ink-2); max-width: 34rem }
+</style>

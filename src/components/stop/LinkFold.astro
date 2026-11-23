@@ -1,0 +1,43 @@
+---
+// A list of stops: shows the best few, folds the rest under "N more", grouped by region with its color dot.
+import { regions, href, type Stop } from '../../lib/curriculum.ts';
+interface Props { stops: Stop[]; keep?: number; pills?: boolean }
+const { stops, keep = 3, pills = false } = Astro.props;
+const fold = stops.length > keep + 1;
+const head = fold ? stops.slice(0, keep) : stops;
+const rest = fold ? stops.slice(keep) : [];
+const groups = regions.map((r) => ({ r, xs: rest.filter((s) => s.region === r.id) })).filter((g) => g.xs.length);
+---
+<div class:list={['fold', { pills }]}>
+  <span class="head">{head.map((s) => <a href={href(s.id)}>{s.name}</a>)}</span>
+  {fold && (
+    <details class="more">
+      <summary>{rest.length} more</summary>
+      <ul>
+        {groups.map(({ r, xs }) => (
+          <li style={`--c: var(--r-${r.id})`}>
+            <span class="label">{r.name}</span> {xs.map((s, i) => <>{i > 0 && ', '}<a href={href(s.id)}>{s.name}</a></>)}
+          </li>
+        ))}
+      </ul>
+    </details>
+  )}
+</div>
+
+<style>
+  .head a + a::before { content: ", "; display: inline-block; white-space: pre; text-decoration: none }
+  .pills .head { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .pills .head a + a::before { content: none }
+  .pills .head a { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 .9rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); font-weight: 600; text-decoration: none }
+  .pills .head a:hover { border-color: var(--ink) }
+  summary { display: inline-flex; align-items: center; min-height: 2.75rem; font-weight: 600; color: var(--ink); list-style: none; cursor: pointer }
+  summary::-webkit-details-marker { display: none }
+  summary::before { content: "+\00a0" }
+  .more[open] summary::before { content: "\2212\00a0" }
+  .pills summary { margin-top: var(--s2); padding: 0 .9rem; border: 1.5px dashed var(--rule); border-radius: var(--r) }
+  ul { display: grid; gap: var(--s2); padding-block: var(--s2) }
+  li { position: relative; padding-left: 1.1rem; color: var(--ink-2) }
+  li::before { content: ""; position: absolute; left: 0; top: .45em; width: .6rem; height: .6rem; border-radius: 50%; background: var(--c) }
+  li a { color: var(--ink) }
+  .label { margin-right: .25rem }
+</style>

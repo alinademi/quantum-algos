@@ -1,0 +1,29 @@
+---
+// Learn first, this stop, leads to. Built from docs/curriculum.md.
+import LinkFold from './LinkFold.astro';
+import { stop as get, leadsTo, best, type Stop } from '../../lib/curriculum.ts';
+interface Props { stop: Stop }
+const { stop } = Astro.props;
+const needs = stop.needs.map(get);
+const leads = best(stop.id, leadsTo(stop.id));
+---
+<section class="near" aria-labelledby="near-title">
+  <h2 id="near-title">Where this stop sits</h2>
+  <ol>
+    <li><span class="label">Learn first</span>{needs.length ? <LinkFold stops={needs} pills /> : <p>Nothing. Start here.</p>}</li>
+    <li><span class="label">This stop</span><b>{stop.name}</b></li>
+    <li><span class="label">Leads to</span>{leads.length ? <LinkFold stops={leads} pills /> : <p>The end of this path, for now.</p>}</li>
+  </ol>
+</section>
+
+<style>
+  .near { display: grid; gap: var(--s3); margin-top: var(--s6); padding-top: var(--s4); background: radial-gradient(circle, var(--rule) 1.4px, transparent 1.8px) 0 0 / 9px 6px repeat-x }
+  h2 { font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem); scroll-margin-top: var(--s4) }
+  ol { display: grid; gap: var(--s3); align-items: start }
+  li { display: grid; gap: .35rem; min-width: 0 }
+  b { justify-self: start; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 .9rem; border-radius: var(--r); background: var(--ink); color: var(--paper); font-weight: 600 }
+  @media (min-width: 64rem) {
+    ol { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) }
+    li:nth-child(2) { justify-items: center }
+  }
+</style>

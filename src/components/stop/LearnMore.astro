@@ -1,0 +1,32 @@
+---
+// Free sources that open at this stop's topic, best first. From docs/references.md.
+import { learnMore } from '../../lib/curriculum.ts';
+interface Props { id: string }
+const picks = learnMore.get(Astro.props.id) ?? [];
+---
+{picks.length > 0 && (
+  <section class="refs" aria-labelledby="refs-title">
+    <h2 id="refs-title">Learn more</h2>
+    <p>Checked sources, best first.</p>
+    <ol>
+      {picks.map((p) => (
+        <li>
+          <a href={p.link}>{p.source.title}</a>
+          <span class="part">{p.part}</span>
+          <span class="by">{p.source.authors}{p.source.year !== '-' && `, ${p.source.year}`}. {p.source.venue}.</span>
+          <span class="label">{p.source.level}</span>
+        </li>
+      ))}
+    </ol>
+  </section>
+)}
+
+<style>
+  .refs { display: grid; gap: var(--s3); margin-top: var(--s6); max-width: var(--read) }
+  h2 { font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem); scroll-margin-top: var(--s4) }
+  .refs > p { color: var(--ink-2) }
+  ol { display: grid; gap: var(--s3) }
+  li { display: grid; gap: .15rem; padding-left: var(--s3); border-left: 2px solid var(--rule) }
+  a { font-weight: 600 }
+  .by { color: var(--ink-2); font-size: .9375rem }
+</style>

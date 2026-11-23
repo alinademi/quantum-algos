@@ -1,0 +1,16 @@
+---
+// One page per stop file in src/content/stops. Fails the build if a stop file has no curriculum row.
+import { getCollection, render } from 'astro:content';
+import StopLayout from '../../layouts/StopLayout.astro';
+import { stop } from '../../lib/curriculum.ts';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('stops');
+  return entries.map((entry) => ({ params: { id: entry.id }, props: { entry } }));
+}
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+---
+<StopLayout stop={stop(entry.id)} {...entry.data}>
+  <Content />
+</StopLayout>

@@ -1,0 +1,39 @@
+---
+// Kid, Student or Engineer. CSS shows the matching Depth blocks; the choice is remembered across stops.
+const levels = [
+  { value: 'kid', label: 'Kid', dots: [[10, 10], [22, 6], [34, 13]] },
+  { value: 'student', label: 'Student', dots: [[6, 10], [12, 4], [16, 14], [22, 8], [28, 15], [32, 5], [38, 11]] },
+  { value: 'engineer', label: 'Engineer', dots: [[4, 6], [8, 13], [12, 4], [14, 16], [18, 9], [22, 3], [23, 14], [27, 8], [30, 16], [32, 3], [35, 11], [38, 6], [40, 15], [42, 9], [20, 17]] },
+];
+---
+<fieldset class="dial">
+  <legend class="label">Explain it for a</legend>
+  <div>
+    {levels.map((l) => (
+      <label>
+        <input type="radio" name="depth" value={l.value} checked={l.value === 'student'} />
+        <svg viewBox="0 0 44 20" aria-hidden="true">{l.dots.map(([x, y]) => <circle cx={x} cy={y} r="2" />)}</svg>
+        {l.label}
+      </label>
+    ))}
+  </div>
+</fieldset>
+
+<script>
+  const key = 'qce-depth';
+  const radios = [...document.querySelectorAll<HTMLInputElement>('input[name="depth"]')];
+  try { const v = localStorage.getItem(key); const r = radios.find((x) => x.value === v); if (r) r.checked = true; } catch {}
+  radios.forEach((r) => r.addEventListener('change', () => { try { localStorage.setItem(key, r.value); } catch {} }));
+</script>
+
+<style>
+  .dial { display: grid; gap: var(--s3); margin: var(--s6) 0 0; padding: 0; border: 0; min-width: 0; max-width: var(--read) }
+  legend { padding: 0; margin-bottom: var(--s3) }
+  div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: calc(var(--r) + 4px); background: var(--plate); border: 1px solid var(--rule) }
+  label { position: relative; display: grid; justify-items: center; gap: .35rem; padding: .7rem .5rem .6rem; border-radius: var(--r); font-weight: 600; cursor: pointer; transition: background .2s }
+  label:hover { background: color-mix(in oklab, var(--paper) 60%, var(--plate)) }
+  input { position: absolute; opacity: 0; width: 1px; height: 1px }
+  svg { width: 44px; height: 20px; fill: currentColor }
+  label:has(:checked) { background: var(--ink); color: var(--paper) }
+  label:has(:focus-visible) { outline: 3px solid var(--signal); outline-offset: 2px }
+</style>

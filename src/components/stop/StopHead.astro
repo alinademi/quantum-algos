@@ -1,0 +1,40 @@
+---
+// Top of a stop: breadcrumb, the lines it is on with previous and next stop, title and direct answer.
+import { stop as get, lines, regionName, href, type Stop } from '../../lib/curriculum.ts';
+interface Props { stop: Stop; answer: string }
+const { stop, answer } = Astro.props;
+const onLines = stop.lines.map((i) => {
+  const seq = lines[i].stops, k = seq.indexOf(stop.id);
+  return { name: lines[i].name, prev: k > 0 ? get(seq[k - 1]) : null, next: k < seq.length - 1 ? get(seq[k + 1]) : null };
+});
+---
+<nav aria-label="Breadcrumb">
+  <ol class="crumbs">
+    <li><a href="/map/">The Map</a></li>
+    <li><a href={`/map/#${stop.id}`}>{regionName(stop.region)}</a></li>
+    <li aria-current="page">{stop.name}</li>
+  </ol>
+</nav>
+{onLines.map((l) => (
+  <p class="lines-here">
+    <span class="label">{l.name} line</span>
+    {l.prev && <a href={href(l.prev.id)}><span aria-hidden="true">←</span> {l.prev.name}</a>}
+    <b>{stop.name}</b>
+    {l.next && <a href={href(l.next.id)}>{l.next.name} <span aria-hidden="true">→</span></a>}
+  </p>
+))}
+<h1>{stop.name}</h1>
+<p class="answer">{answer}</p>
+<p class="level label">{stop.level}</p>
+
+<style>
+  .crumbs { display: flex; flex-wrap: wrap; gap: .4rem; padding-top: var(--s5); font-size: .9375rem; color: var(--ink-2) }
+  .crumbs li + li::before { content: "/"; margin-right: .4rem; color: var(--rule) }
+  .crumbs a { color: var(--ink) }
+  .lines-here { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); margin-top: var(--s4); font-size: .9375rem; color: var(--ink-2) }
+  .lines-here a { color: var(--ink); font-weight: 600 }
+  .lines-here b { color: var(--ink) }
+  h1 { margin-top: var(--s4); font-size: clamp(2.75rem, 1.6rem + 5vw, 6rem); letter-spacing: -.045em; overflow-wrap: anywhere }
+  .answer { margin-top: var(--s4); max-width: var(--read); font-size: clamp(1.25rem, 1.1rem + .6vw, 1.5rem); line-height: 1.45 }
+  .level { margin-top: var(--s3) }
+</style>

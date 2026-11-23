@@ -1,0 +1,39 @@
+---
+// The page kit every stop uses: head, myth trap, depth dial, the stop's own text and labs, where it sits, learn more.
+import Layout from './Layout.astro';
+import StopHead from '../components/stop/StopHead.astro';
+import Myth from '../components/stop/Myth.astro';
+import DepthDial from '../components/stop/DepthDial.astro';
+import WhereItSits from '../components/stop/WhereItSits.astro';
+import LearnMore from '../components/stop/LearnMore.astro';
+import Rail from '../components/stop/Rail.astro';
+import type { Stop } from '../lib/curriculum.ts';
+
+interface Props { stop: Stop; description: string; answer: string; myth: { claim: string; truth: string } }
+const { stop, description, answer, myth } = Astro.props;
+---
+<Layout title={stop.name} description={description} type="article">
+  <div class="wrap">
+    <StopHead stop={stop} answer={answer} />
+    <div class="lesson">
+      <article>
+        <Myth {...myth} />
+        <DepthDial />
+        <h2 id="what" class="visually-hidden">What it is</h2>
+        <div class="body"><slot /></div>
+        <WhereItSits stop={stop} />
+        <LearnMore id={stop.id} />
+      </article>
+      <Rail />
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .lesson { padding-bottom: var(--s6) }
+  article { min-width: 0 }
+  .body { display: grid; gap: var(--s3); margin-top: var(--s5) }
+  @media (min-width: 64rem) {
+    .lesson { display: grid; grid-template-columns: minmax(0, 1fr) 15rem; column-gap: var(--s6); align-items: start }
+  }
+</style>

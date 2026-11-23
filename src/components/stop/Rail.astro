@@ -1,0 +1,23 @@
+---
+// "On this stop": jump links to every section, built from the page's h2 headings. Wide screens only.
+---
+<aside class="rail" aria-label="On this stop">
+  <p class="label">On this stop</p>
+  <ol></ol>
+</aside>
+
+<script>
+  for (const rail of document.querySelectorAll('.rail ol')) {
+    for (const h of document.querySelectorAll<HTMLElement>('main h2[id]')) {
+      const li = document.createElement('li'), a = document.createElement('a');
+      a.href = '#' + h.id; a.textContent = h.textContent; li.append(a); rail.append(li);
+    }
+  }
+</script>
+
+<style>
+  .rail { display: none; gap: var(--s3); padding: var(--s4); border: 1px solid var(--rule); border-radius: var(--r) }
+  ol { display: grid; gap: var(--s2) }
+  ol :global(a) { font-weight: 600 }
+  @media (min-width: 64rem) { .rail { display: grid; position: sticky; top: var(--s4); margin-top: var(--s6) } }
+</style>
