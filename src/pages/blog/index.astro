@@ -1,0 +1,31 @@
+---
+// The blog: newest post first.
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+const posts = (await getCollection('posts')).sort((a, b) => +b.data.date - +a.data.date);
+const day = (d: Date) => d.toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+---
+<Layout title="Blog" description="Notes on quantum computing: what changed, what it means, and what is hype.">
+  <div class="wrap">
+    <header class="page-head"><p class="label">Blog</p><h1>Notes from the field</h1></header>
+    <ol class="posts">
+      {posts.map((p) => (
+        <li>
+          <time class="doto" datetime={p.data.date.toISOString().slice(0, 10)}>{day(p.data.date)}</time>
+          <h2><a href={`/blog/${p.id}/`}>{p.data.title}</a></h2>
+          <p>{p.data.description}</p>
+        </li>
+      ))}
+    </ol>
+  </div>
+</Layout>
+
+<style>
+  .page-head { display: grid; gap: var(--s3); padding-top: var(--s5) }
+  h1 { font-size: clamp(2.6rem, 1.4rem + 5vw, 5.4rem) }
+  .posts { display: grid; gap: var(--s5); margin-top: var(--s6); padding-bottom: var(--s6) }
+  li { display: grid; gap: var(--s2); padding-top: var(--s4); border-top: 1px solid var(--rule) }
+  time { font-size: 1.5rem; color: var(--ink-2) }
+  h2 { font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem) }
+  p { max-width: 36rem; color: var(--ink-2) }
+</style>
