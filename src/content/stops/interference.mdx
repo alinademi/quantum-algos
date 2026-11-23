@@ -1,0 +1,58 @@
+---
+description: "What is interference? When a result can happen two ways, their amplitudes add, and they can cancel. Turn a phase and see a result vanish."
+answer: "Interference is what happens when a result can be reached in more than one way. You add the amplitudes of all the ways, and the chance of the result is |sum|². Amplitudes can be negative or complex, so they can build each other up or cancel, and a result can even become impossible."
+myth:
+  claim: "Two ways to reach a result make it more likely than one."
+  truth: "Not always in quantum physics. Each way adds an amplitude, not a chance, and amplitudes can cancel. With two ways open, a result can become impossible, even though either way alone would give it some of the time."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import TwoWays from '../../components/tools/TwoWays.astro';
+
+<Depth level="kid">
+
+Drop two pebbles in a pond. Where a bump from one meets a bump from the other, the water rises higher. Where a bump meets a dip, the water goes flat.
+
+A qubit does something like this. Start a qubit as 0. There can be two ways for it to end up as 1, and each way has a number called an amplitude. The two amplitudes add, like the bumps and dips. When they line up, the result 1 shows up more. When one is a bump and the other a dip, they cancel, and 1 never shows up, even though either way alone would give it now and then.
+
+The pond picture breaks in two places. You never see the amplitudes: each run gives just one result, one dot, and only a pile of many dots shows where the ways added up or cancelled. And there is one qubit, not two pebbles: its two ways cancel each other.
+
+</Depth>
+
+<Depth level="student">
+
+Start a qubit as 0 and apply a Hadamard gate: the amplitudes for 0 and for 1 are each about 0.71. A phase gate turns the angle of the 1 amplitude by φ (phi). A second Hadamard gate leads each part on to both results.
+
+So each result has two ways in: through 0 in the middle, or through 1. Each way has amplitude 0.71 × 0.71 ≈ 0.5 in size, so alone, with the other way blocked (the qubit is lost there half the time), it would give chance 0.5² = 25%. If chances added, each result would get 50%.
+
+But amplitudes add, like arrows with a length and an angle. At φ = 0, both arrows for result 0 point the same way: 0.5 + 0.5 = 1, so you always get 0. For result 1, the second Hadamard puts a minus sign on the way through 1: 0.5 − 0.5 = 0, so 1 never shows up. At φ = 180° the results swap.
+
+Only the angle between the ways, the relative phase, matters. Turn every arrow by the same angle, a global phase, and nothing changes.
+
+</Depth>
+
+<Depth level="engineer">
+
+Start in $|0\rangle$ and apply $H$, then the phase gate $P(\varphi) = \mathrm{diag}(1, e^{i\varphi})$, then $H$. Insert the identity $\sum_m |m\rangle\langle m|$ on both sides of the diagonal $P(\varphi)$: the amplitude of result $x$ is a sum over two paths, through $m = 0$ and $m = 1$, each the product of the amplitudes along it.
+
+$$
+\langle x|H P(\varphi) H|0\rangle = \sum_{m} \langle x|H|m\rangle \langle m|P(\varphi)|m\rangle \langle m|H|0\rangle = \tfrac{1}{2}\left(1 + (-1)^x e^{i\varphi}\right)
+$$
+
+The Born rule gives
+
+$$
+P(x) = \tfrac{1}{4} + \tfrac{1}{4} + (-1)^x \tfrac{1}{2}\cos\varphi = \tfrac{1}{2}\left(1 + (-1)^x \cos\varphi\right),
+$$
+
+so $P(0) = \cos^2(\varphi/2)$ and $P(1) = \sin^2(\varphi/2)$. For two paths with amplitudes $a$ and $b$, $|a + b|^2 = |a|^2 + |b|^2 + 2\,\mathrm{Re}(\bar{a} b)$. The last term is the interference term. Adding probabilities, as for classical alternatives, drops it and gives $\tfrac{1}{2}$ for every $\varphi$. The circuit is unitary, so $P(0) + P(1) = 1$: the two interference terms are equal and opposite, and what cancels at one result builds up at the other.
+
+Only the relative phase $\varphi$ between the paths enters. A global phase multiplies every path alike and drops out of $|\cdot|^2$. In fact $H P(\varphi) H = e^{i\varphi/2} R_X(\varphi)$, so the final state is $\cos(\varphi/2)|0\rangle - i\sin(\varphi/2)|1\rangle$ up to a global phase.
+
+If something keeps a full record of the middle value, the paths can be told apart, the interference term vanishes, and you get the classical $\tfrac{1}{2}$. See [Mach-Zehnder interferometer](/learn/mach-zehnder/) and [Double slit](/learn/double-slit/).
+
+</Depth>
+
+<Lab title="Turn the phase, cancel a result" intro="The qubit starts as 0, and each result has two ways in. Turn the phase on the way through 1 and see the two arrows add or cancel, and the shots follow.">
+  <TwoWays />
+</Lab>

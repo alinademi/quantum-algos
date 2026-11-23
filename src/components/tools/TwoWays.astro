@@ -1,0 +1,246 @@
+---
+// Started as 0, then H, a phase φ on the 1 part, then H: each result's two ways are drawn as amplitude arrows that add
+// head to tail, with every number from the path sum in sims/interference.ts and every shot a Born rule draw.
+import { PHASE, PRESETS, SHOTS, describe, valueText, percents } from '../../lib/sims/interference.ts';
+const uid = 'tw-' + Math.random().toString(36).slice(2, 8);
+const phi = PHASE.start, [p0, p1] = percents(phi);
+---
+<qce-two-ways class="tool">
+  <svg class="ways" viewBox="0 0 300 172" role="img" aria-labelledby={`${uid}-t`}>
+    <title id={`${uid}-t`}>Two ways to each result. The qubit starts as 0. A Hadamard gate leads on to 0 and to 1 in the middle. The phase φ turns the amplitude of the way through 1. A second Hadamard gate leads from each middle value to both results, with a minus sign on the way from 1 to 1.</title>
+    <g class="head">
+      <text x="26" y="16">start</text>
+      <text x="88" y="16" class="gate">H</text>
+      <text x="150" y="16">middle</text>
+      <text x="212" y="16" class="gate">H</text>
+      <text x="274" y="16">result</text>
+    </g>
+    <g class="w0">
+      <path d="M26 90 150 48h124M150 48 274 132" />
+    </g>
+    <g class="w1">
+      <path d="M26 90 150 132h124M150 132 274 48" />
+    </g>
+    <text x="212" y="123" class="minus">×(−1)</text>
+    <g class="node">
+      <circle cx="26" cy="90" r="12" /><text x="26" y="94.5">0</text>
+      <circle cx="150" cy="48" r="12" /><text x="150" y="52.5">0</text>
+      <circle cx="150" cy="132" r="12" class="n1" /><text x="150" y="136.5">1</text>
+      <circle cx="274" cy="48" r="12" /><text x="274" y="52.5">0</text>
+      <circle cx="274" cy="132" r="12" /><text x="274" y="136.5">1</text>
+    </g>
+    <text x="150" y="163" class="phi" data-phi-svg>phase φ = {phi}°</text>
+  </svg>
+
+  <div class="results">
+    {[0, 1].map((x) => (
+      <figure>
+        <canvas aria-hidden="true"></canvas>
+        <figcaption>
+          <b>Result {x}</b>
+          <span>chance <span data-p>{x ? p1 : p0}</span></span>
+          <span><span class="doto" data-n>0</span> shots</span>
+        </figcaption>
+      </figure>
+    ))}
+  </div>
+
+  <p class="key">Each way has an amplitude, drawn as an arrow. <span class="k k0">Solid line:</span> the way through 0. <span class="k k1">Dotted line:</span> the way through 1. <span class="k ks">Thick arrow:</span> the two added head to tail. Only the length of the sum matters: its chance is |sum|². Each dot below is one shot, a fresh qubit measured once. <span class="k kd">Dashed line:</span> 100 of {SHOTS} shots. Each way alone, with the other blocked, would give its result 25% of the time, so if chances just added, each pile would sit near this line.</p>
+
+  <div class="tool-controls">
+    <div class="phase">
+      <div class="row"><label for={uid}>Phase φ on the way through 1</label><output for={uid}>{phi}°</output></div>
+      <input id={uid} type="range" min={PHASE.min} max={PHASE.max} step={PHASE.step} value={phi} aria-valuetext={valueText(phi)} />
+      <div class="presets" role="group" aria-label="Set the phase to">
+        {PRESETS.map((d) => <button type="button" data-phi={d} aria-pressed={String(d === phi)}>{d}°</button>)}
+      </div>
+    </div>
+    <button type="button" class="btn btn-sm fire">Run {SHOTS} new shots</button>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">{describe(phi, 0, 0)}</p>
+  <p class="note">Each shot keeps its own random draw, so moving the slider moves shots from one pile to the other instead of re-rolling them. Arrow lengths are rounded to two decimals.</p>
+</qce-two-ways>
+
+<script>
+  import { SHOTS, ways, amplitude, chance, percents, describe, valueText, draws, countZeros, pileGrid, type Result } from '../../lib/sims/interference.ts';
+  import { abs, add, type C } from '../../lib/quantum.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  type Pad = { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D | null; w: number; h: number };
+  type Pt = [number, number];
+
+  /** A straight arrow from p to q with a filled head. Solid: a line of width lw, with a rim of color `rim` drawn
+   *  first so it stays clear over the sum. Dotted: beads of diameter lw with a thin rim, spaced so a line under them still shows. */
+  function arrow(ctx: CanvasRenderingContext2D, p: Pt, q: Pt, lw: number, color: string, rim: string | null, dotted = false) {
+    const dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy);
+    if (L < 0.5) return;
+    const ux = dx / L, uy = dy / L, hs = Math.min(L * 0.6, 5 + lw * 1.6), hw = hs * 0.62;
+    const base: Pt = [q[0] - ux * hs, q[1] - uy * hs];
+    const head = () => {
+      ctx.beginPath(); ctx.moveTo(q[0], q[1]);
+      ctx.lineTo(base[0] - uy * hw, base[1] + ux * hw); ctx.lineTo(base[0] + uy * hw, base[1] - ux * hw); ctx.closePath();
+    };
+    const grow = dotted ? 1.6 : 3.5;
+    const pass = (c: string, extra: number) => {
+      if (dotted) {
+        const step = 8, n = Math.max(1, Math.floor((L - hs) / step));
+        for (let k = 0; k <= n; k++) dot(ctx, p[0] + ux * k * step, p[1] + uy * k * step, lw / 2 + extra / 2, c);
+      } else {
+        ctx.strokeStyle = c; ctx.lineWidth = lw + extra; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(base[0], base[1]); ctx.stroke();
+      }
+      ctx.fillStyle = c; head(); ctx.fill();
+      if (extra) { ctx.strokeStyle = c; ctx.lineWidth = extra; ctx.lineJoin = 'round'; head(); ctx.stroke(); }
+    };
+    if (rim) pass(rim, grow);
+    pass(color, 0);
+  }
+
+  class TwoWays extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const range = $<HTMLInputElement>('input[type="range"]'), out = $<HTMLOutputElement>('output');
+      const presets = [...this.querySelectorAll<HTMLButtonElement>('[data-phi]')];
+      const fireBtn = $<HTMLButtonElement>('.fire'), readout = $('.tool-readout'), phiSvg = $('[data-phi-svg]');
+      const pOut = [...this.querySelectorAll('[data-p]')], nOut = [...this.querySelectorAll('[data-n]')];
+      const pads: Pad[] = [...this.querySelectorAll('canvas')].map((canvas) => ({ canvas, ctx: null, w: 0, h: 0 }));
+      const still = reduceMotion();
+
+      let phi = +range.value, us = draws(SHOTS, Math.random), shown = 0;
+      let raf = 0, last = 0, credit = 0, seen = false, started = false;
+      const busy = () => shown < SHOTS && started;
+
+      function drawPad(x: Result) {
+        const { ctx, w, h } = pads[x];
+        if (!ctx) return;
+        const col = palette();
+        ctx.clearRect(0, 0, w, h);
+
+        // Arrows. One unit of amplitude is S pixels. The ways start at the origin O, so the sum ends on the
+        // circle of radius 1/2 around the tip of the first way: x from 0 to 1, y from -1/2 to 1/2.
+        const S = Math.max(40, Math.min(w - 24, 136)), ox = (w - S) / 2, oy = 8 + S / 2;
+        const at = (z: C): Pt => [ox + z.re * S, oy - z.im * S];
+        for (let k = 0; k < 48; k++) {
+          const t = (k / 48) * Math.PI * 2;
+          dot(ctx, ox + S * (0.5 + 0.5 * Math.cos(t)), oy - S * 0.5 * Math.sin(t), 1, col.rule);
+        }
+        const [a, b] = ways(phi, x), sum = amplitude(phi, x), O = at({ re: 0, im: 0 });
+        if (abs(sum) > 1e-9) arrow(ctx, O, at(sum), 7, col.signal, null);
+        arrow(ctx, O, at(a), 2, col.ink, col.plate);
+        arrow(ctx, at(a), at(add(a, b)), 3.4, col.hot, col.plate, true);
+        dot(ctx, O[0], O[1], 3, col.ink);
+
+        // Pile: every slot as a faint dot, each shot that gave x as a full dot, filling up from the bottom.
+        const top = 8 + S + 16, bottom = h - 4, g = pileGrid(w - 8, bottom - top, SHOTS);
+        const x0 = (w - g.cols * g.pitch) / 2, r = Math.max(0.8, g.pitch * 0.36);
+        const p0 = chance(phi, 0), zeros = countZeros(us.slice(0, shown), p0), n = x ? shown - zeros : zeros;
+        for (let k = 0; k < SHOTS; k++) {
+          const cx = x0 + ((k % g.cols) + 0.5) * g.pitch, cy = bottom - (Math.floor(k / g.cols) + 0.5) * g.pitch;
+          if (k < n) dot(ctx, cx, cy, r, col.ink); else dot(ctx, cx, cy, r * 0.45, col.rule);
+        }
+        const half = bottom - (SHOTS / 2 / g.cols) * g.pitch;
+        ctx.strokeStyle = col.ink2; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+        ctx.beginPath(); ctx.moveTo(x0 - 4, half); ctx.lineTo(x0 + g.cols * g.pitch + 4, half); ctx.stroke(); ctx.setLineDash([]);
+      }
+
+      function paint() {
+        drawPad(0); drawPad(1);
+        const zeros = countZeros(us.slice(0, shown), chance(phi, 0));
+        nOut[0].textContent = String(zeros); nOut[1].textContent = String(shown - zeros);
+      }
+
+      function say() {
+        readout.setAttribute('aria-busy', 'false');
+        readout.textContent = describe(phi, countZeros(us.slice(0, shown), chance(phi, 0)), shown);
+      }
+
+      function setPhase(d: number) {
+        phi = d;
+        const [a, b] = percents(phi);
+        range.value = String(phi);
+        range.setAttribute('aria-valuetext', valueText(phi));
+        out.textContent = `${phi}°`;
+        phiSvg.textContent = `phase φ = ${phi}°`;
+        pOut[0].textContent = a; pOut[1].textContent = b;
+        presets.forEach((p) => p.setAttribute('aria-pressed', String(+p.dataset.phi! === phi)));
+        paint();
+        if (!busy()) say();
+      }
+
+      // Shots land one at a time at first, so single dots can be followed, then faster.
+      function step(now: number) {
+        raf = 0;
+        const dt = Math.min(48, now - last); last = now;
+        credit += dt * Math.min(0.45, 0.012 + shown * 0.004);
+        const k = Math.min(SHOTS - shown, Math.floor(credit));
+        credit -= k; shown += k;
+        paint();
+        if (shown < SHOTS) { if (seen) raf = requestAnimationFrame(step); }
+        else say();
+      }
+      const kick = () => { if (!raf && seen && shown < SHOTS) { last = performance.now(); raf = requestAnimationFrame(step); } };
+
+      function run() {
+        started = true; us = draws(SHOTS, Math.random); credit = 0;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        if (still) { shown = SHOTS; paint(); say(); return; }
+        shown = 0; paint();
+        readout.setAttribute('aria-busy', 'true');
+        readout.textContent = `Running ${SHOTS} shots…`;
+        kick();
+      }
+
+      const size = (pad: Pad) => () => { const f = fit(pad.canvas); pad.ctx = f.ctx; pad.w = f.w; pad.h = f.h; paint(); };
+      pads.forEach((pad) => onResize(pad.canvas, size(pad)));
+      onTheme(paint);
+      onSeen(this, (v) => {
+        seen = v;
+        if (v && !started) run();
+        else if (v) kick();
+      });
+      range.addEventListener('input', () => setPhase(+range.value));
+      presets.forEach((p) => p.addEventListener('click', () => setPhase(+p.dataset.phi!)));
+      fireBtn.addEventListener('click', run);
+      pads.forEach((pad) => size(pad)());
+    }
+  }
+  customElements.define('qce-two-ways', TwoWays);
+</script>
+
+<style>
+  qce-two-ways { display: grid }
+  .ways { width: 100%; max-width: 24rem; height: auto; justify-self: center }
+  .ways text { font: 500 13px var(--mono); fill: var(--ink-2); text-anchor: middle }
+  .ways .gate { font-size: 15px; font-weight: 700; fill: var(--ink) }
+  .ways path { fill: none; stroke-width: 2.25 }
+  .w0 path { stroke: var(--ink) }
+  .w1 path { stroke: var(--hot); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 0 6 }
+  .ways .minus { fill: var(--hot) }
+  .node circle { fill: var(--paper); stroke: var(--ink); stroke-width: 1.5 }
+  .node .n1 { stroke: var(--hot); stroke-width: 2 }
+  .node text { fill: var(--ink) }
+  .ways .phi { fill: var(--hot) }
+
+  .results { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); width: 100%; max-width: 40rem; justify-self: center }
+  figure { display: grid; align-content: start; gap: var(--s2); min-width: 0 }
+  canvas { height: 17rem }
+  figcaption { display: grid; gap: .1rem; font-size: .9375rem; color: var(--ink-2); text-align: center }
+  figcaption b { color: var(--ink); font-weight: 600 }
+  figcaption .doto { color: var(--ink); font-size: 1.125rem }
+
+  .key, .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  .k { color: var(--ink); font-weight: 600 }
+  .tool-controls { display: grid; gap: var(--s3); align-items: start }
+  .phase { display: grid; gap: var(--s1); min-width: 0 }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2) }
+  .row output { font-size: 1.25rem }
+  .presets { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .presets button { min-width: 4rem; min-height: 2.75rem; padding: 0 .9rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer }
+  .presets button:hover { border-color: var(--ink) }
+  .presets button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .fire { justify-self: start }
+  @media (min-width: 40rem) {
+    .tool-controls { grid-template-columns: minmax(0, 1fr) auto; align-items: end; column-gap: var(--s5) }
+  }
+</style>
