@@ -1,0 +1,51 @@
+---
+// The Map: every stop, by region (tiles) or by line (tracks). Rebuilt from docs/curriculum.md on every build.
+import Layout from '../layouts/Layout.astro';
+import Finder from '../components/map/Finder.astro';
+import Tile from '../components/map/Tile.astro';
+import Track from '../components/map/Track.astro';
+import { regions, stops, lines } from '../lib/curriculum.ts';
+const all = [...stops.values()];
+const description = `Everything in quantum computing in one place: ${stops.size} stops in ${regions.length} regions, with lines that show the order to learn them.`;
+---
+<Layout title="The Map" description={description}>
+  <div class="wrap">
+    <header class="page-head">
+      <p class="label">The Map</p>
+      <h1>Everything in quantum computing, in one place.</h1>
+      <p class="answer">{stops.size} stops in {regions.length} regions, joined by {lines.length} lines. Regions say what a topic is. Lines show the order to learn it.</p>
+    </header>
+    <Finder />
+    <div class="by-region">
+      {regions.map((r) => {
+        const own = all.filter((s) => s.region === r.id);
+        return (
+          <section class="region" data-region={r.id} style={`--c: var(--r-${r.id})`} aria-labelledby={`reg-${r.id}`}>
+            <h3 id={`reg-${r.id}`}>{r.name} <span class="count">{own.length}</span></h3>
+            <div class="tiles">{own.map((s) => <Tile stop={s} />)}</div>
+          </section>
+        );
+      })}
+    </div>
+    <div class="by-line">{lines.map((_, i) => <Track index={i} />)}</div>
+    <p class="empty" hidden>No stop matches. Looking for a term? Try <a href="/words/">Words</a>.</p>
+  </div>
+</Layout>
+
+<style>
+  .page-head { display: grid; gap: var(--s3); padding-top: var(--s5) }
+  h1 { font-size: clamp(2.6rem, 1.4rem + 5vw, 5.4rem) }
+  .answer { max-width: 40rem; font-size: clamp(1.25rem, 1.1rem + .6vw, 1.5rem); line-height: 1.45 }
+  .by-region, .by-line { gap: var(--s6); margin-top: var(--s6); padding-bottom: var(--s6) }
+  .by-region { display: grid }
+  .by-line { display: none }
+  :global(main:has([name="view"][value="line"]:checked)) .by-line { display: grid }
+  :global(main:has([name="view"][value="line"]:checked)) .by-region { display: none }
+  .region > h3 { display: flex; align-items: baseline; gap: .6rem; margin-bottom: var(--s4); font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem) }
+  .region > h3::before { content: ""; align-self: center; width: .9rem; height: .9rem; border-radius: 50%; background: var(--c) }
+  .count { font: 500 .8125rem var(--mono); letter-spacing: .04em; color: var(--ink-2) }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr)); border-top: 1px solid var(--rule); border-left: 1px solid var(--rule) }
+  .empty { margin-top: var(--s5); font-size: 1.125rem }
+  :global(.off) { display: none !important }
+  @media (min-width: 64rem) { .by-line { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--s6) } }
+</style>

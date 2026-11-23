@@ -6,7 +6,7 @@ const here = Astro.url.pathname;
 <header class="wrap bar">
   <Brand />
   <nav aria-label="Main">
-    {nav.map((n) => <a href={n.href} aria-current={here.startsWith(n.href) ? 'page' : undefined}>{n.label}</a>)}
+    {nav.map((n) => <a href={n.href} aria-current={(here + '/').replace(///$/, '/').startsWith(n.href) ? 'page' : undefined}>{n.label}</a>)}
     <a class="btn btn-sm" href="/learn/superposition/">Try superposition</a>
   </nav>
 </header>

@@ -1,0 +1,35 @@
+---
+// One line as a dotted track: its stops in learning order. A stop shared with other lines says so.
+import { stop as get, lines, href, isOpen } from '../../lib/curriculum.ts';
+interface Props { index: number }
+const { index } = Astro.props;
+const line = lines[index];
+---
+<section class="track" data-line={index} aria-labelledby={`line-${index}`}>
+  <h3 id={`line-${index}`}>{line.name} <span class="count">{line.stops.length} stops</span></h3>
+  <ol>
+    {line.stops.map(get).map((s) => {
+      const other = s.lines.filter((j) => j !== index).map((j) => lines[j].name);
+      return (
+        <li class:list={{ x: other.length > 0, open: isOpen(s.id) }} style={`--c: var(--r-${s.region})`} data-q={`${s.name} ${line.name}`.toLowerCase()}>
+          <a href={href(s.id)}>{s.name}</a>
+          {other.length > 0 && <small>Also on {other.join(', ')}</small>}
+        </li>
+      );
+    })}
+  </ol>
+</section>
+
+<style>
+  h3 { display: flex; align-items: baseline; gap: .6rem; margin-bottom: var(--s4); font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem) }
+  .count { font: 500 .8125rem var(--mono); letter-spacing: .04em; color: var(--ink-2) }
+  ol { position: relative; display: grid; gap: var(--s3); padding-left: 1.9rem }
+  ol::before { content: ""; position: absolute; left: .5rem; top: .7rem; bottom: .7rem; width: 6px; background: radial-gradient(circle, var(--ink-2) 2.2px, transparent 2.6px) 50% 0 / 6px 9px repeat-y }
+  li { position: relative; display: grid; gap: .1rem; font-weight: 600 }
+  li::before { content: ""; position: absolute; left: -1.9rem; top: .25rem; width: 1.1rem; height: 1.1rem; border: 3px solid var(--c); border-radius: 50%; background: var(--paper) }
+  li.x::before { border-width: 4.5px; border-color: var(--ink) }
+  li.open::before { background: var(--signal); border-color: var(--signal) }
+  a { text-decoration: none }
+  li.open a { text-decoration: underline }
+  small { font: 500 .75rem var(--mono); color: var(--ink-2) }
+</style>

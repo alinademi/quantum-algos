@@ -1,0 +1,70 @@
+---
+// Search, view switch, region chips and line filter for The Map. Without JavaScript every stop still shows.
+import { regions, lines, stops } from '../../lib/curriculum.ts';
+---
+<div class="finder">
+  <div class="search" hidden><label class="label" for="q">Search stops</label><input id="q" type="search" placeholder="Try: Grover, entanglement, crypto" autocomplete="off" /></div>
+  <fieldset class="view"><legend class="label">View</legend><div>
+    <label><input type="radio" name="view" value="region" checked />By region</label>
+    <label><input type="radio" name="view" value="line" />By line</label>
+  </div></fieldset>
+  <div class="chips" role="group" aria-label="Show one region">
+    {regions.map((r) => <button type="button" data-region={r.id} aria-pressed="false" style={`--c: var(--r-${r.id})`}>{r.name}</button>)}
+  </div>
+  <label class="line-pick" for="line-pick">Only stops on <select id="line-pick"><option value="-1">any line</option>{lines.map((l, i) => <option value={i}>{l.name}</option>)}</select></label>
+  <p class="hint" id="found" aria-live="polite">{stops.size} stops</p>
+</div>
+
+<script>
+  const $ = <T extends Element>(s: string) => document.querySelector<T>(s)!;
+  const $$ = <T extends HTMLElement>(s: string) => [...document.querySelectorAll<T>(s)];
+  const q = $<HTMLInputElement>('#q'), found = $('#found'), empty = $<HTMLElement>('.empty'), pick = $<HTMLSelectElement>('#line-pick');
+  const chips = $$('.chips [data-region]'), tiles = $$('.tile'), regs = $$('.by-region .region'), items = $$('.track li'), tracks = $$('.track');
+  let region: string | null = null;
+  $<HTMLElement>('.search').hidden = false;
+  function run() {
+    const t = q.value.trim().toLowerCase(), line = pick.value;
+    let shown = 0;
+    for (const el of tiles) {
+      const ok = (!t || el.dataset.q!.includes(t)) && (line === '-1' || el.dataset.lines!.split(' ').includes(line)) && (!region || el.closest<HTMLElement>('.region')!.dataset.region === region);
+      el.classList.toggle('off', !ok); shown += Number(ok);
+    }
+    regs.forEach((r) => r.classList.toggle('off', !r.querySelector('.tile:not(.off)')));
+    items.forEach((el) => el.classList.toggle('off', !!t && !el.dataset.q!.includes(t)));
+    tracks.forEach((tr) => tr.classList.toggle('off', (line !== '-1' && tr.dataset.line !== line) || !tr.querySelector('li:not(.off)')));
+    found.textContent = `${shown} of ${tiles.length} stops`;
+    empty.hidden = shown > 0;
+  }
+  q.addEventListener('input', run);
+  pick.addEventListener('change', run);
+  chips.forEach((c) => c.addEventListener('click', () => {
+    const on = c.getAttribute('aria-pressed') !== 'true';
+    chips.forEach((x) => x.setAttribute('aria-pressed', 'false'));
+    c.setAttribute('aria-pressed', String(on));
+    region = on ? c.dataset.region! : null;
+    run();
+  }));
+</script>
+
+<style>
+  .finder { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5); margin-top: var(--s5); padding: var(--s4); border: 1px solid var(--rule); border-radius: var(--r); background: var(--plate) }
+  .search { display: grid; gap: var(--s2); flex-basis: 100% }
+  .search input { width: 100%; min-height: 3.25rem; padding: 0 1rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1.125rem var(--sans) }
+  .search input:focus { border-color: var(--ink); outline: 3px solid var(--signal); outline-offset: 2px }
+  .view { margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) }
+  .view legend { float: left; margin-right: var(--s2); padding: 0 }
+  .view div { display: inline-grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: calc(var(--r) + 4px); background: var(--paper); border: 1px solid var(--rule) }
+  .view label { position: relative; display: grid; place-items: center; min-height: 2.5rem; padding: 0 1rem; white-space: nowrap; border-radius: var(--r); font-weight: 600; cursor: pointer }
+  .view input { position: absolute; opacity: 0; width: 1px; height: 1px }
+  .view label:has(:checked) { background: var(--ink); color: var(--paper) }
+  .view label:has(:focus-visible) { outline: 3px solid var(--signal); outline-offset: 2px }
+  .chips { display: flex; flex-wrap: wrap; gap: var(--s2); flex-basis: 100% }
+  .chips button { display: inline-flex; align-items: center; gap: .45rem; min-height: 2.5rem; padding: 0 .85rem; border: 1.5px solid var(--rule); border-radius: 999px; background: var(--paper); color: var(--ink); font: 600 .875rem var(--sans); cursor: pointer }
+  .chips button::before { content: ""; width: .65rem; height: .65rem; border-radius: 50%; background: var(--c) }
+  .chips button:hover { border-color: var(--ink) }
+  .chips button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink) }
+  .line-pick { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); font-weight: 600 }
+  .line-pick select { min-height: 2.5rem; padding: 0 .75rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 .9375rem var(--sans) }
+  .hint { margin-left: auto; color: var(--ink-2); font-size: .875rem }
+  :global(main:has([name="view"][value="line"]:checked)) .chips { display: none }
+</style>

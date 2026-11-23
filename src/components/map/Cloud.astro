@@ -1,0 +1,15 @@
+---
+// A stop's icon: a small dot cloud, seeded by its id so it never changes. More links, more dots.
+import { leadsTo, type Stop } from '../../lib/curriculum.ts';
+interface Props { stop: Stop }
+const { stop } = Astro.props;
+let seed = ([...stop.id].reduce((t, ch) => t + ch.charCodeAt(0), 0) * 7919) % 2147483647 || 1;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const count = 7 + 2 * (stop.needs.length + leadsTo(stop.id).length) + 2 * stop.lines.length;
+const dots = Array.from({ length: count }, () => { const a = rnd() * 6.283, r = Math.sqrt(rnd()) * 15; return [20 + Math.cos(a) * r, 20 + Math.sin(a) * r]; });
+---
+<svg class="cloud" viewBox="0 0 40 40" aria-hidden="true">{dots.map(([x, y]) => <circle cx={x.toFixed(1)} cy={y.toFixed(1)} r="1.7" />)}</svg>
+
+<style>
+  .cloud { width: 44px; height: 44px; flex: none; fill: var(--c) }
+</style>

@@ -1,7 +1,7 @@
 // The site's map of knowledge, read at build time from the two source files:
 // docs/curriculum.md (regions, stops, lines) and docs/references.md (Learn more links).
 // Every page asks this module; nothing else parses those files.
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 export type Level = 'Beginner' | 'Intermediate' | 'Advanced';
@@ -71,5 +71,7 @@ for (const l of lines) l.stops.forEach((id, i) => { if (l.stops[i + 1]) nextOnLi
 export const best = (id: string, xs: Stop[]) =>
   [...xs].sort((a, b) => Number(!nextOnLine.get(id)?.has(a.id)) - Number(!nextOnLine.get(id)?.has(b.id)) || rank[a.level] - rank[b.level] || order.get(a.id)! - order.get(b.id)!);
 
-/** Where a stop's page lives. */
-export const href = (id: string) => `/learn/${id}/`;
+/** True when the stop has its page written (src/content/stops/<id>.mdx). */
+export const isOpen = (id: string) => existsSync(join(process.cwd(), 'src/content/stops', `${id}.mdx`));
+/** Link to a stop: its page when written, else its tile on The Map. */
+export const href = (id: string) => (isOpen(id) ? `/learn/${id}/` : `/map/#${id}`);

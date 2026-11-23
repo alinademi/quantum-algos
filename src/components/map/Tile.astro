@@ -1,0 +1,55 @@
+---
+// One stop on The Map: icon, title, open or soon, learn first, leads to, go deeper, learn more, lines.
+import Cloud from './Cloud.astro';
+import LinkFold from '../stop/LinkFold.astro';
+import { stop as get, leadsTo, best, lines, learnMore, regionName, isOpen, type Stop } from '../../lib/curriculum.ts';
+interface Props { stop: Stop }
+const { stop } = Astro.props;
+const open = isOpen(stop.id);
+const needs = stop.needs.map(get), leads = best(stop.id, leadsTo(stop.id)), deeper = stop.deeper.map(get);
+const picks = learnMore.get(stop.id) ?? [];
+const q = [stop.name, regionName(stop.region), ...stop.lines.map((i) => lines[i].name)].join(' ').toLowerCase();
+---
+<article class="tile" id={stop.id} data-q={q} data-lines={stop.lines.join(' ')} style={`--c: var(--r-${stop.region})`}>
+  <header>
+    <Cloud stop={stop} />
+    <div>
+      <h4>{open ? <a href={`/learn/${stop.id}/`}>{stop.name}</a> : stop.name}</h4>
+      <span class:list={['tag', { soon: !open }]}>{open ? 'Open' : 'Soon'}</span>
+    </div>
+  </header>
+  <div class="rel"><span class="label">Learn first</span>{needs.length ? <LinkFold stops={needs} /> : 'Nothing. Start here.'}</div>
+  {leads.length > 0 && <div class="rel"><span class="label">Leads to</span><LinkFold stops={leads} /></div>}
+  {deeper.length > 0 && <div class="rel"><span class="label">Go deeper</span><LinkFold stops={deeper} /></div>}
+  {picks.length > 0 && (
+    <details class="refs">
+      <summary class="label">Learn more ({picks.length})</summary>
+      <ol>{picks.map((p) => <li><a href={p.link}>{p.source.title}</a><span class="part">{p.part}</span><span class="label">{p.source.level}</span></li>)}</ol>
+    </details>
+  )}
+  <ul class="badges" aria-label="Lines">{stop.lines.map((i) => <li>{lines[i].name}</li>)}</ul>
+</article>
+
+<style>
+  .tile { display: grid; gap: var(--s2); align-content: start; min-width: 0; padding: var(--s4); background: var(--paper); border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); scroll-margin-top: var(--s4); transition: background .2s }
+  .tile:target { background: color-mix(in oklab, var(--c) 12%, var(--paper)); box-shadow: inset 0 0 0 2px var(--c) }
+  header { display: flex; align-items: center; gap: var(--s3) }
+  header > div { display: grid; gap: .3rem; justify-items: start }
+  h4 { font-size: 1.1875rem; font-weight: 600; letter-spacing: -.015em; line-height: 1.15 }
+  h4 a { text-decoration-thickness: 2px }
+  .tag { padding: .1rem .5rem; border-radius: 999px; background: var(--signal); color: var(--on-signal); font: 500 .6875rem/1.4 var(--mono); letter-spacing: .06em; text-transform: uppercase }
+  .tag.soon { background: var(--plate); color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--rule) }
+  .rel { color: var(--ink-2); font-size: .9375rem; line-height: 1.5 }
+  .rel > .label { display: block; margin-bottom: .1rem }
+  .rel :global(a) { color: var(--ink) }
+  summary { display: flex; align-items: center; min-height: 2.75rem; cursor: pointer; list-style: none }
+  summary::-webkit-details-marker { display: none }
+  summary::after { content: "+"; margin-left: auto; font-size: 1rem }
+  .refs[open] summary::after { content: "\2212" }
+  .refs ol { display: grid; gap: var(--s2); padding-bottom: var(--s2) }
+  .refs li { display: grid; gap: .1rem; padding-left: var(--s3); border-left: 2px solid var(--rule); font-size: .9375rem }
+  .refs a { font-weight: 600 }
+  .part { font-size: .875rem }
+  .badges { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: var(--s1) }
+  .badges li { padding: .1rem .5rem; border: 1px solid var(--rule); border-radius: 999px; font: 500 .6875rem/1.5 var(--mono); color: var(--ink-2) }
+</style>
