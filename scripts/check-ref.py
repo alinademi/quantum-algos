@@ -93,6 +93,7 @@ def check_file(path):
             want = ax_title[1] if kind == 'arXiv' and ax_title else title
             if rec['title'] and not same_title(rec['title'], want): problems.append(f'{k}: {kind} title is "{rec["title"]}"')
             if kind == 'DOI' and rec['year'] != r['year']: problems.append(f'{k}: DOI year is {rec["year"]}, row says {r["year"]}')
+        if '\ufffd' in ''.join(r.values()): problems.append(f'{k}: broken character (\ufffd), fix the text by hand')
         if r['doi'] == '-' and r['arxiv'] == '-' and r.get('url', '-') == '-': problems.append(f'{k}: no DOI, arXiv id or URL')
     print(*problems, f'{len(rows)} references, {len(problems)} problems', sep='\n')
     return not problems
