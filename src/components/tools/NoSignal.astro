@@ -1,0 +1,261 @@
+---
+// Alice and Bob share fresh Bell pairs; each pair's results are drawn with the Born rule odds for the whole pair,
+// so Bob's piles show honestly that his odds never depend on what Alice does, while her phoned results reveal the link.
+const uid = 'ns-' + Math.random().toString(36).slice(2, 8);
+---
+<qce-no-signal class="tool">
+  <div class="setup">
+    <fieldset>
+      <legend>Alice, with her half of each pair</legend>
+      <label><input type="radio" name={`${uid}-a`} value="none" checked /> does nothing</label>
+      <label><input type="radio" name={`${uid}-a`} value="z" /> measures 0/1</label>
+      <label><input type="radio" name={`${uid}-a`} value="x" /> measures +/−</label>
+    </fieldset>
+    <fieldset>
+      <legend>Bob measures his half</legend>
+      <label><input type="radio" name={`${uid}-b`} value="z" checked /> 0/1</label>
+      <label><input type="radio" name={`${uid}-b`} value="x" /> +/−</label>
+    </fieldset>
+  </div>
+
+  <div class="tool-controls">
+    <button type="button" class="btn btn-sm" data-send>Send 100 pairs</button>
+    <button type="button" class="btn btn-sm btn-line" data-clear>Clear</button>
+    <label class="toggle"><input type="checkbox" data-phone /> Alice phones Bob her results</label>
+  </div>
+
+  <figure>
+    <canvas aria-hidden="true"></canvas>
+    <figcaption>
+      <span class="key">
+        <span class="kb">Bob's result only</span>
+        <span class="k0" data-key hidden>Alice read 0 or +</span>
+        <span class="k1" data-key hidden>Alice read 1 or −</span>
+      </span>
+      <span>Each dot is one pair, piled by Bob's result. The three groups are Alice's three choices, but Bob is not told which group is which. They are far apart, so her results reach him only by an ordinary signal, like a phone call: no faster than light.</span>
+    </figcaption>
+  </figure>
+
+  <p class="tool-readout" aria-live="polite">Alice and Bob share Bell pairs: each pair started as 00, then a Hadamard gate on Alice's qubit and a CNOT. Pick what Alice does, then send pairs.</p>
+  <p class="note">A simulation of ideal qubits. Every pair is fresh, and its results are drawn from your browser's random numbers with the Born rule odds for the whole pair. The tool uses one state, the Bell pair, and two measurements on each side, 0/1 and +/−; the theorem covers every state and anything Alice can do. Changing Bob's measurement clears the piles.</p>
+</qce-no-signal>
+
+<script>
+  import {
+    bellPair, bobOdds, sameGiven, shot, tally, spread, pileGrid, tidy,
+    NAMES, CHOICES, BATCH, CAP, PILE_FIT, type Basis, type Choice, type Shot,
+  } from '../../lib/sims/no-signaling.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot, pct } from '../../lib/draw.ts';
+
+  /** Pairs per ms while sending; ms a new dot stays enlarged. */
+  const RATE = 0.08, POP = 300;
+  const PAIR = bellPair();
+  const START = 'Each pair started as 00, then a Hadamard gate on Alice\'s qubit and a CNOT made a Bell pair.';
+  const HEAD: Record<Choice, string> = { none: 'nothing', z: '0/1', x: '+/−' };
+  const DID: Record<Choice, string> = { none: 'Alice did nothing', z: 'Alice measured 0/1', x: 'Alice measured +/−' };
+  const num = (n: number) => n.toLocaleString('en');
+  type Dot = Shot & { t: number };
+
+  class NoSignal extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const canvas = $<HTMLCanvasElement>('canvas'), readout = $('.tool-readout');
+      const send = $<HTMLButtonElement>('[data-send]'), phoneBox = $<HTMLInputElement>('[data-phone]');
+      const aliceRadios = [...this.querySelectorAll<HTMLInputElement>('input[name$="-a"]')];
+      const bobRadios = [...this.querySelectorAll<HTMLInputElement>('input[name$="-b"]')];
+      const keys = [...this.querySelectorAll<HTMLElement>('[data-key]')];
+
+      const checked = (rs: HTMLInputElement[]) => (rs.find((r) => r.checked) ?? rs[0]).value;
+      let alice = checked(aliceRadios) as Choice, bob = checked(bobRadios) as Basis, phone = phoneBox.checked;
+      let groups: Record<Choice, Dot[]> = { none: [], z: [], x: [] };
+      let pending: Choice[] = [], lastSent: Choice = alice;
+      let ctx: CanvasRenderingContext2D | null = null, w = 0, h = 0;
+      let raf = 0, last = 0, credit = 0, seen = false, started = false;
+
+      const queued = (ch: Choice) => pending.filter((p) => p === ch).length;
+      const room = (ch: Choice) => CAP - groups[ch].length - queued(ch);
+
+      // Layout in CSS pixels: three groups side by side, each with Bob's two piles.
+      const layout = () => {
+        const gw = w / 3, gap = Math.max(4, gw * 0.08), pw = Math.min((gw - 3 * gap) / 2, 84);
+        const top = 44, base = h - 36;
+        const piles = CHOICES.map((_, g) => [-1, 1].map((s) => g * gw + gw / 2 + s * (pw / 2 + gap / 2)));
+        return { gw, pw, top, base, piles };
+      };
+
+      /** A pile's dots in drawing order: by arrival, or with the phone on, sorted by Alice's result. */
+      const order = (ds: Dot[]) => (phone ? [...ds].sort((p, q) => (p.a ?? 2) - (q.a ?? 2)) : ds);
+
+      function paint(now = performance.now()) {
+        if (!ctx) return;
+        const col = palette(), g = layout(), mono = token('--mono');
+        ctx.clearRect(0, 0, w, h);
+        ctx.font = `500 11px ${mono}`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+
+        // Dotted rules between the groups.
+        for (let k = 1; k < 3; k++) for (let y = 4; y < h - 4; y += 7) dot(ctx, k * g.gw, y, 1, col.rule);
+
+        const piles = CHOICES.map((ch) => [0, 1].map((b) => order(groups[ch].filter((d) => d.b === b))));
+        const biggest = Math.max(PILE_FIT, ...piles.flat().map((p) => p.length));
+        const grid = pileGrid(g.pw, g.base - g.top, biggest);
+        const r = grid.pitch * 0.38, ring = Math.max(1, grid.pitch * 0.2);
+
+        CHOICES.forEach((ch, gi) => {
+          const cx = gi * g.gw + g.gw / 2, mine = ch === alice;
+          ctx!.fillStyle = mine ? col.ink : col.ink2;
+          ctx!.fillText('Alice:', cx, 12);
+          ctx!.fillText(HEAD[ch], cx, 26);
+          if (mine) { ctx!.fillStyle = col.ink; ctx!.fillRect(cx - Math.min(28, g.gw / 2 - 6), 32, 2 * Math.min(28, g.gw / 2 - 6), 2); }
+
+          [0, 1].forEach((b) => {
+            const px = g.piles[gi][b], ds = piles[gi][b], x0 = px - (grid.cols * grid.pitch) / 2;
+            ds.forEach((d, k) => {
+              const x = x0 + ((k % grid.cols) + 0.5) * grid.pitch, y = g.base - (Math.floor(k / grid.cols) + 0.5) * grid.pitch;
+              const age = now - d.t, rr = age < POP ? r * (1 + 0.6 * (1 - age / POP)) : r;
+              if (!phone || d.a === null) dot(ctx!, x, y, rr, col.ink2);
+              else if (d.a === 0) dot(ctx!, x, y, rr * 1.05, col.signal);
+              else {
+                ctx!.strokeStyle = col.hot; ctx!.lineWidth = ring;
+                ctx!.beginPath(); ctx!.arc(x, y, Math.max(0.5, rr * 1.2 - ring / 2), 0, Math.PI * 2); ctx!.stroke();
+              }
+            });
+            ctx!.fillStyle = col.rule; ctx!.fillRect(px - g.pw / 2, g.base + 2, g.pw, 1);
+            ctx!.fillStyle = col.ink2; ctx!.fillText(NAMES[bob][b], px, g.base + 16);
+            ctx!.fillStyle = col.ink; ctx!.fillText(num(ds.length), px, h - 6);
+          });
+        });
+      }
+
+      function setSend() {
+        const full = room(alice) <= 0;
+        send.setAttribute('aria-disabled', String(full));
+        send.textContent = full ? 'Full: pick another or clear' : `Send ${BATCH} pairs`;
+      }
+
+      function say() {
+        const [B0, B1] = NAMES[bob];
+        const odds = CHOICES.map((ch) => tidy(bobOdds(PAIR, ch, bob)[1]));
+        const parts = CHOICES.map((ch) => {
+          const t = tally(groups[ch]);
+          return t.n ? `${DID[ch]}: Bob read ${B1} on ${num(t.bob[1])} of ${num(t.n)} pairs (${pct(t.bob[1] / t.n)})` : `${DID[ch]}: no pairs yet`;
+        });
+        let txt = `${START} Bob measured ${HEAD[bob]} on every pair. ${parts.join('. ')}. `;
+        txt += odds.every((p) => p === odds[0])
+          ? `Born rule: Bob reads ${B1} with chance ${pct(odds[0])} in every case, so his results alone cannot tell him what Alice did.`
+          : `Born rule: ${odds.map(pct).join(', ')}.`;
+        const n = groups[lastSent].length;
+        if (n) txt += ` Chance alone moves a count of ${num(n)} pairs by about ${Math.round(spread(n, odds[0]))} either way.`;
+
+        const measured = (['z', 'x'] as const).filter((ch) => groups[ch].length);
+        if (phone) {
+          txt += measured.length ? ' By phone, sorted by Alice\'s results:' : ' Alice has no results to phone yet: she has not measured.';
+          for (const ch of measured) {
+            const t = tally(groups[ch]), [A0, A1] = NAMES[ch], [q0, q1] = sameGiven(PAIR, ch, bob).map(tidy);
+            txt += ` ${DID[ch]}. When she read ${A0}, Bob read ${B0} on ${num(t.same[0])} of ${num(t.seen[0])}; when she read ${A1}, Bob read ${B1} on ${num(t.same[1])} of ${num(t.seen[1])}. Born rule: ${pct(q0)} and ${pct(q1)}.`;
+          }
+        } else if (measured.length) txt += ' Turn on the phone to sort Bob\'s results by Alice\'s.';
+        if (room(alice) <= 0) txt += ' This group is full.';
+        readout.textContent = txt;
+        readout.setAttribute('aria-busy', 'false');
+      }
+
+      const add = (ch: Choice, t: number) => groups[ch].push({ ...shot(PAIR, ch, bob, Math.random), t });
+      /** Finish every queued pair at once and draw the end state: for reduced motion. */
+      const flush = () => { for (const ch of pending) add(ch, -Infinity); pending = []; credit = 0; paint(); say(); setSend(); };
+      const newest = () => Math.max(-Infinity, ...CHOICES.map((ch) => groups[ch].at(-1)?.t ?? -Infinity));
+
+      function frame(now: number) {
+        raf = 0;
+        const dt = Math.max(0, Math.min(48, now - last)); last = now;
+        credit += dt * RATE;
+        const k = Math.min(pending.length, Math.floor(credit));
+        credit -= k;
+        for (const ch of pending.splice(0, k)) add(ch, now);
+        if (!pending.length) credit = 0;
+        paint(now);
+        // Off screen, pause; if only the last pops were left, finish now so the readout still updates.
+        if (pending.length || now < newest() + POP) {
+          if (seen) raf = requestAnimationFrame(frame);
+          else if (!pending.length) { say(); setSend(); }
+        } else { say(); setSend(); }
+      }
+      const kick = () => { if (!raf && seen && pending.length) { last = performance.now(); raf = requestAnimationFrame(frame); } };
+
+      function sendPairs() {
+        const n = Math.min(BATCH, room(alice));
+        if (n <= 0) { say(); return; }
+        for (let i = 0; i < n; i++) pending.push(alice);
+        lastSent = alice; setSend();
+        if (reduceMotion()) { flush(); return; }
+        readout.setAttribute('aria-busy', 'true');
+        readout.textContent = 'Sending Bell pairs…';
+        kick();
+      }
+
+      function clear() {
+        groups = { none: [], z: [], x: [] }; pending = []; credit = 0;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        paint(); setSend();
+      }
+
+      const size = () => { ({ ctx, w, h } = fit(canvas)); paint(); };
+
+      aliceRadios.forEach((r) => r.addEventListener('change', () => { if (r.checked) { alice = r.value as Choice; setSend(); paint(); } }));
+      bobRadios.forEach((r) => r.addEventListener('change', () => {
+        if (!r.checked) return;
+        bob = r.value as Basis; clear(); say();
+        readout.textContent = `Bob now measures ${HEAD[bob]}, so the piles start over. ` + readout.textContent;
+      }));
+      phoneBox.addEventListener('change', () => {
+        phone = phoneBox.checked;
+        keys.forEach((k) => { k.hidden = !phone; });
+        paint(); if (!pending.length) say();
+      });
+      send.addEventListener('click', sendPairs);
+      $('[data-clear]').addEventListener('click', () => { clear(); say(); });
+
+      onResize(canvas, size);
+      onTheme(() => paint());
+      onSeen(this, (v) => {
+        seen = v;
+        if (v && !started) { started = true; sendPairs(); }
+        else if (v) kick();
+      });
+      keys.forEach((k) => { k.hidden = !phone; });
+      setSend(); size();
+    }
+  }
+  customElements.define('qce-no-signal', NoSignal);
+</script>
+
+<style>
+  .setup { display: grid; gap: var(--s4) }
+  fieldset { display: grid; align-content: start; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  fieldset label { display: flex; align-items: center; gap: var(--s2); min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); font-weight: 500; cursor: pointer }
+  fieldset label:hover { border-color: var(--ink) }
+  fieldset label:has(:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink) }
+  fieldset input { flex: none; width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--signal) }
+  .toggle { display: inline-flex; align-items: center; gap: var(--s2); min-height: 2.75rem; cursor: pointer }
+  .toggle input { flex: none; width: 1.5rem; height: 1.5rem; margin: 0; accent-color: var(--signal); cursor: pointer }
+  [aria-disabled="true"] { opacity: .45; cursor: not-allowed }
+
+  canvas { height: 18rem }
+  figure { display: grid; gap: var(--s2); min-width: 0 }
+  figcaption { display: grid; gap: var(--s2); max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  .key { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); font: 500 .875rem var(--mono) }
+  .key > span { display: inline-flex; align-items: center; gap: .4rem }
+  .key > span[hidden] { display: none }
+  .key > span::before { content: ""; flex: none; width: .75rem; height: .75rem; border-radius: 50% }
+  .key > .kb::before { width: .6rem; height: .6rem; background: var(--ink-2) }
+  .key > .k0::before { background: var(--signal) }
+  .key > .k1::before { border: 2px solid var(--hot) }
+
+  .tool-readout { min-height: 6.4em }
+  .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+
+  @media (min-width: 40rem) {
+    .setup { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); column-gap: var(--s5) }
+    canvas { height: 20rem }
+  }
+</style>

@@ -1,0 +1,60 @@
+---
+description: "Alice measures her half of an entangled pair. Can Bob tell? No: his odds stay the same. See live why entanglement cannot send messages."
+answer: "No-signaling, also called the no-communication theorem, says that nothing done to one half of an entangled pair changes the odds of any measurement on the other half. So entanglement alone cannot send a message, faster than light or at any speed."
+myth:
+  claim: "Entanglement lets you send messages faster than light."
+  truth: "Measuring one half of an entangled pair does not change the odds at the other half. The link shows only when both sides compare results, and that takes an ordinary signal, no faster than light."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import NoSignal from '../../components/tools/NoSignal.astro';
+
+<Depth level="kid">
+
+Alice and Bob share pairs of entangled qubits. Alice keeps one qubit from each pair, Bob keeps the other, and they move far apart. When both measure their qubits as 0 or 1, their results always match. Yet Bob's results on their own look like fair coin flips: 0 or 1, at random.
+
+Can Alice use this link to send Bob a message faster than light? Quantum theory says no. Whatever Alice does to her qubits, measuring them one way, another way, or not at all, Bob's results still look like fair coin flips. The match shows only when Alice tells Bob her results, say by phone, and a phone call is not faster than light.
+
+Picture two friends with matching lists of coin flips. The picture breaks in one place: with qubits, how well their results match depends on how both of them measure. Bob's list alone still looks the same.
+
+</Depth>
+
+<Depth level="student">
+
+Start two qubits as 0. A Hadamard gate on the first, then a CNOT, makes the Bell pair (|00⟩ + |11⟩)/√2. Alice takes one qubit and Bob the other, far apart. If both measure 0/1, they always get the same result: 00 or 11, each with chance ½.
+
+Can Alice send Bob a bit? Say she measures 0/1 to send 0, and +/− to send 1. Measuring 0/1 leaves Bob's qubit as |0⟩ or |1⟩, each with chance ½. Measuring +/− leaves it as |+⟩ or |−⟩, each with chance ½. These two mixes are the same [mixed state](/learn/mixed-states/), I/2, so they give the same odds in every measurement Bob can make, and he cannot tell which one she chose. If she does nothing, his odds are the same again.
+
+The link shows only when Alice sends Bob her results by an ordinary signal, at light speed at most, and he sorts his results by hers.
+
+</Depth>
+
+<Depth level="engineer">
+
+Alice holds qubit A and Bob holds qubit B of a shared state $\rho_{AB}$. The odds of any measurement $\{M_b\}$ that Bob makes are set by his reduced state ([partial trace](/learn/partial-trace/)):
+
+$$
+p(b) = \operatorname{tr}(M_b\,\rho_B), \qquad \rho_B = \operatorname{tr}_A \rho_{AB}.
+$$
+
+Anything Alice does to A, a gate, a measurement or both, can be written with operators $K_a$ on A that satisfy $\sum_a K_a^\dagger K_a = I$. Write $\tilde K_a = K_a \otimes I$. Averaged over all her outcomes, Bob's state becomes
+
+$$
+\rho_B' = \sum_a \operatorname{tr}_A\big(\tilde K_a\,\rho_{AB}\,\tilde K_a^\dagger\big)
+$$
+
+$$
+= \operatorname{tr}_A\big(\textstyle\sum_a \tilde K_a^\dagger \tilde K_a\,\rho_{AB}\big) = \rho_B,
+$$
+
+since operators on A can be cycled inside $\operatorname{tr}_A$. No choice of Alice's changes any $p(b)$. This is the no-communication theorem.
+
+Take the pair started as $|00\rangle$, then $H$ on A and a CNOT: $|\Phi^+\rangle = (|00\rangle + |11\rangle)/\sqrt2$, with $\rho_B = I/2$. If Alice measures in an orthonormal basis $\{|u_0\rangle, |u_1\rangle\}$, B is left in the complex conjugate $|\bar u_0\rangle$ or $|\bar u_1\rangle$, each with probability $\tfrac12$, and $\tfrac12(|\bar u_0\rangle\langle\bar u_0| + |\bar u_1\rangle\langle\bar u_1|) = I/2$. So 0/1 and +/− give different [mixtures](/learn/mixed-states/) with the same $\rho_B$.
+
+Conditioned on Alice's result $a$, Bob's state is $|\bar u_a\rangle$, but only someone who knows $a$ can use that, just as with classically linked coins. The correlations depend on both choices: in the tool, the same basis on both sides always gives matching results, while 0/1 against +/− gives Bob 50/50 whatever Alice read. Seeing this needs her record, sent over an ordinary channel. Alice's and Bob's operators commute, so the joint odds do not depend on who measures first. Correlations that break [Bell inequalities](/learn/bell-test/) still send no signal, and [teleportation](/learn/teleportation/) needs two classical bits.
+
+</Depth>
+
+<Lab title="Try to signal with a Bell pair" intro="Pick what Alice does to her half and send pairs. Check whether Bob's piles change, then let Alice phone her results and see the link.">
+  <NoSignal />
+</Lab>
