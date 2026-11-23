@@ -1,0 +1,182 @@
+---
+// Same steps on a bit and a qubit from 0: the qubit's half flip is a true square root of NOT (R = HSH, R² = X), the bit's is a fair coin toss (the only bit step with the same one-step odds), and each dot is one fresh copy, read once by the Born rule.
+---
+<qce-qubit-vs-bit class="tool">
+  <div class="tool-controls">
+    <fieldset>
+      <legend>Do the same step to both</legend>
+      <div class="row">
+        <button type="button" data-do="half">Half flip</button>
+        <button type="button" data-do="flip">Flip</button>
+      </div>
+    </fieldset>
+    <div class="row">
+      <button type="button" class="quiet" data-do="read">Read 100 new copies</button>
+      <button type="button" class="quiet" data-do="reset">Start over</button>
+    </div>
+    <p class="steps">Steps: <span data-steps>none yet</span></p>
+  </div>
+
+  <div class="lanes">
+    <figure data-lane="bit">
+      <figcaption><b>Bit</b> <span>Half flip here: a coin toss (flip with a 50% chance).</span></figcaption>
+      <canvas aria-hidden="true"></canvas>
+      <p class="bins"><span>read 0: <b data-n>0</b></span><span>read 1: <b data-n>0</b></span></p>
+      <p class="state">Odds: <span data-odds></span></p>
+    </figure>
+    <figure data-lane="qubit">
+      <figcaption><b>Qubit</b> <span>Half flip here: a quantum step (a square root of NOT).</span></figcaption>
+      <canvas aria-hidden="true"></canvas>
+      <p class="bins"><span>read 0: <b data-n>0</b></span><span>read 1: <b data-n>0</b></span></p>
+      <p class="state">Amplitudes: <span data-amps></span></p>
+      <p class="state">Odds: <span data-odds></span></p>
+    </figure>
+  </div>
+
+  <p class="legend">Each dot is one fresh copy: it starts at 0, takes the steps, then is read once. The dashed line marks the count the odds predict.</p>
+  <p class="tool-readout" aria-live="polite"></p>
+</qce-qubit-vs-bit>
+
+<script>
+  import { bitOdds, qubitOdds, qubitState, readBits, readQubits, ones, fmtC, stepsText, describe, type Step, type Odds } from '../../lib/sims/qubit.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot, pct } from '../../lib/draw.ts';
+
+  const N = 100, COLS = 10, ROWS = 10, MAX = 8, PER_FRAME = 3, GAP = 0.08;
+
+  type Lane = {
+    canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; w: number; h: number;
+    reads: (0 | 1)[]; odds: Odds; counts: HTMLElement[]; color: 'ink2' | 'signal';
+  };
+
+  class QubitVsBit extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.ready) return;
+      this.dataset.ready = '1';
+      const q = <T extends Element>(s: string, root: Element = this) => root.querySelector(s) as T;
+      const lane = (name: string, color: Lane['color']): Lane => {
+        const fig = q<HTMLElement>(`[data-lane="${name}"]`), canvas = q<HTMLCanvasElement>('canvas', fig);
+        return { canvas, ...fit(canvas), reads: [], odds: [1, 0], counts: [...fig.querySelectorAll<HTMLElement>('[data-n]')], color };
+      };
+      const bit = lane('bit', 'ink2'), qubit = lane('qubit', 'signal'), lanes = [bit, qubit];
+      const buttons = [...this.querySelectorAll<HTMLButtonElement>('[data-do]')];
+      const stepButtons = buttons.filter((b) => b.dataset.do === 'half' || b.dataset.do === 'flip');
+      const readout = q<HTMLElement>('.tool-readout'), stepsOut = q<HTMLElement>('[data-steps]');
+      const bitOddsOut = q<HTMLElement>('[data-odds]', q('[data-lane="bit"]'));
+      const qubitOddsOut = q<HTMLElement>('[data-odds]', q('[data-lane="qubit"]'));
+      const ampsOut = q<HTMLElement>('[data-amps]');
+
+      let steps: Step[] = [], shown = 0, raf = 0, seen = false, told = true;
+      const oddsText = ([p0, p1]: Odds) => `${pct(p0)} for 0, ${pct(p1)} for 1`;
+
+      function paintLane(l: Lane, col: ReturnType<typeof palette>) {
+        const { ctx, w, h } = l;
+        ctx.clearRect(0, 0, w, h);
+        const gap = w * GAP, bw = (w - gap) / 2, pitch = Math.min(bw / COLS, (h - 6) / ROWS), base = h - 2;
+        const left = (b: number) => b * (bw + gap), pad = (bw - COLS * pitch) / 2;
+        const filled = [0, 0];
+        for (let i = 0; i < shown; i++) {
+          const b = l.reads[i], j = filled[b]++;
+          dot(ctx, left(b) + pad + (j % COLS + 0.5) * pitch, base - 2 - (Math.floor(j / COLS) + 0.5) * pitch, pitch * 0.36, col[l.color]);
+        }
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = col.ink2;
+        for (const b of [0, 1]) {
+          ctx.setLineDash([]);
+          ctx.beginPath(); ctx.moveTo(left(b), base); ctx.lineTo(left(b) + bw, base); ctx.stroke();
+          const want = l.odds[b] * N;
+          if (want > 0.5) {
+            const y = base - 2 - (want / COLS) * pitch;
+            ctx.setLineDash([5, 4]);
+            ctx.beginPath(); ctx.moveTo(left(b), y); ctx.lineTo(left(b) + bw, y); ctx.stroke();
+          }
+        }
+        ctx.setLineDash([]);
+        l.counts.forEach((el, b) => { el.textContent = String(filled[b]); });
+      }
+      const paint = () => { const col = palette(); lanes.forEach((l) => paintLane(l, col)); };
+
+      const LIMIT = `That is ${MAX} steps, the most here. Press Start over to try again.`;
+      function finish() {
+        if (told) return;
+        told = true;
+        const words = describe(steps, ones(bit.reads), ones(qubit.reads), N);
+        readout.textContent = steps.length >= MAX ? words.replace(' Try one more half flip.', '') + ' ' + LIMIT : words;
+      }
+      function tick() {
+        raf = 0;
+        if (!seen) return;
+        shown = Math.min(N, shown + PER_FRAME);
+        paint();
+        if (shown < N) raf = requestAnimationFrame(tick); else finish();
+      }
+      function play() {
+        if (reduceMotion()) { shown = N; paint(); finish(); return; }
+        if (!raf && seen) raf = requestAnimationFrame(tick);
+      }
+
+      /** New batch: fresh copies of both, same steps. Exact odds and amplitudes update at once; dots drop in. */
+      function run() {
+        bit.odds = bitOdds(steps); qubit.odds = qubitOdds(steps);
+        bit.reads = readBits(steps, N, Math.random); qubit.reads = readQubits(steps, N, Math.random);
+        const [a, b] = qubitState(steps);
+        stepsOut.textContent = stepsText(steps);
+        bitOddsOut.textContent = oddsText(bit.odds);
+        qubitOddsOut.textContent = oddsText(qubit.odds);
+        ampsOut.textContent = `${fmtC(a)} for 0, ${fmtC(b)} for 1`;
+        // aria-disabled, not disabled, so keyboard focus stays on the button at the limit.
+        stepButtons.forEach((btn) => btn.setAttribute('aria-disabled', String(steps.length >= MAX)));
+        shown = 0; told = false;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        paint();
+        play();
+      }
+
+      buttons.forEach((btn) => btn.addEventListener('click', () => {
+        const act = btn.dataset.do;
+        if (act === 'half' || act === 'flip') {
+          if (steps.length >= MAX) { readout.textContent = LIMIT; return; }
+          steps = [...steps, act];
+        } else if (act === 'reset') steps = [];
+        run();
+      }));
+      lanes.forEach((l) => onResize(l.canvas, () => { Object.assign(l, fit(l.canvas)); paint(); }));
+      onTheme(paint);
+      onSeen(this, (v) => { seen = v; if (v && shown < N) play(); });
+      run();
+    }
+  }
+  customElements.define('qce-qubit-vs-bit', QubitVsBit);
+</script>
+
+<style>
+  qce-qubit-vs-bit { display: grid; gap: var(--s4); min-width: 0 }
+  .tool-controls { display: grid; gap: var(--s3) }
+  fieldset { margin: 0; padding: 0; border: 0; min-width: 0 }
+  legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  .row { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  button {
+    min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--ink); border-radius: var(--r);
+    background: var(--ink); color: var(--paper); font: inherit; font-weight: 600; cursor: pointer;
+  }
+  button:hover { background: var(--signal); border-color: var(--signal); color: var(--on-signal) }
+  button.quiet { background: var(--paper); color: var(--ink); border-color: var(--rule) }
+  button.quiet:hover { border-color: var(--ink); background: var(--paper); color: var(--ink) }
+  button:focus-visible { outline: 3px solid var(--signal); outline-offset: 2px }
+  button[aria-disabled="true"] { opacity: .45; cursor: not-allowed; background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .steps { font-family: var(--mono); font-size: .9375rem; color: var(--ink-2); overflow-wrap: anywhere }
+  .steps span { color: var(--ink) }
+  .lanes { display: grid; gap: var(--s5) }
+  figure { display: grid; gap: var(--s2); align-content: start; margin: 0; min-width: 0 }
+  figcaption { display: grid; gap: var(--s1) }
+  figcaption b { font-size: 1.25rem }
+  figcaption span, .legend { color: var(--ink-2); font-size: .9375rem }
+  canvas { display: block; width: 100%; aspect-ratio: 2 / 1 }
+  .bins { display: grid; grid-template-columns: 1fr 1fr; column-gap: 8%; text-align: center; font-family: var(--mono); font-size: .875rem; color: var(--ink-2) }
+  .bins b { color: var(--ink); font-size: 1.125rem }
+  .state { font-family: var(--mono); font-size: .875rem; color: var(--ink-2); overflow-wrap: anywhere }
+  .state span { color: var(--ink) }
+  .tool-readout { min-height: 3lh; font-weight: 600; max-width: var(--read) }
+  @media (min-width: 40rem) {
+    .lanes { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--s5) }
+  }
+</style>
