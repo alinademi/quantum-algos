@@ -1,0 +1,64 @@
+---
+description: "Phase is the angle of an amplitude. Turn all amplitudes together and nothing you can measure changes. Turn one against another and results can change."
+answer: "Phase is the angle of an amplitude. Turning every amplitude by the same angle (a global phase) changes nothing you can ever measure, but turning one against another (a relative phase) can change the results after a gate such as Hadamard."
+myth:
+  claim: "Phase never matters, because only the size of an amplitude sets the odds."
+  truth: "That holds only for a global phase. |+⟩ and |−⟩ differ by a relative phase and both give 50/50, yet after a Hadamard gate |+⟩ always gives 0 and |−⟩ always gives 1."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import PhaseDials from '../../components/tools/PhaseDials.astro';
+
+<Depth level="kid">
+
+Picture each amplitude as an arrow, like a clock hand. A longer arrow makes its result more likely. The way it points is its phase.
+
+Start a qubit as 0, then send it through a Hadamard gate. Now it has two arrows, one for 0 and one for 1, the same length and pointing the same way.
+
+Turn both arrows together and nothing you can measure changes, ever. That is a global phase. Turn only one arrow and the angle between them changes. That is a relative phase.
+
+Measure right away and you still get 0 half the time. But add one more Hadamard gate first. It adds the two arrows to make the arrow for 0. Same way: they add up, and you always get 0. Opposite ways: they cancel, and you never get 0.
+
+The arrows are only a picture. You never see them, only results.
+
+</Depth>
+
+<Depth level="student">
+
+A qubit started as 0, then a Hadamard gate, has amplitudes of about 0.71 for 0 and 0.71 for 1. Each is a complex number: a size and an angle, called its phase. The chance of a result is |amplitude|², which depends only on the size.
+
+**Global phase.** Turn both amplitudes by the same angle, say 180° (both times −1). No chance changes, now or after any gates, so no experiment tells them apart: it is the same state.
+
+**Relative phase.** Turn only the amplitude for 1 by 180°, to get 0.71 and −0.71: the state |−⟩. Measured right away, it still gives 50/50. But a second Hadamard gate adds the two to make the amplitude for 0. For |+⟩ they add up: 0 every time. For |−⟩ they cancel: 1 every time. That is [interference](/learn/interference/).
+
+On the [Bloch sphere](/learn/bloch/), changing the relative phase turns the point around the axis through |0⟩ and |1⟩. Global phase does not move it.
+
+</Depth>
+
+<Depth level="engineer">
+
+A one-qubit state is $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$ with $|\alpha|^2 + |\beta|^2 = 1$.
+
+**Global phase.** For any real $\gamma$, the state $e^{i\gamma}|\psi\rangle$ gives $|\langle a|e^{i\gamma}\psi\rangle|^2 = |\langle a|\psi\rangle|^2$ for every outcome $a$ of every measurement, and no gate removes the factor: $U e^{i\gamma}|\psi\rangle = e^{i\gamma} U|\psi\rangle$. No experiment tells the two apart, so they are the same physical state. Pull out the phase of $\alpha$:
+
+$$
+|\psi\rangle = e^{i\gamma}\left(\cos\tfrac{\theta}{2}\,|0\rangle + e^{i\varphi}\sin\tfrac{\theta}{2}\,|1\rangle\right)
+$$
+
+Drop $e^{i\gamma}$, and $\theta$ and $\varphi$ are the Bloch angles.
+
+**Relative phase.** $\varphi = \arg\beta - \arg\alpha$. Changing it turns the Bloch vector about the $z$ axis: the $Z$-basis odds $\cos^2\frac{\theta}{2}$ and $\sin^2\frac{\theta}{2}$ stay, but odds in other bases can change. If $\alpha$ or $\beta$ is 0 (a pole), there is no relative phase. Start at $|0\rangle$, apply $H$, then $P(\varphi) = \mathrm{diag}(1, e^{i\varphi})$ ([phase gates](/learn/phase-gates/)), then $H$ again:
+
+$$
+\Pr(0) = \left|\frac{1 + e^{i\varphi}}{2}\right|^2 = \cos^2\frac{\varphi}{2}
+$$
+
+So $\varphi = 0$ ($|+\rangle$) always gives 0 and $\varphi = \pi$ ($|-\rangle$) always gives 1. This $X$-basis test sees only $\cos\varphi$, so $\varphi$ and $-\varphi$ give the same odds. The $Y$ basis tells them apart: measured in the $Y$ basis, this state gives $|{+i}\rangle = (|0\rangle + i|1\rangle)/\sqrt{2}$ with probability $(1 + \sin\varphi)/2$ ([other bases](/learn/bases/)).
+
+A phase on a whole gate is global too: $R_z(\varphi) = e^{-i\varphi/2}P(\varphi)$ acts just like $P(\varphi)$. Control that gate, though, and its phase turns relative on the control qubit ([phase kickback](/learn/phase-kickback/)).
+
+</Depth>
+
+<Lab title="Turn the phases" intro="The qubit started as 0, then a Hadamard gate: turn each phase and see which batch of shots, if any, changes.">
+  <PhaseDials />
+</Lab>
