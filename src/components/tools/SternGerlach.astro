@@ -1,0 +1,370 @@
+---
+// Silver atoms through a row of Stern-Gerlach magnets. Each magnet is an ideal spin measurement along its axis, and each
+// dot is one atom whose result at every magnet is a Born rule draw from stern-gerlach.ts, so the counts are real shot noise.
+import { chain, predict, screenUp } from '../../lib/sims/stern-gerlach.ts';
+import { pct } from '../../lib/draw.ts';
+const uid = 'sg-' + Math.random().toString(36).slice(2, 8);
+const setups = [['classical', 'Classical guess'], ['one', 'One magnet'], ['two', 'Two magnets'], ['three', 'Three magnets']] as const;
+const start = screenUp(predict(chain('one', 0, 'up')))!;
+---
+<qce-stern-gerlach class="tool">
+  <div class="views">
+    <figure>
+      <canvas data-chain aria-hidden="true"></canvas>
+      <figcaption class="label">Magnets in a row</figcaption>
+    </figure>
+    <figure>
+      <canvas data-screen aria-hidden="true"></canvas>
+      <figcaption class="label">Screen, seen along the beam</figcaption>
+    </figure>
+  </div>
+  <p class="note">A picture, not to scale. Each dot is one atom. Its path at each magnet is drawn at random with the Born rule; the size of each spot is only for looks. Up means spin along that magnet's arrow. In the row, each magnet's up beam is drawn on top. The screen shows where atoms really land.</p>
+
+  <div class="tool-controls">
+    <fieldset>
+      <legend>Setup</legend>
+      <div class="opts">
+        {setups.map(([v, t]) => <label><input type="radio" name={`${uid}-setup`} value={v} checked={v === 'one'} />{t}</label>)}
+      </div>
+    </fieldset>
+    <div class="turn">
+      <div class="row">
+        <label for={`${uid}-tilt`}>Turn magnet 2</label>
+        <output for={`${uid}-tilt`}>90° (X)</output>
+      </div>
+      <input id={`${uid}-tilt`} type="range" min="0" max="180" step="15" value="90" aria-valuetext="90 degrees, on its side, X" disabled />
+    </div>
+    <fieldset data-keep disabled>
+      <legend>Magnet 2 lets through</legend>
+      <div class="opts">
+        <label><input type="radio" name={`${uid}-keep`} value="up" checked />Up beam</label>
+        <label><input type="radio" name={`${uid}-keep`} value="down" />Down beam</label>
+      </div>
+    </fieldset>
+    <button type="button" class="btn" data-fire>Fire 400 more atoms</button>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">One magnet (Z): theory says {pct(start)} up, {pct(1 - start)} down, and nothing in between.</p>
+</qce-stern-gerlach>
+
+<script>
+  import { chain, predict, screenUp, fire, rad, shortName, turnName, onScreen, portOffset, randomDirection, classicalOffset,
+    type Setup, type Port, type Stage, type Fate } from '../../lib/sims/stern-gerlach.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot, pct, token } from '../../lib/draw.ts';
+
+  const BATCH = 400, CAP = 8000;
+  const FLIGHT = 1100; // ms for an atom to cross from oven to screen
+  const RATE = 0.5; // atoms leaving the oven per ms
+  const FRESH = 450; // ms a new dot stays highlighted
+  const BLUR = 0.12; // spread of a spot, in spot distances: a picture of the beam's width, not physics
+
+  type Atom = { fate: Fate; off: number; jx: number; jy: number; t0: number; path?: number[][]; len?: number; ver?: number };
+  type Dot = { x: number; y: number; t: number };
+
+  const gauss = () => { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); };
+
+  class SternGerlach extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const cChain = $<HTMLCanvasElement>('[data-chain]'), cScreen = $<HTMLCanvasElement>('[data-screen]');
+      const setupRadios = [...this.querySelectorAll<HTMLInputElement>('input[name$="-setup"]')];
+      const keepRadios = [...this.querySelectorAll<HTMLInputElement>('input[name$="-keep"]')];
+      const keepSet = $<HTMLFieldSetElement>('[data-keep]');
+      const tilt = $<HTMLInputElement>('input[type="range"]'), out = $<HTMLOutputElement>('output');
+      const fireBtn = $<HTMLButtonElement>('[data-fire]'), readout = $<HTMLParagraphElement>('.tool-readout');
+      const base = document.createElement('canvas'), bctx = base.getContext('2d')!;
+
+      let setup: Setup = 'one', deg = 90, keep: Port = 'up', stages: Stage[] = chain(setup, rad(deg), keep);
+      let fired = 0, queued = 0, blocked: number[] = [], ups = 0, downs = 0;
+      let flying: Atom[] = [], landed: Dot[] = [], baked = 0, lastLand = -1e9;
+      let clock = 0, last = 0, debt = 0, raf = 0, seen = false, ver = 0, reported = true;
+      let ch = { ctx: cChain.getContext('2d')!, w: 0, h: 0 }, sc = { ctx: cScreen.getContext('2d')!, w: 0, h: 0 };
+      let P = palette(), mono = token('--mono');
+
+      // ---- Chain layout, in CSS pixels. A flow picture: the upper beam out of a magnet is always "up" for that magnet.
+      let L = { xo: 0, xs: [] as number[], xe: 0, yc: 0, mw: 0, mh: 0, d: 0, D: 0, span: 0 };
+      const layout = () => {
+        const { w, h } = ch, n = stages.length, xo = 14, xe = w - 4, seg = (xe - xo) / (n + 1);
+        const mh = Math.min(44, h * 0.28);
+        L = { xo, xe, xs: stages.map((_, k) => xo + seg * (k + 1)), yc: h / 2, mw: Math.min(40, seg * 0.42), mh, d: mh * 0.6, D: Math.min(h / 2 - 24, seg), span: xe - xo };
+        ver++;
+      };
+      const gapEnd = (k: number) => (k + 1 < stages.length ? L.xs[k + 1] - L.mw / 2 : L.xe);
+      const stopX = (k: number) => { const x0 = L.xs[k] + L.mw / 2; return x0 + (gapEnd(k) - x0) * 0.42; };
+      const sign = (p: Port) => (p === 'up' ? -1 : 1);
+
+      // The polyline an atom follows, from its fate. Built once per layout.
+      const pathOf = (a: Atom) => {
+        if (a.ver === ver) return;
+        const pts: number[][] = [[L.xo + 6, L.yc]];
+        a.fate.ports.forEach((p, k) => {
+          const x0 = L.xs[k] + L.mw / 2;
+          pts.push([L.xs[k] - L.mw / 2, L.yc], [x0, L.yc]);
+          if (a.fate.blockedAt === k) pts.push([stopX(k), L.yc + sign(p) * L.d * 0.84]);
+          else if (k === stages.length - 1) pts.push([L.xe, L.yc - a.off * L.D]);
+          else pts.push([(x0 + gapEnd(k)) / 2, L.yc + sign(p) * L.d]);
+        });
+        let len = 0;
+        for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+        a.path = pts; a.len = len; a.ver = ver;
+      };
+      const at = (a: Atom, s: number) => {
+        const p = a.path!;
+        for (let i = 1; i < p.length; i++) {
+          const l = Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]);
+          if (s <= l) { const f = l ? s / l : 0; return [p[i - 1][0] + (p[i][0] - p[i - 1][0]) * f, p[i - 1][1] + (p[i][1] - p[i - 1][1]) * f]; }
+          s -= l;
+        }
+        return p[p.length - 1];
+      };
+
+      // ---- One atom
+      const lastTilt = () => stages[stages.length - 1].tilt;
+      const newAtom = (t0: number): Atom => {
+        const fate = fire(stages, Math.random);
+        const off = setup === 'classical' ? classicalOffset(randomDirection(Math.random), lastTilt()) : portOffset(fate.ports[fate.ports.length - 1]);
+        return { fate, off, jx: gauss() * BLUR, jy: gauss() * BLUR, t0 };
+      };
+      const finish = (a: Atom, t: number) => {
+        if (a.fate.blockedAt >= 0) { blocked[a.fate.blockedAt]++; return; }
+        const [x, y] = onScreen(a.off, lastTilt());
+        landed.push({ x: x + a.jx, y: y + a.jy, t });
+        lastLand = t;
+        if (a.off > 0) ups++; else downs++;
+      };
+
+      // ---- Drawing
+      const font = (px: number) => `500 ${px}px ${mono}`;
+      // Text that never runs off the canvas edge.
+      const text = (ctx: CanvasRenderingContext2D, s: string, x: number, y: number, align: CanvasTextAlign = 'center', color = P.ink2) => {
+        const tw = ctx.measureText(s).width, w = ctx === ch.ctx ? ch.w : sc.w;
+        const left = align === 'left' ? x : align === 'right' ? x - tw : x - tw / 2;
+        ctx.fillStyle = color; ctx.textAlign = 'left'; ctx.fillText(s, Math.max(1, Math.min(left, w - 1 - tw)), y);
+      };
+      const line = (ctx: CanvasRenderingContext2D, pts: number[][], color: string, width = 1.5, dash: number[] = [1, 4]) => {
+        ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.setLineDash(dash); ctx.beginPath();
+        pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+        ctx.stroke(); ctx.setLineDash([]);
+      };
+      const arrow = (ctx: CanvasRenderingContext2D, x: number, y: number, t: number, r: number, color: string) => {
+        const dx = Math.sin(t), dy = -Math.cos(t), tx = x + dx * r, ty = y + dy * r, hw = Math.max(3, r * 0.38);
+        line(ctx, [[x - dx * r, y - dy * r], [tx - dx * hw, ty - dy * hw]], color, 2, []);
+        ctx.fillStyle = color; ctx.beginPath();
+        ctx.moveTo(tx, ty); ctx.lineTo(tx - dx * hw * 1.6 - dy * hw, ty - dy * hw * 1.6 + dx * hw); ctx.lineTo(tx - dx * hw * 1.6 + dy * hw, ty - dy * hw * 1.6 - dx * hw);
+        ctx.closePath(); ctx.fill();
+      };
+
+      const drawChain = () => {
+        const { ctx, w, h } = ch, { xo, xs, xe, yc, mw, mh, d, D } = L, n = stages.length;
+        ctx.clearRect(0, 0, w, h);
+        ctx.font = font(11); ctx.textBaseline = 'alphabetic';
+        // Beams
+        line(ctx, [[xo + 6, yc], [xs[0] - mw / 2, yc]], P.ink2);
+        stages.forEach((st, k) => {
+          const x0 = xs[k] + mw / 2, mid = (x0 + gapEnd(k)) / 2;
+          if (k === n - 1) {
+            if (setup === 'classical') {
+              ctx.fillStyle = P.rule; ctx.beginPath(); ctx.moveTo(x0, yc); ctx.lineTo(xe, yc - D); ctx.lineTo(xe, yc + D); ctx.closePath(); ctx.fill();
+            }
+            line(ctx, [[x0, yc], [xe, yc - D]], P.ink2); line(ctx, [[x0, yc], [xe, yc + D]], P.ink2);
+            return;
+          }
+          (['up', 'down'] as Port[]).forEach((p) => {
+            const y = yc + sign(p) * d;
+            if (st.keep === p) line(ctx, [[x0, yc], [mid, y], [gapEnd(k), yc]], P.ink2);
+            else {
+              const sx = stopX(k), sy = yc + sign(p) * d * 0.84;
+              line(ctx, [[x0, yc], [sx, sy]], P.ink2);
+              line(ctx, [[sx, sy - 7], [sx, sy + 7]], P.hot, 3, []);
+              ctx.textBaseline = p === 'up' ? 'bottom' : 'top';
+              text(ctx, String(blocked[k] ?? 0), sx, sy + sign(p) * 10, 'center', P.ink);
+              ctx.textBaseline = 'alphabetic';
+            }
+          });
+        });
+        // Oven and screen
+        [[-3, -2], [2, -3], [0, 1], [-2, 3], [3, 2]].forEach(([dx, dy]) => dot(ctx, xo + dx, yc + dy, 1.6, P.ink));
+        text(ctx, 'oven', 0, yc + mh / 2 + 16, 'left');
+        line(ctx, [[xe, yc - D - 6], [xe, yc + D + 6]], P.ink, 2.5, []);
+        if (setup !== 'classical') { text(ctx, 'up', xe - 6, yc - D - 4, 'right'); text(ctx, 'down', xe - 6, yc + D + 14, 'right'); }
+        // Magnets: box, arrow along the axis, name above, number below
+        stages.forEach((st, k) => {
+          const x = xs[k];
+          ctx.fillStyle = P.paper; ctx.strokeStyle = P.ink; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.roundRect(x - mw / 2, yc - mh / 2, mw, mh, 4); ctx.fill(); ctx.stroke();
+          arrow(ctx, x, yc, st.tilt, Math.min(mw, mh) * 0.34, P.signal);
+          text(ctx, shortName(Math.round((st.tilt * 180) / Math.PI)), x, yc - mh / 2 - 7, 'center', P.ink);
+          text(ctx, String(k + 1), x, yc + mh / 2 + 16);
+        });
+        // Atoms in flight
+        const speed = L.span / FLIGHT;
+        for (const a of flying) { pathOf(a); const [x, y] = at(a, Math.max(0, clock - a.t0) * speed); dot(ctx, x, y, 2.2, P.signal); }
+      };
+
+      // Screen: spot distance S from the center. Landed dots are kept in spot units and baked into `base`.
+      const geo = () => { const { w, h } = sc, R = Math.min(w, h) / 2 - 3; return { cx: w / 2, cy: h / 2, R, S: R * 0.55 }; };
+      const bake = () => {
+        const { cx, cy, S } = geo(), r = sc.w < 360 ? 1.1 : 1.3;
+        bctx.fillStyle = P.ink; bctx.globalAlpha = 0.6;
+        for (; baked < landed.length; baked++) { const p = landed[baked]; bctx.beginPath(); bctx.arc(cx + p.x * S, cy - p.y * S, r, 0, 2 * Math.PI); bctx.fill(); }
+        bctx.globalAlpha = 1;
+      };
+      const drawScreen = () => {
+        const { ctx, w, h } = sc, { cx, cy, R, S } = geo(), t = lastTilt(), [nx, nz] = onScreen(1, t);
+        ctx.clearRect(0, 0, w, h);
+        ctx.strokeStyle = P.ink2; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * Math.PI); ctx.stroke();
+        line(ctx, [[cx - nx * (R - 6), cy + nz * (R - 6)], [cx + nx * (R - 20), cy - nz * (R - 20)]], P.ink2, 1.5);
+        arrow(ctx, cx + nx * (R - 14), cy - nz * (R - 14), t, 7, P.signal);
+        if (setup !== 'classical') for (const o of [1, -1]) {
+          ctx.strokeStyle = P.ink2; ctx.lineWidth = 1; ctx.setLineDash([2, 3]); ctx.beginPath();
+          ctx.arc(cx + o * nx * S, cy - o * nz * S, S * BLUR * 2.6, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+        }
+        bake(); ctx.drawImage(base, 0, 0, w, h);
+        for (let i = landed.length - 1; i >= 0 && clock - landed[i].t < FRESH; i--) dot(ctx, cx + landed[i].x * S, cy - landed[i].y * S, 2, P.signal);
+        ctx.font = font(12);
+        if (setup === 'classical') {
+          ctx.textBaseline = 'top'; text(ctx, 'classical guess', 2, 2, 'left', P.hot);
+          ctx.textBaseline = 'bottom'; text(ctx, `${ups + downs} atoms`, 2, h - 2, 'left', P.ink);
+          return;
+        }
+        // Count labels beside each spot, on the same side of the axis.
+        const px = nz, py = -nx, gap = S * BLUR * 2.6 + 6;
+        ctx.textBaseline = py > 0.5 ? 'bottom' : py < -0.5 ? 'top' : 'middle';
+        const align: CanvasTextAlign = px > 0.5 ? 'left' : px < -0.5 ? 'right' : 'center';
+        for (const [o, s] of [[1, `up ${ups}`], [-1, `down ${downs}`]] as [number, string][]) text(ctx, s, cx + o * nx * S + px * gap, cy - o * nz * S - py * gap, align, P.ink);
+      };
+      const draw = () => { drawChain(); drawScreen(); };
+
+      // ---- Readout, at the end of each batch
+      const share = (k: number) => pct(ups + downs ? k / (ups + downs) : 0);
+      const report = () => {
+        const su = screenUp(predict(stages)), theory = su === null ? '' : ` Theory: ${pct(su)} up.`;
+        const result = `${ups} up, ${downs} down (${share(ups)} up)`;
+        const m1 = `Magnet 1 (Z) let ${fired - blocked[0]} of ${fired} atoms through, all up.`;
+        const two = `magnet 2 (${turnName(deg)})`;
+        if (setup === 'classical') return `Classical guess, ${fired} atoms: if each atom were a tiny magnet of the size that makes the two spots, pointing any way, it would land anywhere on the line between the two spots, spread evenly. Real silver atoms never do this. Pick One magnet to see.`;
+        if (setup === 'one') return `One magnet (Z), ${fired} atoms: ${result}, and nothing in between.${theory}`;
+        if (setup === 'two') return `${m1} At ${two}: ${result}.${theory}`;
+        if (su === null) return `${m1} None got through the ${keep} beam of ${two}: for an atom that went up at magnet 1, that beam has a 0% chance.`;
+        const back = downs > 0 ? ' Down atoms are back, though magnet 1 blocked them all.' : '';
+        return `${m1} ${fired - blocked[0] - blocked[1]} got through the ${keep} beam of ${two}. At magnet 3 (Z): ${result}.${theory}${back}`;
+      };
+      const done = () => {
+        reported = true;
+        readout.textContent = report();
+        fireBtn.disabled = fired >= CAP;
+        fireBtn.textContent = fired >= CAP ? 'The screen is full' : `Fire ${BATCH} more atoms`;
+      };
+
+      // ---- Motion: a clock that only runs while the tool is on screen
+      const step = (now: number) => {
+        raf = 0;
+        const dt = last ? Math.min(now - last, 50) : 16;
+        last = now; clock += dt;
+        if (queued) {
+          debt += dt * RATE;
+          let k = Math.min(queued, Math.floor(debt)); debt -= k; queued -= k;
+          while (k-- > 0) flying.push(newAtom(clock));
+        } else debt = 0;
+        const speed = L.span / FLIGHT;
+        flying = flying.filter((a) => { pathOf(a); if ((clock - a.t0) * speed < a.len!) return true; finish(a, clock); return false; });
+        draw();
+        const busy = queued > 0 || flying.length > 0;
+        if (!busy && !reported) done();
+        if (busy || clock - lastLand < FRESH) { if (seen) raf = requestAnimationFrame(step); else last = 0; }
+        else last = 0;
+      };
+      const kick = () => { if (!raf && seen) raf = requestAnimationFrame(step); };
+
+      const launch = (n: number) => {
+        n = Math.min(n, CAP - fired);
+        if (n <= 0) return;
+        fired += n; reported = false;
+        fireBtn.disabled = true;
+        if (reduceMotion()) {
+          for (let i = 0; i < n; i++) finish(newAtom(-1e9), -1e9);
+          draw(); done();
+        } else { queued += n; kick(); }
+      };
+
+      const reset = () => {
+        stages = chain(setup, rad(deg), keep);
+        fired = 0; queued = 0; blocked = stages.map(() => 0); ups = 0; downs = 0;
+        flying = []; landed = []; baked = 0; lastLand = -1e9;
+        bctx.clearRect(0, 0, base.width, base.height);
+        layout(); draw();
+        readout.textContent = '';
+        launch(BATCH);
+      };
+
+      const sync = () => {
+        const name = deg === 0 || deg === 90 ? ` (${shortName(deg)})` : '';
+        out.textContent = `${deg}°${name}`;
+        tilt.setAttribute('aria-valuetext', deg % 90 === 0 ? `${deg} degrees, ${turnName(deg)}` : `${deg} degrees`);
+        tilt.disabled = setup === 'classical' || setup === 'one';
+        keepSet.disabled = setup !== 'three';
+      };
+
+      const resize = () => {
+        ch = fit(cChain); sc = fit(cScreen);
+        base.width = cScreen.width; base.height = cScreen.height;
+        bctx.setTransform(cScreen.width / (sc.w || 1), 0, 0, cScreen.height / (sc.h || 1), 0, 0);
+        baked = 0; layout(); draw();
+      };
+      const retheme = () => { P = palette(); mono = token('--mono'); bctx.clearRect(0, 0, base.width, base.height); resize(); };
+
+      setupRadios.forEach((r) => r.addEventListener('change', () => { setup = r.value as Setup; sync(); reset(); }));
+      keepRadios.forEach((r) => r.addEventListener('change', () => { keep = r.value as Port; reset(); }));
+      tilt.addEventListener('input', () => { deg = +tilt.value; sync(); reset(); });
+      fireBtn.addEventListener('click', () => launch(BATCH));
+
+      setup = (setupRadios.find((r) => r.checked)?.value as Setup) ?? 'one';
+      keep = (keepRadios.find((r) => r.checked)?.value as Port) ?? 'up';
+      deg = +tilt.value;
+      sync();
+      onResize(this, resize);
+      onTheme(retheme);
+      onSeen(this, (v) => { seen = v; if (v) kick(); });
+      resize();
+      reset();
+    }
+  }
+  customElements.define('qce-stern-gerlach', SternGerlach);
+</script>
+
+<style>
+  .views { display: grid; gap: var(--s4) }
+  figure { display: grid; gap: var(--s2); margin: 0; min-width: 0 }
+  [data-chain] { height: 11rem }
+  [data-screen] { height: 15rem }
+  .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+
+  .tool-controls { display: grid; gap: var(--s4); align-items: start }
+  fieldset { display: grid; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  .opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2) }
+  .opts label { position: relative; display: flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0 .75rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); text-align: center; cursor: pointer }
+  .opts label:hover { border-color: var(--ink) }
+  .opts input { position: absolute; opacity: 0; width: 1px; height: 1px }
+  .opts label:has(:checked) { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .opts label:has(:focus-visible) { outline: 3px solid var(--signal); outline-offset: 2px }
+  fieldset:disabled { opacity: .55 }
+  fieldset:disabled label { cursor: default }
+  fieldset:disabled label:hover { border-color: var(--rule) }
+
+  .turn { display: grid; gap: var(--s1) }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .turn:has(:disabled) { opacity: .55 }
+  .turn input:disabled { cursor: default }
+  [data-fire] { justify-self: start }
+
+  @media (min-width: 40rem) {
+    .views { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: end }
+    [data-chain], [data-screen] { height: 16rem }
+    .tool-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--s5) }
+  }
+  @media (min-width: 64rem) {
+    fieldset:first-child .opts { grid-template-columns: repeat(4, minmax(0, 1fr)) }
+    fieldset:first-child { grid-column: 1 / -1 }
+  }
+</style>

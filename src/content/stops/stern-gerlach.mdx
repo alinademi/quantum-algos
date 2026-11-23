@@ -1,0 +1,66 @@
+---
+description: "Send silver atoms through magnets and see spin give only two results. Chain magnets, and each one's odds depend on the result before."
+answer: "The Stern-Gerlach experiment sends silver atoms through an uneven magnetic field, and each atom lands in one of only two spots: spin up or spin down. Put magnets in a row, and the odds at each later magnet depend only on the result at the one just before and the angle between them."
+myth:
+  claim: "Spin means the electron is a tiny ball spinning like a top."
+  truth: "A top could tilt any way, so the atoms would smear across the screen. They land in only two spots. Spin is angular momentum built into the electron, not a turning ball."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import SternGerlach from '../../components/tools/SternGerlach.astro';
+
+<Depth level="kid">
+
+Shoot silver atoms, one at a time, through a magnet whose pull is stronger near one pole. Each atom acts like a tiny magnet, so the uneven pull pushes it up or down, depending on how it points.
+
+Tiny compass needles could point any way, so they would smear out in a line on the screen. The atoms don't. Each one lands in one of just two spots, up or down, never in between.
+
+Now keep only the up atoms and send them through a second magnet. If it stands upright, they all go up again. Turn it on its side, and half go left, half go right. Keep one side, then add a third, upright magnet: half come out down! The sideways magnet wiped out the first answer.
+
+Here the compass picture breaks: a needle can point any way, but an atom only ever answers up or down.
+
+</Depth>
+
+<Depth level="student">
+
+In 1922 Otto Stern and Walther Gerlach sent silver atoms through an uneven magnetic field. The spin of each atom's one unpaired electron makes it a tiny magnet, so the field pushes it along the magnet's axis. Spin was proposed only in 1925; it explains the two spots.
+
+Classical physics expected a smear. The screen showed two spots: spin up or spin down. This spin is a [qubit](/learn/qubit/): up is 0, down is 1.
+
+Put magnets in a row. Magnet 1 is upright (Z) and lets only the up beam through, so each atom starts as 0.
+
+- Magnet 2 upright: 100% up again.
+- Magnet 2 on its side (X): 50% each way.
+- Magnet 2 on its side, keeping one beam, then upright magnet 3: 50% up, 50% down, though magnet 1 blocked every down atom.
+
+Turn magnet 2 by θ: up has amplitude cos(θ/2), so probability cos²(θ/2). That is 75% at 60° and 0% at 180°.
+
+</Depth>
+
+<Depth level="engineer">
+
+With the field and its gradient both along $z$, a magnetic moment feels
+
+$$
+\vec{F} = \nabla(\vec{\mu} \cdot \vec{B}) \approx \mu_z \frac{\partial B_z}{\partial z}\,\hat{z}
+$$
+
+Silver has one unpaired $5s$ electron and no orbital angular momentum, so $\mu_z = -g\mu_B S_z/\hbar$ with $g \approx 2$. So spin up is pushed toward the weaker field. The tool's arrow points the way spin up goes, not along the gradient. Classical moments pointing every way would make a smear; two spots mean $S_z = \pm\hbar/2$. Spin one-half is a [qubit](/learn/qubit/): $|0\rangle = |{\uparrow_z}\rangle$ and $|1\rangle = |{\downarrow_z}\rangle$.
+
+A magnet turned by $\theta$ about the beam (along $y$) has axis $\hat{n} = (\sin\theta, 0, \cos\theta)$ and measures $\hat{n} \cdot \vec{\sigma}$, whose eigenstates are
+
+$$
+|{\uparrow_n}\rangle = \cos\tfrac{\theta}{2}\,|0\rangle + \sin\tfrac{\theta}{2}\,|1\rangle, \qquad |{\downarrow_n}\rangle = -\sin\tfrac{\theta}{2}\,|0\rangle + \cos\tfrac{\theta}{2}\,|1\rangle
+$$
+
+Started as $|0\rangle$ (the up beam of a $Z$ magnet), the atom goes up with amplitude $\langle{\uparrow_n}|0\rangle = \cos\tfrac{\theta}{2}$, so with probability $\cos^2\tfrac{\theta}{2}$. In general, a spin up along $\hat{m}$ goes up along $\hat{n}$ with probability $(1 + \hat{m} \cdot \hat{n})/2$.
+
+Each magnet leaves its kept beam in that eigenstate, so only the last result matters. The down beam of an $X$ magnet is $(|0\rangle - |1\rangle)/\sqrt{2}$ up to a global phase, and a $Z$ magnet then gives each result with probability $|1/\sqrt{2}|^2 = \tfrac12$. No state has a definite value for both, since $[\sigma_z, \sigma_x] = 2i\sigma_y \neq 0$.
+
+Oven atoms are unpolarized, the [mixed state](/learn/mixed-states/) $\rho = I/2$, so the first magnet splits them $\tfrac12$ each way along any axis. Turning a magnet is [measuring in another basis](/learn/bases/).
+
+</Depth>
+
+<Lab title="Fire atoms through magnets" intro="Compare the classical guess with one magnet, then add magnets and turn magnet 2 to see how each result sets the odds at the next.">
+  <SternGerlach />
+</Lab>
