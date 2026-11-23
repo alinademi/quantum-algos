@@ -1,0 +1,37 @@
+---
+// The home hero: one line of promise, then the live double-slit detector from the Double slit stop.
+import DoubleSlit from '../tools/DoubleSlit.astro';
+import { stops, regions } from '../../lib/curriculum.ts';
+---
+<section class="hero" aria-labelledby="hero-title">
+  <div class="wrap hero-in">
+    <p class="label eyebrow">Free · {stops.size} stops · {regions.length} regions · No account</p>
+    <h1 id="hero-title">Learn quantum computing <span>one measurement at a time.</span></h1>
+    <div class="side">
+      <p class="lead">Each dot below is one photon sent through two slits. One dot lands at random. Thousands of them draw the stripes that quantum physics predicts. Every stop here works like that: you run it, then it makes sense.</p>
+      <p class="actions">
+        <a class="btn" href="/learn/superposition/">Start with superposition <span aria-hidden="true">→</span></a>
+        <a class="link" href="/map/">Open The Map</a>
+      </p>
+    </div>
+  </div>
+  <div class="wrap plate"><DoubleSlit start={9000} /></div>
+</section>
+
+<style>
+  .hero { padding-top: var(--s5) }
+  .eyebrow { margin-bottom: var(--s4) }
+  h1 { font-size: clamp(2.75rem, 1.6rem + 5vw, 6rem); letter-spacing: -.045em; max-width: 14ch }
+  h1 span { color: var(--ink-2) }
+  .lead { max-width: 34rem; margin-top: var(--s4); font-size: 1.1875rem; line-height: 1.55; color: var(--ink-2) }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s4); margin-top: var(--s4) }
+  .link { font-weight: 600 }
+  .plate { margin-top: var(--s5) }
+  @media (min-width: 64rem) {
+    .hero-in { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); column-gap: var(--s6); align-items: end }
+    .eyebrow, h1 { grid-column: 1 }
+    h1 { grid-row: 2; max-width: none }
+    .side { grid-column: 2; grid-row: 2; padding-bottom: .6rem }
+    .lead { margin-top: 0 }
+  }
+</style>

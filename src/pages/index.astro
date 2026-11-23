@@ -1,26 +1,14 @@
 ---
-// Temporary home until the Shot Noise home (detector hero, doors, kit) is ported.
-import { getCollection } from 'astro:content';
+// Home: the live detector, three doors in, how a stop works, and the ket drawn by chance.
 import Layout from '../layouts/Layout.astro';
-import { stop, href, stops } from '../lib/curriculum.ts';
-const open = (await getCollection('stops')).map((e) => stop(e.id));
+import Hero from '../components/home/Hero.astro';
+import Doors from '../components/home/Doors.astro';
+import Kit from '../components/home/Kit.astro';
+import KetClose from '../components/home/KetClose.astro';
 ---
-<Layout description="Free, hands-on quantum computing lessons. Every stop runs a live simulator in your browser.">
-  <div class="wrap home">
-    <p class="label">Free · {stops.size} stops · No account</p>
-    <h1>Learn quantum computing <span>one measurement at a time.</span></h1>
-    <p class="lead">Every stop has a live tool. You run it, then it makes sense.</p>
-    <h2>Open stops</h2>
-    <ul>{open.map((s) => <li><a href={href(s.id)}>{s.name}</a></li>)}</ul>
-  </div>
+<Layout description="Free, hands-on quantum computing lessons. Every stop runs a live simulator in your browser, from your first qubit onward.">
+  <Hero />
+  <Doors />
+  <Kit />
+  <KetClose />
 </Layout>
-
-<style>
-  .home { display: grid; gap: var(--s4); padding-block: var(--s5) var(--s6) }
-  h1 { font-size: clamp(2.75rem, 1.6rem + 5vw, 6rem); letter-spacing: -.045em; max-width: 14ch }
-  h1 span { color: var(--ink-2) }
-  .lead { max-width: 34rem; font-size: 1.1875rem; color: var(--ink-2) }
-  h2 { margin-top: var(--s4); font-size: 1.75rem }
-  ul { display: grid; gap: var(--s2) }
-  a { font-weight: 600 }
-</style>
