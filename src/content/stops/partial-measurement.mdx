@@ -1,0 +1,56 @@
+---
+description: "Measure one qubit of many: add |amplitude|² over the strings that match to get the odds, then keep only those strings. Try it live."
+answer: "Measuring part of a system means measuring some qubits and not the others. A result's chance is the sum of |amplitude|² over every string that matches it; afterwards only those strings are left, their amplitudes divided by the square root of that chance so the chances add up to 1 again."
+myth:
+  claim: "Measuring one qubit collapses all the others too."
+  truth: "Only the strings that disagree with the result are dropped. The strings that agree keep their amplitudes, rescaled, so the other qubits can stay in superposition."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import PartialMeasure from '../../components/tools/PartialMeasure.astro';
+
+<Depth level="kid">
+
+In Guess Who, you ask one question, like "glasses?", and flip down every face that does not fit.
+
+Measuring one qubit of a group is like that. The group has an amplitude for each string of bits, like 011. Measure the first qubit and you get 0 or 1. Strings that do not match are dropped; the odds of the others grow to add up to 100%.
+
+Take two qubits with equal amplitudes for 00 and 11, and none for 01 or 10. Measure the first: it gives 0 or 1 with equal chance. If it gives 0, only 00 is left, so the second gives 0 too.
+
+The game is only a picture. The strings left keep their amplitudes, and more gates can still make those add up or cancel out. Faces never do that. And in Guess Who the secret face was picked before you asked. In standard quantum theory, no string is picked until you measure.
+
+</Depth>
+
+<Depth level="student">
+
+Three qubits have 8 amplitudes, one per string from 000 to 111. Measure only q0, the leftmost bit.
+
+The chance that q0 gives 0 is the sum of |amplitude|² over the strings that start with 0. Take 0.36|000⟩ + 0.48|011⟩ + 0.48|101⟩ − 0.64|110⟩. Those are 000 and 011, so the chance is |0.36|² + |0.48|² = 0.1296 + 0.2304 = 0.36, so 36%. q0 gives 1 with chance 64%.
+
+Say q0 gives 0. Drop the strings that start with 1. Divide the amplitudes left by √0.36 = 0.6, so the chances add up to 100% again. You get 0.6|000⟩ + 0.8|011⟩: q1 q2 are left in 0.6|00⟩ + 0.8|11⟩, still a superposition. Had q0 given 1, they would be left in 0.6|01⟩ − 0.8|10⟩, with the minus sign kept. If the qubits were each set up on their own, the others are left as they were, whatever q0 gives.
+
+</Depth>
+
+<Depth level="engineer">
+
+Measuring qubit $k$ in the standard basis is the projective measurement $\{P_0, P_1\}$, with $P_r = |r\rangle\langle r|$ on qubit $k$ and the identity on the rest. For $|\psi\rangle = \sum_x \alpha_x |x\rangle$, outcome $r$ has probability $\lVert P_r|\psi\rangle \rVert^2$:
+
+$$
+\Pr(r) = \sum_{x:\, x_k = r} |\alpha_x|^2,
+$$
+
+and leaves the state $P_r|\psi\rangle / \sqrt{\Pr(r)}$. With qubit $k$ written first, $|\psi\rangle = |0\rangle|\phi_0\rangle + |1\rangle|\phi_1\rangle$, so $\Pr(r) = \lVert \phi_r \rVert^2$ and the rest is left in $|\phi_r\rangle / \lVert \phi_r \rVert$.
+
+Example (Watrous): $\tfrac{1}{\sqrt6}(\sqrt3|00\rangle - |01\rangle + i|10\rangle + |11\rangle)$. The first qubit gives 0 with probability $\tfrac12 + \tfrac16 = \tfrac23$, leaving the second in $\tfrac{\sqrt3}{2}|0\rangle - \tfrac12|1\rangle$, and 1 with probability $\tfrac13$, leaving $\tfrac{1}{\sqrt2}(i|0\rangle + |1\rangle)$.
+
+- Kept amplitudes share one positive factor, $1/\sqrt{\Pr(r)}$, so relative phases survive and can still interfere.
+- Measuring qubit $k$ and then the rest gives $x$ with probability $\Pr(x_k) \cdot |\alpha_x|^2 / \Pr(x_k) = |\alpha_x|^2$, as if all were measured at once.
+- The rest is left in the same state whatever the outcome, up to a global phase, exactly when $|\psi\rangle = |a\rangle_k \otimes |b\rangle_{\text{rest}}$. Otherwise the state is entangled across that cut and the result changes what is left ([Entanglement](/learn/entanglement/)).
+- Averaged over $r$, any measurement on the rest has the same statistics as before, so this cannot send a message ([No faster-than-light messages](/learn/no-signaling/)).
+- Before measuring, an entangled part has no state vector of its own; a density matrix describes it ([Partial trace](/learn/partial-trace/)).
+
+</Depth>
+
+<Lab title="Measure one qubit of three" intro="Pick a state and a qubit. Check the odds and what each result leaves, then measure copies and see if the dots match the dashed Born rule lines.">
+  <PartialMeasure />
+</Lab>

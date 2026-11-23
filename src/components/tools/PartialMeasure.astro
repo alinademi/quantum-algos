@@ -1,0 +1,330 @@
+---
+// Measure one qubit of three: its odds are the summed |amplitude|² of the strings that agree, and the state left is those
+// strings divided by √P. Each dot is one simulated copy: that qubit is drawn first, then the rest from the state it left.
+import { PRESETS, QUBITS, branch, intro, ketText, restNames } from '../../lib/sims/partial-measurement.ts';
+const uid = 'pm-' + Math.random().toString(36).slice(2, 8);
+const START = PRESETS.find((p) => p.id === 'signed')!, K = 0;
+const cards = ([0, 1] as const).map((r) => branch(START.state, K, r));
+const marked = (t: string) => [...t].map((ch, i) => (i === K ? { ch, m: true } : { ch, m: false }));
+---
+<qce-partial-measure class="tool">
+  <div class="setup">
+    <fieldset>
+      <legend class="label">Start state</legend>
+      <div class="opts">
+        {PRESETS.map((p) => <label><input type="radio" name={`${uid}-state`} value={p.id} checked={p.id === START.id} />{p.name}</label>)}
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend class="label">Measure only</legend>
+      <div class="opts qubits">
+        {Array.from({ length: QUBITS }, (_, k) => <label><input type="radio" name={`${uid}-k`} value={k} checked={k === K} />q{k}</label>)}
+      </div>
+    </fieldset>
+  </div>
+
+  <div class="state">
+    <p><code data-ket>|ψ⟩ = {ketText(START.state)}</code></p>
+    <p class="hint" data-about>{START.about}</p>
+    <p class="hint">Strings are written q0 q1 q2, left to right. Each string's chance is |amplitude|².</p>
+  </div>
+
+  <div class="branches">
+    {cards.map((b) => (
+      <section class="branch" data-branch={b.r} aria-labelledby={`${uid}-b${b.r}`}>
+        <h3 id={`${uid}-b${b.r}`}>If <span data-q>q{K}</span> gives {b.r} <span class="tag" data-tag hidden>last copy</span></h3>
+        <table>
+          <thead><tr><th scope="col">String</th><th scope="col">Amplitude</th><th scope="col">Chance</th><th scope="col">After<span class="visually-hidden"> the measurement</span></th></tr></thead>
+          <tbody data-rows>
+            {b.rows.map((x) => (
+              <tr><th scope="row">{marked(x.string).map((c) => (c.m ? <b>{c.ch}</b> : c.ch))}</th><td>{x.amp}</td><td>{x.chance}</td><td>{x.after}</td></tr>
+            ))}
+          </tbody>
+        </table>
+        <p data-sum>Chance: {b.sum}</p>
+        <p data-keep>Keep these strings and divide each amplitude by {b.root}.</p>
+        <p data-left>Left behind: <span data-rest>{restNames(K, QUBITS)}</span> in <code>{b.left}</code></p>
+      </section>
+    ))}
+  </div>
+
+  <div class="tool-controls">
+    <button type="button" class="btn btn-sm" data-run="1">Measure 1 copy</button>
+    <button type="button" class="btn btn-sm" data-run="50">Measure 50 copies</button>
+    <button type="button" class="btn btn-sm btn-line" data-clear>Clear</button>
+  </div>
+
+  <figure>
+    <div class="groups" aria-hidden="true"><span data-g0>q{K} gave 0</span><span data-g1>q{K} gave 1</span></div>
+    <canvas aria-hidden="true"></canvas>
+    <figcaption>
+      <span class="key"><span class="k0" data-k0>q{K} gave 0</span><span class="k1" data-k1>q{K} gave 1</span><span class="kl">Born rule prediction</span></span>
+      <span data-legend>Each dot is one copy of the state. q{K} is measured first, then the other two qubits. The dot goes in the column of the full string the copy gave; the measured bit is underlined.</span>
+    </figcaption>
+  </figure>
+
+  <p class="tool-readout" aria-live="polite">{intro(START.state, K, START.start)}</p>
+  <p class="note">A simulation of ideal, noise-free qubits. It offers only these three start states, all with real amplitudes; the same rules hold for complex ones. Each result is drawn from your browser's random numbers with Born rule odds: first for the measured qubit, then for the others, from the state it left. Changing the state or the qubit clears the plot.</p>
+</qce-partial-measure>
+
+<script>
+  import { PRESETS, QUBITS, MAX_COPIES, preset, branch, columns, intro, report, ketText, restNames, measureCopy, roomFor,
+    bits, type Bit, type Copy, type PresetId } from '../../lib/sims/partial-measurement.ts';
+  import { abs2 } from '../../lib/quantum.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot, token } from '../../lib/draw.ts';
+
+  /** ms between copies in a batch; ms a new dot stays enlarged. */
+  const STEP = 45, POP = 280;
+  type Shot = Copy & { t: number };
+  type Col = { x: number; r: Bit; left: number };
+
+  /**
+   * Plot geometry. Each group (first result 0, then 1) gets half the width; every column has the same width and the
+   * same dot spacing, so heights compare across groups. The spacing is the largest that still fits `room` dots a column.
+   */
+  function layout(w: number, groups: number[][], room: number) {
+    const gap = 16, half = (w - gap) / 2, most = Math.max(1, ...groups.map((g) => g.length));
+    const cw = Math.min(half / most, 140), plotH = w < 480 ? 150 : 190, top = 6;
+    let s = 14;
+    while (s > 3 && Math.max(1, Math.floor((cw - 6) / s)) * Math.floor(plotH / s) < room) s -= 0.5;
+    const per = Math.max(1, Math.floor((cw - 6) / s));
+    const cols: Col[] = [];
+    groups.forEach((g, r) => {
+      const x0 = r * (half + gap) + (half - g.length * cw) / 2;
+      g.forEach((x, i) => cols.push({ x, r: r as Bit, left: x0 + i * cw }));
+    });
+    return { cols, cw, half, gap, plotH, top, s, per, h: top + plotH + 40 };
+  }
+
+  class PartialMeasure extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const canvas = $<HTMLCanvasElement>('canvas'), readout = $('.tool-readout');
+      const goes = [...this.querySelectorAll<HTMLButtonElement>('[data-run]')];
+      const cards = [...this.querySelectorAll<HTMLElement>('[data-branch]')];
+
+      let id: PresetId = 'signed', k = 0, shots: Shot[] = [], queue = 0, last = 0, raf = 0, seen = false;
+      let ctx: CanvasRenderingContext2D | null = null, w = 0, h = 0, g = layout(0, [[], []], 1);
+      const state = () => preset(id).state;
+
+      /** Room each column needs: enough for MAX_COPIES at Born rule odds, or more if a column ever gets past that. */
+      function room() {
+        const s = state(), counts = new Map<number, number>();
+        for (const x of shots) counts.set(x.string, (counts.get(x.string) ?? 0) + 1);
+        const all = [...columns(s, k, 0), ...columns(s, k, 1)];
+        return Math.max(1, ...all.map((x) => Math.max(roomFor(abs2(s[x])), counts.get(x) ?? 0)));
+      }
+
+      function size() {
+        const s = state();
+        w = canvas.getBoundingClientRect().width;
+        g = layout(w, [columns(s, k, 0), columns(s, k, 1)], room());
+        canvas.style.height = `${g.h}px`;
+        ({ ctx, w, h } = fit(canvas));
+        paint();
+      }
+
+      function paint(now = performance.now()) {
+        if (!ctx) return;
+        const pal = palette(), s = state(), { cols, cw, plotH, top, s: sp, per } = g, r = sp * 0.36, n = shots.length;
+        ctx.clearRect(0, 0, w, h);
+        const base = top + plotH;
+        // Baseline under each group.
+        ctx.strokeStyle = pal.rule; ctx.lineWidth = 1;
+        for (const r0 of [0, 1]) {
+          const cs = cols.filter((c) => c.r === r0);
+          if (!cs.length) continue;
+          ctx.beginPath(); ctx.moveTo(cs[0].left + 2, base + 0.5); ctx.lineTo(cs[cs.length - 1].left + cw - 2, base + 0.5); ctx.stroke();
+        }
+        const font = token('--mono') || 'monospace';
+        for (const col of cols) {
+          const inner = per * sp, x0 = col.left + (cw - inner) / 2;
+          let i = 0;
+          for (const shot of shots) {
+            if (shot.string !== col.x) continue;
+            const cx = x0 + ((i % per) + 0.5) * sp, cy = base - (Math.floor(i / per) + 0.5) * sp;
+            const age = now - shot.t, rr = r * (age < POP ? 1 + 0.6 * (1 - age / POP) : 1);
+            if (col.r === 0) dot(ctx, cx, cy, rr, pal.signal);
+            else {
+              dot(ctx, cx, cy, rr, pal.plate);
+              ctx.strokeStyle = pal.ink2; ctx.lineWidth = Math.max(1, rr * 0.32);
+              ctx.beginPath(); ctx.arc(cx, cy, Math.max(0.5, rr - ctx.lineWidth / 2), 0, Math.PI * 2); ctx.stroke();
+            }
+            i++;
+          }
+          // The Born rule prediction for this many copies: n |amplitude|^2 dots, drawn as a dashed line at that height.
+          if (n > 0) {
+            const y = base - (n * abs2(s[col.x]) / per) * sp;
+            ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+            ctx.beginPath(); ctx.moveTo(x0 - 2, y); ctx.lineTo(x0 + inner + 2, y); ctx.stroke(); ctx.setLineDash([]);
+          }
+          // The string under its column, measured bit underlined, and the count.
+          const label = bits(col.x, QUBITS), mid = col.left + cw / 2;
+          ctx.font = `500 12px ${font}`; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+          const cwid = ctx.measureText('0').width, lx = mid - (cwid * QUBITS) / 2;
+          ctx.fillStyle = pal.ink2; ctx.fillText(label, lx, base + 16);
+          ctx.fillRect(lx + k * cwid, base + 19, cwid, 1.5);
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'center'; ctx.font = `600 12px ${font}`;
+          ctx.fillText(String(i), mid, base + 35);
+        }
+      }
+
+      /** Fill both branch cards: the strings that agree with each result, their chances, and what is left. */
+      function cardsFor() {
+        const s = state(), rest = restNames(k, QUBITS);
+        cards.forEach((card) => {
+          const b = branch(s, k, +card.dataset.branch! as Bit), body = card.querySelector('[data-rows]')!;
+          card.querySelector('[data-q]')!.textContent = `q${k}`;
+          body.replaceChildren(...b.rows.map((x) => {
+            const tr = document.createElement('tr'), th = document.createElement('th');
+            th.scope = 'row';
+            [...x.string].forEach((ch, i) => {
+              if (i !== k) { th.append(ch); return; }
+              const m = document.createElement('b'); m.textContent = ch; th.append(m);
+            });
+            tr.append(th);
+            for (const t of [x.amp, x.chance, x.after]) { const td = document.createElement('td'); td.textContent = t; tr.append(td); }
+            return tr;
+          }));
+          card.querySelector('table')!.hidden = !b.possible;
+          card.querySelector<HTMLElement>('[data-keep]')!.hidden = !b.possible;
+          card.querySelector<HTMLElement>('[data-left]')!.hidden = !b.possible;
+          card.querySelector('[data-sum]')!.textContent = b.possible ? `Chance: ${b.sum}` : `Chance: 0%. No string has q${k} = ${b.r}, so this never happens.`;
+          card.querySelector('[data-keep]')!.textContent = `Keep these strings and divide each amplitude by ${b.root}.`;
+          card.querySelector('[data-rest]')!.textContent = rest;
+          card.querySelector('[data-left] code')!.textContent = b.left;
+        });
+      }
+
+      function tagLast() {
+        const lastShot = shots[shots.length - 1];
+        cards.forEach((card) => { card.querySelector<HTMLElement>('[data-tag]')!.hidden = !lastShot || lastShot.first !== +card.dataset.branch!; });
+      }
+
+      function say() {
+        let t = report(state(), k, shots, preset(id).start);
+        if (shots.length >= MAX_COPIES) t += ' The plot is full. Press Clear to start again.';
+        readout.textContent = t;
+      }
+
+      function controls() {
+        const full = shots.length + queue >= MAX_COPIES;
+        goes.forEach((x) => x.setAttribute('aria-disabled', String(full)));
+      }
+
+      const add = (t: number) => {
+        shots.push({ ...measureCopy(state(), k, Math.random(), Math.random()), t });
+        queue--;
+        if (room() > g.per * Math.floor(g.plotH / g.s)) size();
+        tagLast();
+      };
+      /** Finish every queued copy at once and draw the end state: for reduced motion, and when the tool is off screen. */
+      const flush = () => { while (queue > 0) add(-Infinity); shots.forEach((x) => { x.t = -Infinity; }); paint(); controls(); say(); };
+      const busy = (now: number) => queue > 0 || (shots.length > 0 && now < shots[shots.length - 1].t + POP);
+
+      function frame(now: number) {
+        raf = 0;
+        if (!seen) { flush(); return; }
+        if (queue > 0 && now - last >= STEP) { add(now); last = now; }
+        paint(now);
+        if (busy(now)) raf = requestAnimationFrame(frame); else { controls(); say(); }
+      }
+      const kick = () => { if (reduceMotion() || !seen) flush(); else if (!raf) raf = requestAnimationFrame(frame); };
+
+      function clear() {
+        shots = []; queue = 0;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        tagLast(); controls();
+      }
+
+      /** A new state or a new qubit: clear the plot, refill the cards and labels, and say the odds. */
+      function setup() {
+        const p = preset(id);
+        $('[data-ket]').textContent = `|ψ⟩ = ${ketText(p.state)}`;
+        $('[data-about]').textContent = p.about;
+        for (const r of [0, 1]) {
+          $(`[data-g${r}]`).textContent = `q${k} gave ${r}`;
+          $(`[data-k${r}]`).textContent = `q${k} gave ${r}`;
+        }
+        $('[data-legend]').textContent = `Each dot is one copy of the state. q${k} is measured first, then the other two qubits. The dot goes in the column of the full string the copy gave; the measured bit is underlined.`;
+        clear(); cardsFor(); size();
+        readout.textContent = intro(p.state, k, p.start);
+      }
+
+      this.querySelectorAll<HTMLInputElement>(`input[type="radio"]`).forEach((x) => x.addEventListener('change', () => {
+        if (!x.checked) return;
+        if (x.name.endsWith('-state')) id = x.value as PresetId; else k = +x.value;
+        setup();
+      }));
+      goes.forEach((x) => x.addEventListener('click', () => {
+        const space = MAX_COPIES - shots.length - queue;
+        if (space <= 0) { say(); return; }
+        queue += Math.min(+x.dataset.run!, space);
+        controls(); kick();
+      }));
+      $('[data-clear]').addEventListener('click', () => { clear(); paint(); readout.textContent = intro(state(), k, preset(id).start); });
+
+      onResize(canvas, size);
+      onTheme(() => paint());
+      onSeen(this, (v) => { seen = v; if (!v && queue > 0) flush(); });
+      // Start from the controls as the page shows them: a browser can restore form values on going back.
+      const picked = (end: string) => this.querySelector<HTMLInputElement>(`input[name$="${end}"]:checked`)?.value;
+      id = (picked('-state') ?? 'signed') as PresetId;
+      k = +(picked('-k') ?? 0);
+      if (!PRESETS.some((p) => p.id === id)) id = 'signed';
+      setup();
+    }
+  }
+  customElements.define('qce-partial-measure', PartialMeasure);
+</script>
+
+<style>
+  .setup { display: grid; gap: var(--s4) }
+  fieldset { display: grid; align-content: start; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { padding: 0; margin-bottom: var(--s2) }
+  .opts { display: grid; gap: var(--s2) }
+  .opts.qubits { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+  .opts label { display: flex; align-items: center; gap: var(--s2); min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); font-weight: 500; cursor: pointer }
+  .opts.qubits label { font-family: var(--mono) }
+  .opts label:hover { border-color: var(--ink) }
+  .opts label:has(:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink) }
+  .opts input { flex: none; width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--signal) }
+
+  .state { display: grid; gap: var(--s2); padding: var(--s3); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); overflow-wrap: anywhere }
+  .state code { font-size: 1.0625rem }
+  .hint, .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+
+  .branches { display: grid; gap: var(--s3) }
+  .branch { display: grid; align-content: start; gap: var(--s2); min-width: 0; padding: var(--s3) var(--s2); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r) }
+  .branch h3 { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); font-size: 1.0625rem; font-weight: 600 }
+  .branch h3 [data-q] { font-family: var(--mono) }
+  .tag { padding: .1rem .45rem; border: 1.5px solid var(--signal); border-radius: var(--r); color: var(--ink); font: 500 .75rem/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase }
+  .tag[hidden] { display: none }
+  table { width: 100%; border-collapse: collapse; font-size: .875rem }
+  /* Body rows are rebuilt by the script, so they carry no scope attribute: reach them with :global inside the table. */
+  table :global(th), table :global(td) { padding: .3rem .2rem; text-align: right; border-bottom: 1px solid var(--rule); white-space: nowrap }
+  thead th { font: 500 .75rem/1.3 var(--mono); color: var(--ink-2); vertical-align: bottom; white-space: normal }
+  table :global(th[scope="row"]), thead th:first-child { text-align: left }
+  table :global(tbody th), table :global(td) { font-family: var(--mono); font-weight: 500 }
+  table :global(tbody th b) { font-weight: 800; text-decoration: underline; text-underline-offset: .2em; text-decoration-thickness: 2px }
+  .branch p { font-size: .9375rem; overflow-wrap: anywhere }
+  .branch code { font-size: .9375rem }
+
+  [aria-disabled="true"] { opacity: .45; cursor: not-allowed }
+
+  figure { display: grid; gap: var(--s2); min-width: 0 }
+  .groups { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font: 500 .875rem var(--mono); color: var(--ink); text-align: center }
+  figcaption { display: grid; gap: var(--s2); font-size: .9375rem; color: var(--ink-2) }
+  .key { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); font: 500 .875rem var(--mono) }
+  .key > span { display: inline-flex; align-items: center; gap: .4rem }
+  .key > span::before { content: ""; flex: none; width: .75rem; height: .75rem; border-radius: 50% }
+  .key > .k0::before { background: var(--signal) }
+  .key > .k1::before { border: 2px solid var(--ink-2) }
+  .key > .kl::before { width: 1rem; height: 0; border-radius: 0; border-top: 2px dashed var(--ink) }
+
+  @media (min-width: 40rem) {
+    .setup { grid-template-columns: 3fr 2fr }
+    .branches { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+    .branch { padding: var(--s3) }
+  }
+</style>
