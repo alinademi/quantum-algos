@@ -1,0 +1,62 @@
+---
+description: "Follow the 1935 EPR argument: linked particles far apart led Einstein, Podolsky and Rosen to call quantum theory incomplete."
+answer: "The EPR paradox is a 1935 argument by Einstein, Podolsky and Rosen that quantum theory is incomplete. For two linked particles far apart, measuring one lets you predict the other's position, or its momentum, for sure; since the far particle is not disturbed, they argued, both values must be real, yet no quantum state gives both."
+myth:
+  claim: "Einstein, Podolsky and Rosen showed that quantum theory is wrong."
+  truth: "They did not dispute its predictions; their argument is built on them. They argued it is incomplete: by their test some values are real, yet no quantum state includes them."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import EprPairs from '../../components/tools/EprPairs.astro';
+
+<Depth level="kid">
+
+Put a pair of gloves in two boxes and send them far apart. Open yours and find a left glove: you know the far one is right, without touching it.
+
+Tiny particles can be paired like that. You can ask each one either of two questions: "up or down?" or "east or west?". Ask both the same question, and the answers always come out opposite. (Their 1935 paper asked where a particle is and how fast it moves. This up-or-down version came later, from David Bohm in 1951.)
+
+In 1935 Einstein, Podolsky and Rosen argued: if you can know the far answer for sure without touching that particle, it was real all along. Your choice of question can't change a far particle, so both its answers are real at once. Yet quantum theory never gives a particle sure answers to both. So, they said, the theory leaves something out.
+
+The glove picture breaks here: a glove is left or right all along. In quantum theory, these answers are not set before a measurement. Later tests with more questions, the Bell test, showed set answers cannot explain every result.
+
+</Depth>
+
+<Depth level="student">
+
+EPR used position and momentum. Bohm's 1951 version uses spin, a qubit.
+
+A source sends pairs in the singlet, an [entangled](/learn/entanglement/) state: one particle to Alice, one to Bob, far apart. Each measures spin along Z (upright) or X (on its side). Alone, each result is up or down at random, half the time each. Along the same axis, the two results are always opposite.
+
+So Alice can measure Z and predict Bob's Z result for sure, or measure X and predict his X result. EPR's criterion: a value you can predict for sure, without disturbing the system, is an "element of reality". They also assumed Alice's choice cannot change what is real at Bob. So his Z and X values are both real at once.
+
+No qubit state gives sure results for both. So, EPR concluded, quantum theory is incomplete. Values it leaves out are now called hidden variables.
+
+</Depth>
+
+<Depth level="engineer">
+
+EPR's two particles share the idealized wave function
+
+$$
+\Psi(x_1, x_2) = h\,\delta(x_1 - x_2 + x_0)
+$$
+
+which they wrote as $\int e^{(2\pi i/h)(x_1 - x_2 + x_0)p}\,dp$. It is an eigenstate of $x_1 - x_2$ (value $-x_0$) and of $p_1 + p_2$ (value $0$). These commute, $[x_1 - x_2,\, p_1 + p_2] = 0$, though $[x_2, p_2] = i\hbar$. Measuring $x_1$ or $p_1$ leaves particle 2 in an eigenstate of $x_2$ or $p_2$.
+
+The premises: a value predictable with certainty "without in any way disturbing a system" is an element of reality; in a complete theory "every element of the physical reality must have a counterpart"; and, assumed but not stressed, the far particle has its own real state that no measurement on particle 1 can change. Then $x_2$ and $p_2$ are both real, yet no wave function is an eigenstate of both. So the description is incomplete.
+
+Bohm's spin version uses the singlet, made from $|11\rangle$ by $H$ on qubit 0, then a CNOT from qubit 0 to 1:
+
+$$
+|\Psi^-\rangle = \tfrac{1}{\sqrt{2}}\big(|01\rangle - |10\rangle\big)
+$$
+
+It keeps this form, up to a global phase, with up and down along any axis replacing 0 and 1. For axes $\theta$ apart, both are up, or both down, with probability $\tfrac12\sin^2\tfrac{\theta}{2}$ each, so along one axis results are always opposite. Yet every qubit state has $\langle\sigma_z\rangle^2 + \langle\sigma_x\rangle^2 \le 1$: none is sure of both.
+
+EPR end with "We believe, however, that such a theory is possible", but propose none. Adding missing values is the hidden-variable route. For $Z$ and $X$ alone, four equally likely answer cards reproduce every joint probability. In 1964 Bell showed no local hidden-variable theory matches the singlet at all angles: see the [Bell test](/learn/bell-test/).
+
+</Depth>
+
+<Lab title="Predict the far particle" intro="Pick what Alice and Bob each measure and send pairs: when does Alice's result tell her Bob's for sure? Then switch to hidden answers and compare the counts.">
+  <EprPairs />
+</Lab>

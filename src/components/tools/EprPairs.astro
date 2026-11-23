@@ -1,0 +1,294 @@
+---
+// Pairs of spin one-half particles in Bohm's version of EPR. Each dot is one pair, and each result is a Born rule draw
+// from the singlet state in epr.ts (or a card from the hidden-answer model), so the counts are real shot noise.
+import { theory, opposite, settingWords } from '../../lib/sims/epr.ts';
+import { pct } from '../../lib/draw.ts';
+const uid = 'epr-' + Math.random().toString(36).slice(2, 8);
+const sides = [['alice', 'Alice measures'], ['bob', 'Bob measures']] as const;
+const start = opposite(theory('quantum', 'Z', 'Z'));
+---
+<qce-epr-pairs class="tool">
+  <div class="views">
+    <figure>
+      <canvas data-flight aria-hidden="true"></canvas>
+      <figcaption class="label">Pairs fly apart, one particle to each side</figcaption>
+    </figure>
+    <figure>
+      <canvas data-grid aria-hidden="true"></canvas>
+      <figcaption class="label">Both results of each pair, one dot per pair</figcaption>
+    </figure>
+  </div>
+  <p class="note">Bohm's spin version of EPR. A picture, not to scale. Quantum theory: each pair starts in the singlet state, and each result is drawn at random with the Born rule. Hidden answers: each pair starts with a random card of set answers, Bob's the opposite of Alice's; a model for comparison. Up means along the detector's arrow. The tool offers only two axes, Z and X, at right angles in one plane. With more axes, no local hidden-answer model can match quantum theory at every angle: see the <a href="/learn/bell-test/">Bell test</a>.</p>
+
+  <div class="tool-controls">
+    {sides.map(([side, legend]) => (
+      <fieldset>
+        <legend>{legend}</legend>
+        <div class="opts">
+          {(['Z', 'X'] as const).map((s) => <label><input type="radio" name={`${uid}-${side}`} value={s} checked={s === 'Z'} />{settingWords(s)}</label>)}
+        </div>
+      </fieldset>
+    ))}
+    <fieldset>
+      <legend>The pairs follow</legend>
+      <div class="opts">
+        <label><input type="radio" name={`${uid}-src`} value="quantum" checked />Quantum theory</label>
+        <label><input type="radio" name={`${uid}-src`} value="hidden" />Hidden answers</label>
+      </div>
+    </fieldset>
+    <button type="button" class="btn" data-send>Send 200 more pairs</button>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">Each pair starts in the singlet state, and Alice and Bob both measure Z. Quantum theory says their results are opposite {pct(start)} of the time.</p>
+</qce-epr-pairs>
+
+<script>
+  import { pair, theory, opposite, resultName, type Setting, type Source, type Pair, type Result } from '../../lib/sims/epr.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot, pct, token } from '../../lib/draw.ts';
+
+  const BATCH = 200, CAP = 600;
+  const CELL_CAP = 360; // dots a cell can show (a cell averages 300 at most). Beyond that, pairs still count but are not drawn.
+  const FLIGHT = 900; // ms from the source to the exits
+  const RATE = 0.25; // pairs leaving the source per ms
+  const FRESH = 450; // ms a new dot stays highlighted
+
+  type Flying = { p: Pair; t0: number };
+  type Landed = { cell: number; slot: number; t: number };
+
+  class EprPairs extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const cFlight = $<HTMLCanvasElement>('[data-flight]'), cGrid = $<HTMLCanvasElement>('[data-grid]');
+      const radios = (k: string) => [...this.querySelectorAll<HTMLInputElement>(`input[name$="-${k}"]`)];
+      const aliceRadios = radios('alice'), bobRadios = radios('bob'), srcRadios = radios('src');
+      const sendBtn = $<HTMLButtonElement>('[data-send]'), readout = $<HTMLParagraphElement>('.tool-readout');
+
+      let alice: Setting = 'Z', bob: Setting = 'Z', src: Source = 'quantum';
+      let sent = 0, queued = 0, cells = [0, 0, 0, 0], sideUp = [0, 0];
+      let flying: Flying[] = [], landed: Landed[] = [], lastLand = -1e9;
+      let clock = 0, last = 0, debt = 0, raf = 0, seen = false, reported = true;
+      let fl = { ctx: cFlight.getContext('2d')!, w: 0, h: 0 }, gr = { ctx: cGrid.getContext('2d')!, w: 0, h: 0 };
+      let P = palette(), mono = token('--mono');
+      const font = (px: number, weight = 500) => `${weight} ${px}px ${mono}`;
+
+      // Text that never runs off the canvas edge.
+      const text = (ctx: CanvasRenderingContext2D, w: number, s: string, x: number, y: number, align: CanvasTextAlign = 'center', color = P.ink2) => {
+        const tw = ctx.measureText(s).width;
+        const left = align === 'left' ? x : align === 'right' ? x - tw : x - tw / 2;
+        ctx.fillStyle = color; ctx.textAlign = 'left'; ctx.fillText(s, Math.max(1, Math.min(left, w - 1 - tw)), y);
+      };
+      const line = (ctx: CanvasRenderingContext2D, pts: number[][], color: string, width = 1.5, dash: number[] = [1, 4]) => {
+        ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.setLineDash(dash); ctx.beginPath();
+        pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+        ctx.stroke(); ctx.setLineDash([]);
+      };
+      // An arrow centered at (x, y) along the detector's axis: up for Z, right for X.
+      const arrow = (ctx: CanvasRenderingContext2D, x: number, y: number, s: Setting, r: number, color: string) => {
+        const [dx, dy] = s === 'Z' ? [0, -1] : [1, 0], hw = Math.max(3, r * 0.4), tx = x + dx * r, ty = y + dy * r;
+        line(ctx, [[x - dx * r, y - dy * r], [tx - dx * hw, ty - dy * hw]], color, 2, []);
+        ctx.fillStyle = color; ctx.beginPath();
+        ctx.moveTo(tx, ty); ctx.lineTo(tx - dx * hw * 1.6 - dy * hw, ty - dy * hw * 1.6 + dx * hw); ctx.lineTo(tx - dx * hw * 1.6 + dy * hw, ty - dy * hw * 1.6 - dx * hw);
+        ctx.closePath(); ctx.fill();
+      };
+
+      // ---- Flight picture: source in the middle, Alice's detector on the left, Bob's on the right.
+      const geo = () => {
+        const { w, h } = fl;
+        return { yc: h / 2, cx: w / 2, xs: [w * 0.27, w * 0.73], mw: Math.min(34, w * 0.1), mh: Math.min(38, h * 0.3), D: Math.max(12, Math.min(h / 2 - 22, w * 0.2)), edge: [3, w - 3] };
+      };
+      // The path of one particle: source, through its detector, out the up (upper) or down (lower) exit.
+      const route = (side: 0 | 1, r: Result) => {
+        const g = geo(), dir = side ? 1 : -1, x = g.xs[side];
+        return [[g.cx + dir * 6, g.yc], [x - dir * g.mw / 2, g.yc], [x + dir * g.mw / 2, g.yc], [g.edge[side], g.yc + (r ? 1 : -1) * g.D]];
+      };
+      const at = (pts: number[][], f: number) => {
+        const seg = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]));
+        let s = f * seg.reduce((t, l) => t + l, 0);
+        for (let i = 0; i < seg.length; i++) {
+          if (s <= seg[i]) { const k = seg[i] ? s / seg[i] : 0; return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * k, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * k]; }
+          s -= seg[i];
+        }
+        return pts[pts.length - 1];
+      };
+
+      const drawFlight = () => {
+        const { ctx, w, h } = fl, g = geo(), arrived = cells.reduce((t, x) => t + x, 0);
+        ctx.clearRect(0, 0, w, h);
+        ctx.font = font(11); ctx.textBaseline = 'alphabetic';
+        ([0, 1] as const).forEach((side) => {
+          const r0 = route(side, 0), r1 = route(side, 1), x = g.xs[side], s = side ? bob : alice;
+          line(ctx, r0.slice(0, 2), P.ink2); line(ctx, r0.slice(2), P.ink2); line(ctx, r1.slice(2), P.ink2);
+          // Detector box with its axis arrow, setting above, name below
+          ctx.fillStyle = P.paper; ctx.strokeStyle = P.ink; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.roundRect(x - g.mw / 2, g.yc - g.mh / 2, g.mw, g.mh, 4); ctx.fill(); ctx.stroke();
+          arrow(ctx, x, g.yc, s, Math.min(g.mw, g.mh) * 0.32, P.signal);
+          text(ctx, w, s, x, g.yc - g.mh / 2 - 6, 'center', P.ink);
+          text(ctx, w, side ? 'Bob' : 'Alice', x, g.yc + g.mh / 2 + 15, 'center', P.ink);
+          // Exit counts at the edge
+          const align: CanvasTextAlign = side ? 'right' : 'left', ex = side ? w - 1 : 1;
+          text(ctx, w, `up ${sideUp[side]}`, ex, g.yc - g.D - 6, align, P.ink);
+          text(ctx, w, `down ${arrived - sideUp[side]}`, ex, g.yc + g.D + 15, align, P.ink);
+        });
+        // Source
+        [[-3, -2], [2, -3], [0, 1], [-2, 3], [3, 2]].forEach(([dx, dy]) => dot(ctx, g.cx + dx, g.yc + dy, 1.6, P.ink));
+        text(ctx, w, 'source', g.cx, g.yc + 20);
+        // Particles in flight: two dots per pair
+        for (const f of flying) {
+          const k = Math.min(1, Math.max(0, clock - f.t0) / FLIGHT);
+          ([0, 1] as const).forEach((side) => { const [x, y] = at(route(side, side ? f.p.b : f.p.a), k); dot(ctx, x, y, 2.2, P.signal); });
+        }
+      };
+
+      // ---- Results grid: rows are Alice's result, columns Bob's. Cell i = 2a + b, as in epr.ts.
+      const LW = 44, TH = 18, GAP = 6;
+      const cell = (i: number) => {
+        const { w, h } = gr, cw = (w - LW - GAP) / 2, ch = (h - TH - GAP) / 2;
+        return { x: LW + (i & 1) * (cw + GAP), y: TH + (i >> 1) * (ch + GAP), w: cw, h: ch };
+      };
+      // Dots fill each cell from the bottom row up, left to right, so a fuller cell reads as a taller block.
+      const pack = (i: number) => {
+        const c = cell(i), ix = c.x + 6, iy = c.y + 22, iw = Math.max(1, c.w - 12), ih = Math.max(1, c.h - 28);
+        const cols = Math.max(1, Math.round(Math.sqrt((CELL_CAP * iw) / ih))), rows = Math.ceil(CELL_CAP / cols);
+        const pitch = Math.min(iw / cols, ih / rows), ox = ix + (iw - cols * pitch) / 2;
+        return { cols, pitch, ox, base: iy + ih, r: Math.max(0.9, Math.min(3, pitch * 0.36)) };
+      };
+      const drawGrid = () => {
+        const { ctx, w, h } = gr;
+        ctx.clearRect(0, 0, w, h);
+        ctx.font = font(11); ctx.textBaseline = 'alphabetic';
+        for (const b of [0, 1] as Result[]) { const c = cell(b); text(ctx, w, `Bob ${resultName(b)}`, c.x + c.w / 2, 12, 'center', P.ink); }
+        for (const a of [0, 1] as Result[]) {
+          const c = cell(2 * a);
+          text(ctx, w, 'Alice', 0, c.y + c.h / 2 - 2, 'left', P.ink); text(ctx, w, resultName(a), 0, c.y + c.h / 2 + 12, 'left', P.ink);
+        }
+        const packs = [0, 1, 2, 3].map(pack);
+        for (let i = 0; i < 4; i++) {
+          const c = cell(i);
+          ctx.strokeStyle = P.rule; ctx.lineWidth = 1; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.roundRect(c.x, c.y, c.w, c.h, 6); ctx.stroke(); ctx.setLineDash([]);
+          ctx.font = font(12, 700); text(ctx, w, String(cells[i]), c.x + 6, c.y + 15, 'left', P.ink);
+          ctx.font = font(11); text(ctx, w, i === 1 || i === 2 ? 'opposite' : 'same', c.x + c.w - 6, c.y + 15, 'right');
+        }
+        for (const d of landed) {
+          if (d.slot >= CELL_CAP) continue;
+          const k = packs[d.cell], x = k.ox + ((d.slot % k.cols) + 0.5) * k.pitch, y = k.base - (Math.floor(d.slot / k.cols) + 0.5) * k.pitch;
+          const fresh = clock - d.t < FRESH;
+          dot(ctx, x, y, fresh ? k.r * 1.5 : k.r, fresh ? P.signal : P.ink);
+        }
+      };
+      const draw = () => { drawFlight(); drawGrid(); };
+
+      // ---- One pair lands: count it in its cell and at each side's exit.
+      const land = (p: Pair, t: number) => {
+        const i = 2 * p.a + p.b;
+        landed.push({ cell: i, slot: cells[i], t });
+        cells[i]++;
+        if (p.a === 0) sideUp[0]++;
+        if (p.b === 0) sideUp[1]++;
+        lastLand = t;
+      };
+
+      // ---- Readout, at the end of each batch
+      const report = () => {
+        const n = cells.reduce((t, x) => t + x, 0), opp = cells[1] + cells[2], same = n - opp, bobUp = cells[0] + cells[2];
+        const other: Setting = alice === 'Z' ? 'X' : 'Z';
+        const begin = src === 'quantum'
+          ? 'Quantum theory: each pair started in the singlet state.'
+          : "Hidden answers: each pair started with a random card of set answers for Z and X, Bob's the opposite of Alice's.";
+        const head = `${begin} Alice measured ${alice}, Bob measured ${bob}, ${n} pairs: opposite results ${opp} times (${pct(opp / n)}), the same ${same} times. ${src === 'quantum' ? 'Theory' : 'Model'}: ${pct(opposite(theory(src, alice, bob)))} opposite.`;
+        const meaning = alice === bob
+          ? (same === 0 ? ` Every time, Alice's result told her Bob's, though nothing touched his particle.` : '')
+          : ` Alice's ${alice} result tells nothing about Bob's ${bob} result.`;
+        const why = src === 'quantum'
+          ? ` Given her ${alice} result, quantum theory gives his qubit a state that is sure for ${alice}, with amplitudes of equal size for up and down along ${other}.`
+          : ' For these two settings, the odds of this model equal those of quantum theory.';
+        return `${head}${meaning}${why} Bob alone: ${bobUp} up, ${n - bobUp} down; ${src === 'quantum' ? 'theory' : 'model'} 50% up, whatever Alice measures.`;
+      };
+      const done = () => {
+        reported = true;
+        readout.textContent = report();
+        sendBtn.disabled = sent >= CAP;
+        sendBtn.textContent = sent >= CAP ? 'The grid is full' : `Send ${BATCH} more pairs`;
+      };
+
+      // ---- Motion: a clock that only runs while the tool is on screen
+      const step = (now: number) => {
+        raf = 0;
+        const dt = last ? Math.min(now - last, 50) : 16;
+        last = now; clock += dt;
+        if (queued) {
+          debt += dt * RATE;
+          let k = Math.min(queued, Math.floor(debt)); debt -= k; queued -= k;
+          while (k-- > 0) flying.push({ p: pair(src, alice, bob, Math.random), t0: clock });
+        } else debt = 0;
+        flying = flying.filter((f) => { if (clock - f.t0 < FLIGHT) return true; land(f.p, clock); return false; });
+        draw();
+        const busy = queued > 0 || flying.length > 0;
+        if (!busy && !reported) done();
+        if ((busy || clock - lastLand < FRESH) && seen) raf = requestAnimationFrame(step);
+        else last = 0;
+      };
+      const kick = () => { if (!raf && seen) raf = requestAnimationFrame(step); };
+
+      const launch = (n: number) => {
+        n = Math.min(n, CAP - sent);
+        if (n <= 0) return;
+        sent += n; reported = false;
+        sendBtn.disabled = true;
+        if (reduceMotion()) {
+          for (let i = 0; i < n; i++) land(pair(src, alice, bob, Math.random), -1e9);
+          draw(); done();
+        } else { queued += n; kick(); }
+      };
+
+      const reset = () => {
+        sent = 0; queued = 0; cells = [0, 0, 0, 0]; sideUp = [0, 0];
+        flying = []; landed = []; lastLand = -1e9;
+        draw();
+        readout.textContent = '';
+        launch(BATCH);
+      };
+
+      const resize = () => { fl = fit(cFlight); gr = fit(cGrid); draw(); };
+      const retheme = () => { P = palette(); mono = token('--mono'); draw(); };
+
+      const pick = (rs: HTMLInputElement[]) => rs.find((r) => r.checked)?.value;
+      const read = () => { alice = (pick(aliceRadios) as Setting) ?? 'Z'; bob = (pick(bobRadios) as Setting) ?? 'Z'; src = (pick(srcRadios) as Source) ?? 'quantum'; };
+      [...aliceRadios, ...bobRadios, ...srcRadios].forEach((r) => r.addEventListener('change', () => { read(); reset(); }));
+      sendBtn.addEventListener('click', () => launch(BATCH));
+
+      read();
+      onResize(this, resize);
+      onTheme(retheme);
+      onSeen(this, (v) => { seen = v; if (v) kick(); });
+      resize();
+      reset();
+    }
+  }
+  customElements.define('qce-epr-pairs', EprPairs);
+</script>
+
+<style>
+  .views { display: grid; gap: var(--s4) }
+  figure { display: grid; gap: var(--s2); margin: 0; min-width: 0 }
+  [data-flight] { height: 10rem }
+  [data-grid] { height: 16rem }
+  .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+
+  .tool-controls { display: grid; gap: var(--s4); align-items: start }
+  fieldset { display: grid; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  .opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2) }
+  .opts label { position: relative; display: flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0 .75rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); text-align: center; cursor: pointer }
+  .opts label:hover { border-color: var(--ink) }
+  .opts input { position: absolute; opacity: 0; width: 1px; height: 1px }
+  .opts label:has(:checked) { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .opts label:has(:focus-visible) { outline: 3px solid var(--signal); outline-offset: 2px }
+  [data-send] { justify-self: start }
+
+  @media (min-width: 48rem) {
+    .views { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end }
+    [data-flight], [data-grid] { height: 17rem }
+    .tool-controls { grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--s4) }
+    [data-send] { grid-column: 1 / -1 }
+  }
+</style>
