@@ -224,7 +224,7 @@ Facts the industry stops will use. Each has a source. Company figures are the co
 | DARPA QBI tests if a useful machine is possible by 2033; 11 companies entered Stage B in Nov 2025. | darpa.mil QBI Stage B page; Nextgov (Nov 2025) |
 | RSA-2048 estimate: 20 million noisy qubits, about 8 hours (2019); under 1 million noisy qubits, under a week (2025). | Gidney and Ekera, Quantum 5, 433 (2021); Gidney, arXiv:2505.15917 (2025) |
 | McKinsey: startup investment 2.0 billion USD in 2024, then 12.6 billion USD in 2025; quantum computing revenue passed 1 billion USD in 2025. | McKinsey Quantum Technology Monitor 2025 and 2026 |
-| Quantinuum filed to list on Nasdaq (ticker QNT) in May 2026. | Quantinuum S-1 and S-1/A, SEC (May 2026) |
+| Quantinuum filed in May 2026 and listed on Nasdaq (ticker QNT) in June 2026; reviews disagree on June 4 or 5, so check the date against the SEC filing. | Quantinuum S-1 and S-1/A, SEC (May 2026) |
 | US National Quantum Initiative Act signed 21 Dec 2018. | Pub. L. 115-368, govinfo.gov; AIP FYI |
 | EU Quantum Flagship: about 1 billion EUR over 10 years from 2018. | OECD overview of national quantum strategies; National Academies, Quantum Computing: Progress and Prospects (2019) |
 | UK: 2.5 billion GBP over 2024 to 2034, strategy published Mar 2023. | gov.uk National Quantum Strategy |
