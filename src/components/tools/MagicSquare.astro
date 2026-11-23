@@ -1,0 +1,365 @@
+---
+// The Mermin-Peres magic square game: answer sheets fixed in advance against two ideal singlet pairs. Each quantum answer is a Born-rule draw from the exact four-qubit state in sims/contextuality.ts, and the sheets' win chance is counted exactly over the 9 asks.
+import { LINES, BEST_ALICE, BEST_BOB, BATCH, cellName, sign, sheetWords, product, column, rowKept, colKept } from '../../lib/sims/contextuality.ts';
+const uid = 'ms-' + Math.random().toString(36).slice(2, 8);
+const who = { alice: 'Alice', bob: 'Bob' } as const;
+const sheets = [
+  { k: 'alice', grid: BEST_ALICE, caption: 'Alice\'s sheet: rows multiply to +1' },
+  { k: 'bob', grid: BEST_BOB, caption: 'Bob\'s sheet: columns multiply to −1' },
+] as const;
+// Product checks drawn on the server too, so the sheets read right before the script runs.
+const checks = {
+  alice: LINES.map((r) => ({ v: product(BEST_ALICE[r]), ok: rowKept(BEST_ALICE, r) })),
+  bob: LINES.map((c) => ({ v: product(column(BEST_BOB, c)), ok: colKept(BEST_BOB, c) })),
+};
+---
+<qce-magic-square class="tool">
+  <fieldset class="mode">
+    <legend class="label">Players</legend>
+    <label><input type="radio" name={`${uid}-mode`} value="fixed" checked /> Plan fixed in advance</label>
+    <label><input type="radio" name={`${uid}-mode`} value="quantum" /> Two entangled pairs</label>
+  </fieldset>
+
+  <div class="plan" data-show="fixed">
+    <p class="hint">Each player gets a sheet before the game and answers from it. Press a cell to flip it.</p>
+    <div class="sheets">
+      {sheets.map((s) => (
+        <table data-sheet={s.k}>
+          <caption>{s.caption}</caption>
+          <thead>
+            <tr>
+              <td></td>
+              {LINES.map((c) => <th scope="col"><span class="visually-hidden">Column </span>{c + 1}</th>)}
+              {s.k === 'alice' && <th scope="col"><span aria-hidden="true">×</span><span class="visually-hidden">Row product</span></th>}
+            </tr>
+          </thead>
+          <tbody>
+            {LINES.map((r) => (
+              <tr>
+                <th scope="row"><span class="visually-hidden">Row </span>{r + 1}</th>
+                {LINES.map((c) => (
+                  <td data-cell={`${r}-${c}`} class:list={{ differ: BEST_ALICE[r][c] !== BEST_BOB[r][c] }}>
+                    <button type="button" data-r={r} data-c={c} data-v={s.grid[r][c]}
+                      aria-label={`${who[s.k]}'s sheet, row ${r + 1}, column ${c + 1}: ${sign(s.grid[r][c])}`}>{sign(s.grid[r][c])}</button>
+                  </td>
+                ))}
+                {s.k === 'alice' && <td class:list={['check', { bad: !checks.alice[r].ok }]} data-check={r}>{sign(checks.alice[r].v)}<span aria-hidden="true">{checks.alice[r].ok ? ' ✓' : ' ✗'}</span><span class="visually-hidden">{checks.alice[r].ok ? ', rule kept' : ', rule broken'}</span></td>}
+              </tr>
+            ))}
+          </tbody>
+          {s.k === 'bob' && (
+            <tfoot>
+              <tr>
+                <th scope="row"><span aria-hidden="true">×</span><span class="visually-hidden">Column product</span></th>
+                {LINES.map((c) => <td class:list={['check', { bad: !checks.bob[c].ok }]} data-check={c}>{sign(checks.bob[c].v)}<span aria-hidden="true">{checks.bob[c].ok ? ' ✓' : ' ✗'}</span><span class="visually-hidden">{checks.bob[c].ok ? ', rule kept' : ', rule broken'}</span></td>)}
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      ))}
+    </div>
+    <p class="summary" data-summary>{sheetWords(BEST_ALICE, BEST_BOB)}</p>
+    <p><button type="button" class="quiet" data-best>Back to the best plan</button></p>
+  </div>
+
+  <div class="plan" data-show="quantum" hidden>
+    <table class="square">
+      <caption>Nine measurements on two qubits</caption>
+      <thead>
+        <tr>
+          <td></td>
+          {LINES.map((c) => <th scope="col"><span class="visually-hidden">Column </span>{c + 1}</th>)}
+          <th scope="col"><span aria-hidden="true">×</span><span class="visually-hidden">Row product</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {LINES.map((r) => (
+          <tr>
+            <th scope="row"><span class="visually-hidden">Row </span>{r + 1}</th>
+            {LINES.map((c) => (
+              <td class="obs" data-cell={`${r}-${c}`}><b>{cellName(r, c)}</b><span data-a></span><span data-b></span></td>
+            ))}
+            <td class="check">+I</td>
+          </tr>
+        ))}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row"><span aria-hidden="true">×</span><span class="visually-hidden">Column product</span></th>
+          {LINES.map(() => <td class="check">−I</td>)}
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+    <p class="summary">Each pair started as |11⟩; a Hadamard gate on the first qubit, then a CNOT, made the singlet (|01⟩ − |10⟩)/√2. Alice holds one qubit of each pair, Bob the other, and each measures the three observables of their line on their own two qubits. Each row multiplies to +I, so Alice's results always multiply to +1; each column multiplies to −I, so Bob's always multiply to −1. In the shared cell both measure the same observable, and the singlets make the results agree.</p>
+    <p class="summary">After a round, A marks Alice's results and B marks Bob's.</p>
+  </div>
+
+  <div class="tool-controls">
+    <button class="btn btn-sm" type="button" data-play="1">Play 1 round</button>
+    <button class="btn btn-sm" type="button" data-play={BATCH}>Play {BATCH} rounds</button>
+  </div>
+
+  <figure class="board">
+    <canvas aria-hidden="true"></canvas>
+    <figcaption>
+      <span>Each dot is one round, in the cell of the row Alice was asked (down) and the column Bob was asked (across).</span>
+      <span class="key"><i class="won"></i> won <b class="doto" data-won>0</b></span>
+      <span class="key"><i class="lost"></i> lost <b class="doto" data-lost>0</b></span>
+    </figcaption>
+  </figure>
+
+  <p class="last" data-last></p>
+  <p class="tool-readout" aria-live="polite"></p>
+
+  <p class="note">The referee picks each row and column at random. Fixed sheets have no randomness: the same ask always gets the same answers. A plan that uses shared random bits only mixes pairs of sheets, so it cannot beat the best pair. Quantum rounds use ideal qubits and start from two fresh pairs each time; every answer is a random draw that follows the Born rule, and each player measures only their own two qubits.</p>
+</qce-magic-square>
+
+<script>
+  import {
+    BATCH, CAP, BEST_ALICE, BEST_BOB, LINES, copy, sign, product, rowKept, colKept, differ, playRound,
+    roundWords, batchWords, sheetWords, winCount, ninths, cellCols, dotIn, type Mode, type Round, type Sheet, type Sign,
+  } from '../../lib/sims/contextuality.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  const PER_FRAME = 3, PAD = 18, GAP = 6;
+  const WHO = { alice: 'Alice', bob: 'Bob' } as const;
+
+  class MagicSquare extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.ready) return;
+      this.dataset.ready = '1';
+      const $ = <T extends Element>(s: string, root: Element = this) => root.querySelector(s) as T;
+      const $$ = <T extends Element>(s: string, root: Element = this) => [...root.querySelectorAll<T>(s)];
+      const canvas = $<HTMLCanvasElement>('canvas'), readout = $<HTMLElement>('.tool-readout'), lastOut = $<HTMLElement>('[data-last]');
+      const wonOut = $<HTMLElement>('[data-won]'), lostOut = $<HTMLElement>('[data-lost]'), summary = $<HTMLElement>('[data-summary]');
+      const tables = { alice: $<HTMLTableElement>('[data-sheet="alice"]'), bob: $<HTMLTableElement>('[data-sheet="bob"]') };
+      const square = $<HTMLTableElement>('table.square');
+
+      let mode: Mode = 'fixed';
+      const sheet: Record<'alice' | 'bob', Sheet> = { alice: copy(BEST_ALICE), bob: copy(BEST_BOB) };
+      let rounds: Round[] = [], batch: Round[] = [], shown = 0, raf = 0, seen = false, started = false, told = true;
+      let ctx: CanvasRenderingContext2D | null = null, w = 0, h = 0;
+
+      // ---- Sheets
+
+      const span = (text: string, attr: string, value: string) => {
+        const el = document.createElement('span');
+        el.setAttribute(attr, value); el.textContent = text;
+        return el;
+      };
+      /** A product check: the value, a mark for the eye, and words for screen readers. */
+      const checkCell = (td: HTMLElement, value: Sign, kept: boolean) => {
+        td.classList.toggle('bad', !kept);
+        td.replaceChildren(sign(value), span(kept ? ' ✓' : ' ✗', 'aria-hidden', 'true'), span(kept ? ', rule kept' : ', rule broken', 'class', 'visually-hidden'));
+      };
+
+      function renderSheets() {
+        (['alice', 'bob'] as const).forEach((k) => $$<HTMLButtonElement>('button[data-r]', tables[k]).forEach((b) => {
+          const r = +b.dataset.r!, c = +b.dataset.c!, v = sheet[k][r][c];
+          b.textContent = sign(v);
+          b.dataset.v = String(v);
+          b.setAttribute('aria-label', `${WHO[k]}'s sheet, row ${r + 1}, column ${c + 1}: ${sign(v)}`);
+        }));
+        LINES.forEach((i) => {
+          checkCell($(`[data-check="${i}"]`, tables.alice), product(sheet.alice[i]), rowKept(sheet.alice, i));
+          checkCell($(`[data-check="${i}"]`, tables.bob), product(sheet.bob.map((row) => row[i])), colKept(sheet.bob, i));
+        });
+        const d = new Set(differ(sheet.alice, sheet.bob).map(([r, c]) => `${r}-${c}`));
+        $$<HTMLElement>('td[data-cell]', $('.sheets')).forEach((td) => td.classList.toggle('differ', d.has(td.dataset.cell!)));
+        summary.textContent = sheetWords(sheet.alice, sheet.bob);
+      }
+
+      // ---- The last round, marked in the tables
+
+      function mark(r: Round | null) {
+        $$<HTMLElement>('td.asked').forEach((td) => td.classList.remove('asked'));
+        $$<HTMLElement>('[data-a], [data-b]', square).forEach((s) => { s.textContent = ''; });
+        lastOut.textContent = r ? `Last round: ${roundWords(mode, r)}` : '';
+        if (!r) return;
+        LINES.forEach((i) => {
+          $(`[data-cell="${r.x}-${i}"]`, tables.alice).classList.add('asked');
+          $(`[data-cell="${i}-${r.y}"]`, tables.bob).classList.add('asked');
+          const a = $<HTMLElement>(`[data-cell="${r.x}-${i}"]`, square), b = $<HTMLElement>(`[data-cell="${i}-${r.y}"]`, square);
+          a.classList.add('asked'); b.classList.add('asked');
+          // Leading spaces keep the words apart for screen readers; the spans are blocks on screen.
+          $('[data-a]', a).textContent = ` A ${sign(r.alice[i])}`;
+          $('[data-b]', b).textContent = ` B ${sign(r.bob[i])}`;
+        });
+      }
+
+      // ---- The board
+
+      function paint() {
+        if (!ctx) return;
+        const p = palette(), side = Math.max(1, (Math.min(w, h) - PAD - 2 * GAP) / 3);
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = p.ink2; ctx.font = `500 12px ${token('--mono')}`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const left = (j: number) => PAD + j * (side + GAP);
+        LINES.forEach((j) => {
+          ctx!.fillText(String(j + 1), left(j) + side / 2, PAD / 2);
+          ctx!.fillText(String(j + 1), PAD / 2, left(j) + side / 2);
+        });
+        const counts = LINES.map(() => LINES.map(() => 0));
+        for (let k = 0; k < shown; k++) counts[rounds[k].x][rounds[k].y]++;
+        // One dot size for the whole board, set by the fullest cell: big dots at first, smaller as cells fill.
+        const cols = cellCols(Math.max(...counts.flat())), pitch = side / cols;
+        LINES.forEach((x) => LINES.forEach((y) => {
+          ctx!.fillStyle = p.paper; ctx!.strokeStyle = p.rule; ctx!.lineWidth = 1;
+          ctx!.fillRect(left(y), left(x), side, side); ctx!.strokeRect(left(y) + 0.5, left(x) + 0.5, side - 1, side - 1);
+        }));
+        const at = LINES.map(() => LINES.map(() => 0));
+        let won = 0;
+        for (let k = 0; k < shown; k++) {
+          const r = rounds[k];
+          const [dx, dy] = dotIn(at[r.x][r.y]++, side, cols), x = left(r.y) + dx, y = left(r.x) + dy;
+          if (r.won) { won++; dot(ctx, x, y, pitch * 0.36, p.signal); }
+          else {
+            ctx.strokeStyle = p.hot; ctx.lineWidth = Math.max(1.25, pitch * 0.14);
+            ctx.beginPath(); ctx.arc(x, y, pitch * 0.3, 0, Math.PI * 2); ctx.stroke();
+          }
+        }
+        wonOut.textContent = String(won); lostOut.textContent = String(shown - won);
+      }
+
+      // ---- Playing
+
+      function finish() {
+        if (told) return;
+        told = true;
+        const tail = rounds.length > batch.length ? ` On the board so far: ${rounds.filter((r) => r.won).length} won of ${rounds.length}.` : '';
+        readout.textContent = (batch.length === 1 ? roundWords(mode, batch[0]) : batchWords(mode, batch, sheet.alice, sheet.bob)) + tail;
+      }
+      function tick() {
+        raf = 0;
+        if (!seen) return;
+        shown = Math.min(rounds.length, shown + PER_FRAME);
+        paint();
+        if (shown < rounds.length) raf = requestAnimationFrame(tick); else finish();
+      }
+      function show() {
+        if (reduceMotion() || !seen) { shown = rounds.length; paint(); finish(); return; }
+        if (!raf) raf = requestAnimationFrame(tick);
+      }
+      function play(n: number) {
+        started = true;
+        if (rounds.length + n > CAP) clear();
+        shown = rounds.length; // dots from earlier presses stay; only the new ones drop in
+        batch = Array.from({ length: n }, () => playRound(mode, sheet.alice, sheet.bob, Math.random));
+        rounds = [...rounds, ...batch];
+        told = false;
+        mark(batch[batch.length - 1]);
+        show();
+      }
+      function clear() {
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        rounds = []; batch = []; shown = 0; told = true;
+        mark(null);
+        paint();
+      }
+
+      $$<HTMLButtonElement>('[data-play]').forEach((b) => b.addEventListener('click', () => play(+b.dataset.play!)));
+
+      this.addEventListener('change', (e) => {
+        const t = e.target as HTMLInputElement;
+        if (t.type !== 'radio') return;
+        mode = t.value as Mode;
+        $$<HTMLElement>('[data-show]').forEach((el) => { el.hidden = el.dataset.show !== mode; });
+        clear();
+        if (started) play(BATCH);
+        else readout.textContent = '';
+      });
+
+      (['alice', 'bob'] as const).forEach((k) => tables[k].addEventListener('click', (e) => {
+        const b = (e.target as Element).closest<HTMLButtonElement>('button[data-r]');
+        if (!b) return;
+        const r = +b.dataset.r!, c = +b.dataset.c!;
+        sheet[k][r][c] = (sheet[k][r][c] === 1 ? -1 : 1) as Sign;
+        clear(); renderSheets();
+        const wc = winCount(sheet.alice, sheet.bob);
+        readout.textContent = `${WHO[k]}'s sheet, row ${r + 1}, column ${c + 1} is now ${sign(sheet[k][r][c])}. ` +
+          `With these sheets ${wc} of the 9 asks win, so the exact win chance is ${ninths(wc)}. Board cleared: play to test them.`;
+      }));
+
+      $('[data-best]').addEventListener('click', () => {
+        sheet.alice = copy(BEST_ALICE); sheet.bob = copy(BEST_BOB);
+        clear(); renderSheets();
+        readout.textContent = `Back to the best plan: the sheets differ only in row 3, column 3, so 8 of the 9 asks win, an exact win chance of ${ninths(8)}. Board cleared.`;
+      });
+
+      const size = () => { ({ ctx, w, h } = fit(canvas)); paint(); };
+      onResize(canvas, size);
+      onTheme(paint);
+      onSeen(this, (v) => {
+        seen = v;
+        if (v && !started) play(BATCH);
+        else if (v && shown < rounds.length) show();
+      });
+      renderSheets();
+      size();
+    }
+  }
+  customElements.define('qce-magic-square', MagicSquare);
+</script>
+
+<style>
+  qce-magic-square { display: grid; gap: var(--s4); min-width: 0 }
+  [data-show][hidden] { display: none }
+
+  .mode { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  .mode legend { float: left; width: 100%; margin-bottom: var(--s2); padding: 0 }
+  .mode label { display: inline-flex; align-items: center; gap: .5rem; min-height: 2.75rem; padding: 0 .9rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); cursor: pointer }
+  .mode label:hover, .mode label:has(:checked) { border-color: var(--ink) }
+  .mode input { width: 1.1rem; height: 1.1rem; margin: 0; accent-color: var(--signal) }
+
+  .plan { display: grid; gap: var(--s3); min-width: 0 }
+  .hint, .summary, .note, figcaption > span:first-child { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  .sheets { display: grid; gap: var(--s4); justify-content: start }
+
+  table { justify-self: start; border-collapse: separate; border-spacing: var(--s1); margin-inline: calc(-1 * var(--s1)) }
+  caption { padding: 0 var(--s1) var(--s2); text-align: left; font-weight: 600; line-height: 1.3 }
+  th { padding: 0 var(--s1); font: 500 .8125rem var(--mono); color: var(--ink-2); text-align: center }
+  td { padding: 0; text-align: center; vertical-align: middle }
+
+  td button {
+    min-width: 2.75rem; min-height: 2.75rem; padding: 0 .3rem; border: 1.5px solid var(--rule); border-radius: var(--r);
+    background: var(--paper); color: var(--ink); font: 600 1rem var(--mono); cursor: pointer;
+  }
+  td button[data-v="-1"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  td button:hover { border-color: var(--signal) }
+  td button:focus-visible { outline: 3px solid var(--signal); outline-offset: 2px }
+  td.differ button { border: 2px dashed var(--hot) }
+  td.asked button, td.obs.asked { box-shadow: 0 0 0 3px var(--signal) }
+
+  .check { padding: 0 var(--s1); font: 600 .875rem var(--mono); white-space: nowrap }
+  .check.bad { color: var(--hot) }
+
+  .obs { min-width: 3.4rem; height: 3.6rem; padding: .25rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper) }
+  .obs b { display: block; font: 600 .9375rem var(--mono) }
+  .obs span { display: block; font: 500 .8125rem var(--mono); color: var(--ink-2) }
+  .obs span:empty { display: none }
+
+  .board { display: grid; gap: var(--s2); margin: 0; max-width: 24rem; min-width: 0 }
+  .board canvas { aspect-ratio: 1 }
+  figcaption { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); align-items: baseline }
+  figcaption > span:first-child { flex-basis: 100% }
+  .key { display: inline-flex; align-items: baseline; gap: .4rem; font-size: .9375rem }
+  .key b { font-size: 1.25rem; color: var(--ink) }
+  .key i { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; align-self: center }
+  .key .won { background: var(--signal) }
+  .key .lost { border: 2px solid var(--hot) }
+
+  .last { max-width: var(--read); font-size: .9375rem; overflow-wrap: anywhere }
+  .tool-readout { min-height: 3lh; font-weight: 600 }
+
+  button.quiet {
+    min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r);
+    background: var(--paper); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer;
+  }
+  button.quiet:hover { border-color: var(--ink) }
+
+  @media (min-width: 40rem) {
+    .sheets { grid-template-columns: repeat(2, auto); column-gap: var(--s5) }
+  }
+</style>

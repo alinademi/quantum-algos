@@ -1,0 +1,52 @@
+---
+description: "Why quantum results cannot all be fixed in advance, each the same whatever else is measured with it, even in one system."
+answer: "Contextuality means quantum results cannot all be values fixed in advance, each the same whatever else is measured with it. The Mermin-Peres magic square shows it: nine measurements on two qubits obey six rules that no grid of fixed values can meet."
+myth:
+  claim: "A measurement just reveals a value that was already there."
+  truth: "Then the magic square's nine measurements would reveal nine fixed values that keep all six of its rules, and no grid of values can. Values set in advance would have to depend on what else is measured with them."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import MagicSquare from '../../components/tools/MagicSquare.astro';
+
+<Depth level="kid">
+Here is a puzzle. Fill a 3 by 3 grid with +1 and −1. Each row must multiply to +1, each column to −1. Try it: a rule always breaks. By rows, all nine numbers multiply to +1. By columns, to −1. Both cannot be true.
+
+Now take two qubits and nine measurements, one per square, each giving +1 or −1. Quantum theory says: measure a row's three together, and the results always multiply to +1. A column's always multiply to −1.
+
+So the qubits cannot carry a grid of answers, ready before you ask. An answer set in advance would have to change with the row or column you measure it with.
+
+In a game, one friend gets a row and fills it so it multiplies to +1. The other gets a column and fills it so it multiplies to −1. No talking. They win if they agree on the square they share. Any plan made in advance loses at least 1 round in 9 on average; friends sharing two entangled pairs can win every round.
+</Depth>
+
+<Depth level="student">
+The puzzle: fill a 3×3 grid with +1 and −1 so each row multiplies to +1 and each column to −1. It cannot be done: by rows, all nine numbers multiply to +1; by columns, to −1.
+
+Now put a two-qubit [observable](/learn/observables/) with results +1 or −1 in each square, like X⊗X: X on the first qubit, X on the second. A row's three can be measured together, and quantum theory says their results always multiply to +1, in any state. A column's always multiply to −1.
+
+Fixed results, one per square and the same in its row and its column, would solve the puzzle, so none exist. This is contextuality, the subject of the Kochen-Specker theorem. One system shows it; no distance is needed.
+
+In the game, Alice gets a row and Bob a column, with no talking. Two players far apart make this a test anyone can run: Alice's answer cannot depend on Bob's column. A fixed plan wins at most 8 rounds in 9 on average; ideal players sharing two entangled pairs win every round.
+</Depth>
+
+<Depth level="engineer">
+The Mermin-Peres square, in de Wolf's version, holds nine two-qubit observables $O_{rc}$:
+
+$$
+\begin{array}{ccc}
+X \otimes X & Y \otimes Z & Z \otimes Y \\
+Y \otimes Y & Z \otimes X & X \otimes Z \\
+Z \otimes Z & X \otimes Y & Y \otimes X
+\end{array}
+$$
+
+Each $O_{rc}$ is Hermitian with $O_{rc}^2 = I$, so its eigenvalues are $\pm 1$. Two Pauli products commute when they anticommute in an even number of slots, and entries of one line differ in both slots. So each row and column is a context: a commuting set, measured jointly. Since $XYZ = iI$ and $XZY = -iI$, row 1 is $(XYZ) \otimes (XZY) = I$ and column 1 is $(XYZ) \otimes (XYZ) = -I$; every row gives $+I$, every column $-I$. In any state, a row's results multiply to $+1$, a column's to $-1$.
+
+Noncontextual values $v(O_{rc}) = \pm 1$ that obey the product rule $v(AB) = v(A)\,v(B)$ for commuting $A, B$ would make $\prod_{r,c} v(O_{rc})$ both $+1$ (by rows) and $-1$ (by columns). No such values exist: a state-independent Kochen-Specker proof in $\mathbb{C}^4$. Kochen and Specker's original used 117 yes-no observables (directions) in real 3D space, $\mathbb{R}^3$. Hidden-variable theories that match quantum theory must be contextual. Bohmian mechanics, for one, fixes only positions; other results depend on the whole measurement setup.
+
+The game adds distance, so Alice's value for cell $(x, y)$ cannot depend on $y$. Asked row $x$ and column $y$, they win if her answers $a$ multiply to $+1$, his answers $b$ to $-1$, and $a_y = b_x$. A plan is two sheets. If one breaks a rule, that line's three asks lose; if not, the sheets differ somewhere. Either way $P_\text{win} \le 8/9$, and shared randomness only mixes plans. Quantum players share two singlets $|\psi^-\rangle = (|01\rangle - |10\rangle)/\sqrt2$, each made from $|11\rangle$ by $H$ then CNOT; each player holds one qubit of each pair. As $\langle \psi^- | \sigma \otimes \sigma | \psi^- \rangle = -1$ for $\sigma = X, Y, Z$, the shared cell gives $\langle O_A O_B \rangle = (-1)^2 = 1$: they agree, and $P_\text{win} = 1$.
+</Depth>
+
+<Lab title="Play the magic square game" intro="Play rounds with a plan fixed in advance and with two entangled pairs, see where the losses land, then flip cells on the sheets and try to beat 8 in 9.">
+  <MagicSquare />
+</Lab>
