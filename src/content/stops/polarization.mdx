@@ -1,0 +1,66 @@
+---
+description: "Photon polarization is a real qubit. Use polarizing filters to measure it, and see a third filter let light through two crossed ones."
+answer: "Photon polarization is the pattern in which light's electric field swings: along a line, or round in a circle. For a single photon it is a qubit, and a polarizing filter measures it: a photon at angle θ to the filter's axis passes with probability cos²θ and leaves polarized along the axis."
+myth:
+  claim: "Adding another filter can only block more light."
+  truth: "Two crossed filters block all light, yet a third one at 45° between them lets 1 in 8 lamp photons through. A filter does not just sort photons: each photon it passes leaves polarized along its axis."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import ThreeFilters from '../../components/tools/ThreeFilters.astro';
+
+<Depth level="kid">
+
+Shake a jump rope up and down, and a wave wiggles along it. Light wiggles too as it travels. The direction of the wiggle is its polarization.
+
+A polarizing filter, like the ones in some sunglasses, works like a fence with thin slits. Light that wiggles along the slits gets through. Light that wiggles across them is stopped. The slits stand for the filter's pass direction; real filters are not slits.
+
+Light comes in tiny bits called photons. A photon with a tilted wiggle is never cut into parts: it goes through whole or not at all, at random. The closer its wiggle is to the slits, the better its chance. Here the fence picture breaks: a fence lets part of a tilted rope wave through.
+
+Two filters with slits at right angles stop all lamp light. Slip a third filter between them, tilted halfway, and some light gets through! Each photon that passes a filter leaves wiggling along that filter's slits.
+
+</Depth>
+
+<Depth level="student">
+
+Polarization is the pattern in which light's electric field swings: along a line, or round in a circle. For one photon it is a qubit, with horizontal (H) and vertical (V) as basis states. A photon polarized at angle θ from horizontal has amplitude cos θ for H and sin θ for V.
+
+A polarizing filter measures the photon: along its axis, or across? At angle θ to the axis, the photon passes with probability cos²θ, which is |amplitude|² for "along", and leaves polarized along the axis. Otherwise the filter absorbs it.
+
+Lamp light is unpolarized: no direction is favored, so half its photons pass a filter at any angle. Set it horizontal, and they leave as H. A vertical filter then stops them all: cos²90° = 0. Put a 45° filter between the two. Each H photon passes it with probability cos²45° = 1/2 and leaves at 45°, so it passes the last with 1/2 too: 1 in 4 of the H photons get through, so 1 in 8 lamp photons.
+
+With many photons, this is Malus's law for light. The quantum part: each photon passes whole or not at all.
+
+</Depth>
+
+<Depth level="engineer">
+
+Write $|H\rangle \equiv |0\rangle$ and $|V\rangle \equiv |1\rangle$. Linear polarization at angle $\theta$ from horizontal is
+
+$$
+|\theta\rangle = \cos\theta\,|H\rangle + \sin\theta\,|V\rangle
+$$
+
+An ideal polarizer with axis $\varphi$ is a projective measurement in the basis $\{|\varphi\rangle, |\varphi + 90^\circ\rangle\}$. The photon passes with probability
+
+$$
+p = |\langle \varphi | \theta \rangle|^2 = \cos^2(\theta - \varphi)
+$$
+
+and leaves in $|\varphi\rangle$; on the other outcome the filter absorbs it. That is Malus's law, one photon at a time.
+
+Orthogonal polarizations sit 90° apart in space but at opposite points of the Bloch sphere: $|\theta\rangle = R_Y(2\theta)|0\rangle$, whose [Bloch vector](/learn/bloch/) is $(\sin 2\theta, 0, \cos 2\theta)$, so $|45^\circ\rangle = |+\rangle$. A filter turned by 180° is the same filter, since $|\theta + 180^\circ\rangle = -|\theta\rangle$ differs only by a global phase. Relative phase does show: circular polarization, $(|H\rangle + i|V\rangle)/\sqrt{2}$, differs from $|+\rangle$ only by the relative phase $i$, yet it passes a 45° filter with probability $\tfrac12$, while $|+\rangle$ always passes.
+
+Lamp light is unpolarized, the [mixed state](/learn/mixed-states/) $\rho = I/2$, so it passes any polarizer with probability $\operatorname{tr}(|\varphi\rangle\langle\varphi|\rho) = \tfrac12$. With filters at 0°, $\varphi$ and 90°, a lamp photon gets through all three with probability
+
+$$
+P = \tfrac12 \cos^2\varphi \, \sin^2\varphi = \tfrac18 \sin^2 2\varphi
+$$
+
+This peaks at $\tfrac18$ for $\varphi = 45^\circ$ or $135^\circ$; without the middle filter it is 0. The middle filter helps because a photon that passes it is left in $|\varphi\rangle$, whatever it was before. Step the axis from 0° to 90° in $n$ equal steps, and a photon past the first filter gets through the rest with probability $\cos^{2n}(90^\circ/n)$, which goes to 1 as $n$ grows.
+
+</Depth>
+
+<Lab title="Slip a filter between crossed filters" intro="Fire photons at two crossed filters, then put filter B between them and turn it. See which filter stops each photon.">
+  <ThreeFilters />
+</Lab>

@@ -1,0 +1,261 @@
+---
+// Fires single lamp photons through ideal polarizing filters, each a Born rule measurement that passes a photon
+// with chance |<axis|state>|^2 and leaves it polarized along the axis, or absorbs it.
+const id = 'tf-' + Math.random().toString(36).slice(2, 8);
+---
+<qce-three-filters class="tool">
+  <canvas aria-hidden="true"></canvas>
+  <p class="key">Each dot is one photon. Dots under a filter: photons it absorbed. Dots under the screen: photons that got through. Filters are ideal and drawn face on, with lines along the axis. A tick through a flying photon shows its polarization; lamp photons are unpolarized and have none.</p>
+  <div class="tool-controls">
+    <label class="toggle"><input type="checkbox" name="middle" /> Add filter B</label>
+    <div class="angle">
+      <div class="row"><label for={id}>Angle of filter B</label><output for={id}>45°</output></div>
+      <input id={id} type="range" min="0" max="180" step="1" value="45" />
+      <div class="presets" role="group" aria-label="Set filter B to">
+        <button type="button" data-a="0" aria-pressed="false">0°</button>
+        <button type="button" data-a="45" aria-pressed="true">45°</button>
+        <button type="button" data-a="90" aria-pressed="false">90°</button>
+        <button type="button" data-a="135" aria-pressed="false">135°</button>
+      </div>
+    </div>
+    <button type="button" class="btn btn-sm fire">Fire 1,000 more</button>
+  </div>
+  <p class="tool-readout" aria-live="polite">Filter A is at 0° and filter C at 90°, so they are crossed. Born rule prediction: no photon gets through. Put filter B between them at 45° and 1 in 8 lamp photons gets through.</p>
+</qce-three-filters>
+
+<script>
+  import { linear, passes, shoot, fates, between, pileGrid } from '../../lib/sims/polarization.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  const A = 0, C = 90, BATCH = 1000, CAP = 3000, FLIGHT = 900; // FLIGHT: ms from lamp to screen
+  const NAMES = ['A', 'B', 'C', 'screen'];
+  const num = (n: number) => n.toLocaleString('en');
+  const pct1 = (p: number) => `${+(p * 100).toFixed(1)}%`;
+
+  type Photon = { x: number; j: number; k: number; a: number | null }; // a: polarization angle, null = unpolarized
+
+  class ThreeFilters extends HTMLElement {
+    connectedCallback() {
+      const canvas = this.querySelector('canvas')!;
+      const box = this.querySelector<HTMLInputElement>('[name="middle"]')!;
+      const range = this.querySelector<HTMLInputElement>('input[type="range"]')!;
+      const out = this.querySelector('output')!;
+      const presets = [...this.querySelectorAll<HTMLButtonElement>('[data-a]')];
+      const fireBtn = this.querySelector<HTMLButtonElement>('.fire')!;
+      const readout = this.querySelector('.tool-readout')!;
+      const still = reduceMotion();
+
+      let ctx: CanvasRenderingContext2D, w = 0, h = 0;
+      let b = +range.value, middle = box.checked;
+      let piles = [0, 0, 0, 0], queue = 0, planned = 0, launched = 0, credit = 0;
+      let flying: Photon[] = [];
+      let raf = 0, last = 0, seen = false, started = false;
+
+      const filters = () => (middle ? [A, b, C] : [A, C]);
+      const stations = () => (middle ? [0, 1, 2] : [0, 2]); // filter index -> column (A, B, C, screen)
+      const done = () => piles.reduce((t, n) => t + n, 0);
+
+      // Layout in CSS pixels: a lamp column, then four columns for A, B, C and the screen.
+      const layout = () => {
+        const L = Math.max(36, w * 0.1), cw = (w - L) / 4, R = Math.max(11, Math.min(24, cw * 0.3));
+        const xs = [0, 1, 2, 3].map((i) => L + cw * (i + 0.5));
+        const yb = 22 + R, top = yb + R + 14, base = h - 22;
+        return { L, cw, R, xs, xl: L / 2, yb, top, base };
+      };
+
+      function drawFilter(g: ReturnType<typeof layout>, i: number, angle: number | null, col: ReturnType<typeof palette>) {
+        const x = g.xs[i], y = g.yb, R = g.R;
+        ctx.lineWidth = 1.5;
+        if (angle === null) {
+          ctx.strokeStyle = col.ink2; ctx.setLineDash([3, 4]);
+          ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+          return;
+        }
+        ctx.save();
+        ctx.fillStyle = col.paper; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.fill(); ctx.clip();
+        const t = (angle * Math.PI) / 180, ux = Math.cos(t), uy = -Math.sin(t), gap = R / 2.6;
+        ctx.strokeStyle = col.ink2; ctx.lineWidth = 1;
+        for (let s = -2; s <= 2; s++) {
+          const ox = -uy * s * gap, oy = ux * s * gap;
+          ctx.beginPath(); ctx.moveTo(x + ox - ux * R, y + oy - uy * R); ctx.lineTo(x + ox + ux * R, y + oy + uy * R); ctx.stroke();
+        }
+        ctx.restore();
+        ctx.strokeStyle = col.ink; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
+      }
+
+      function draw() {
+        if (!ctx) return;
+        const col = palette(), g = layout(), mono = token('--mono');
+        ctx.clearRect(0, 0, w, h);
+        ctx.font = `500 11px ${mono}`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+
+        // Beam: a dotted rule from lamp to screen.
+        for (let x = g.xl + 10; x < g.xs[3]; x += 7) dot(ctx, x, g.yb, 1, col.rule);
+
+        // Lamp: a ring of dots.
+        for (let k = 0; k < 8; k++) dot(ctx, g.xl + 7 * Math.cos((k * Math.PI) / 4), g.yb + 7 * Math.sin((k * Math.PI) / 4), 1.6, col.ink);
+        dot(ctx, g.xl, g.yb, 2.4, col.ink);
+
+        // Filters A, B, C and the screen.
+        drawFilter(g, 0, A, col);
+        drawFilter(g, 1, middle ? b : null, col);
+        drawFilter(g, 2, C, col);
+        ctx.fillStyle = col.ink; ctx.fillRect(g.xs[3] - 1.5, g.yb - g.R, 3, 2 * g.R);
+
+        // Labels on top, counts at the bottom.
+        ctx.fillStyle = col.ink2;
+        ctx.fillText('lamp', g.xl, 12);
+        ctx.fillText(`A ${A}°`, g.xs[0], 12);
+        ctx.fillText(middle ? `B ${b}°` : 'B out', g.xs[1], 12);
+        ctx.fillText(`C ${C}°`, g.xs[2], 12);
+        ctx.fillText('screen', g.xs[3], 12);
+        ctx.fillStyle = col.ink;
+        ctx.fillText(num(launched), g.xl, h - 6);
+        piles.forEach((n, i) => { if (i !== 1 || middle || n) ctx.fillText(num(n), g.xs[i], h - 6); });
+
+        // Piles: one dot per photon, filling up from the base line. Same pitch for all, so heights compare.
+        const pw = Math.min(g.cw - 6, 96), ph = g.base - g.top;
+        const grid = pileGrid(pw, ph, Math.ceil(planned * 0.6) + 20);
+        const r = Math.max(0.7, grid.pitch * 0.36);
+        piles.forEach((n, i) => {
+          const x0 = g.xs[i] - (grid.cols * grid.pitch) / 2, color = i === 3 ? col.signal : col.ink2;
+          const m = Math.min(n, grid.cols * grid.rows);
+          for (let k = 0; k < m; k++) dot(ctx, x0 + ((k % grid.cols) + 0.5) * grid.pitch, g.base - (Math.floor(k / grid.cols) + 0.5) * grid.pitch, r, color);
+        });
+        ctx.fillStyle = col.rule;
+        for (let i = 0; i < 4; i++) ctx.fillRect(g.xs[i] - pw / 2, g.base + 2, pw, 1);
+
+        // Photons in flight. The tick shows the polarization a photon has after its last filter.
+        ctx.strokeStyle = col.signal; ctx.lineWidth = 1.5;
+        for (const p of flying) {
+          const y = g.yb + p.j * g.R * 0.7;
+          dot(ctx, p.x, y, 2, col.signal);
+          if (p.a !== null) {
+            const t = (p.a * Math.PI) / 180, dx = Math.cos(t) * 5, dy = -Math.sin(t) * 5;
+            ctx.beginPath(); ctx.moveTo(p.x - dx, y - dy); ctx.lineTo(p.x + dx, y + dy); ctx.stroke();
+          }
+        }
+      }
+
+      function say() {
+        const n = done(), fs = filters(), st = stations(), pred = fates(fs).at(-1)!;
+        const setup = middle ? `A at ${A}°, B at ${b}°, C at ${C}°.` : `A at ${A}° and C at ${C}°, crossed. B is out.`;
+        const stopped = st.map((s) => `${NAMES[s]} stopped ${num(piles[s])}`).join(', ');
+        const formula = middle ? `½ × cos²${between(A, b)}° × cos²${between(b, C)}°` : `½ × cos²${between(A, C)}°`;
+        readout.textContent = `${setup} Of ${num(n)} lamp photons, ${stopped}, and ${num(piles[3])} reached the screen (${pct1(n ? piles[3] / n : 0)}). Lamp photons are unpolarized, so A passes half. Born rule prediction: ${formula} = ${pct1(pred)}.`;
+      }
+
+      function setValue() {
+        const pred = pct1(fates([A, b, C]).at(-1)!);
+        range.setAttribute('aria-valuetext', middle ? `${b} degrees. Predicted ${pred} reach the screen.` : `${b} degrees. Filter B is out of the beam.`);
+        out.textContent = `${b}°`;
+        presets.forEach((p) => p.setAttribute('aria-pressed', String(+p.dataset.a! === b)));
+      }
+
+      function setFire() {
+        const full = planned >= CAP;
+        fireBtn.disabled = full;
+        fireBtn.textContent = full ? 'Full: change a filter' : 'Fire 1,000 more';
+      }
+
+      // Move each photon; when it reaches a filter, draw its fate with the Born rule.
+      function move(dt: number, g: ReturnType<typeof layout>) {
+        const fs = filters(), st = stations(), v = (g.xs[3] - g.xl) / FLIGHT;
+        const next: Photon[] = [];
+        for (const p of flying) {
+          p.x += v * dt;
+          let alive = true;
+          while (alive && p.k < fs.length && p.x >= g.xs[st[p.k]]) {
+            if (passes(p.a === null ? null : linear(p.a), fs[p.k], Math.random)) { p.a = fs[p.k]; p.k++; }
+            else { piles[st[p.k]]++; alive = false; }
+          }
+          if (alive && p.x >= g.xs[3]) { piles[3]++; alive = false; }
+          if (alive) next.push(p);
+        }
+        flying = next;
+      }
+
+      function step(now: number) {
+        raf = 0;
+        const dt = Math.max(0, Math.min(48, now - last)); last = now;
+        const g = layout();
+        // Start slow, so single photons can be followed, then speed up.
+        credit += dt * Math.min(0.4, 0.02 + launched * 0.002);
+        const k = Math.min(queue, Math.floor(credit));
+        credit -= k; queue -= k; if (!queue) credit = 0;
+        for (let i = 0; i < k; i++) { flying.push({ x: g.xl, j: Math.random() * 2 - 1, k: 0, a: null }); launched++; }
+        move(dt, g);
+        draw();
+        if (queue > 0 || flying.length) { if (seen) raf = requestAnimationFrame(step); }
+        else { say(); readout.setAttribute('aria-busy', 'false'); }
+      }
+
+      const kick = () => { if (!raf && seen && (queue > 0 || flying.length)) { last = performance.now(); raf = requestAnimationFrame(step); } };
+
+      function fire(n: number) {
+        if (planned + n > CAP) n = CAP - planned;
+        if (n <= 0) return;
+        planned += n; setFire();
+        if (still) {
+          const fs = filters(), st = [...stations(), 3];
+          for (let i = 0; i < n; i++) piles[st[shoot(fs, Math.random)]]++;
+          launched += n; draw(); say();
+          return;
+        }
+        queue += n;
+        readout.setAttribute('aria-busy', 'true');
+        readout.textContent = 'Firing photons…';
+        kick();
+      }
+
+      function restart() {
+        piles = [0, 0, 0, 0]; flying = []; queue = 0; planned = 0; launched = 0; credit = 0;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        setValue(); setFire();
+        if (started) fire(BATCH); else draw();
+      }
+
+      const size = () => { ({ ctx, w, h } = fit(canvas)); draw(); };
+
+      box.addEventListener('change', () => { middle = box.checked; restart(); });
+      const setB = (v: number) => { b = v; range.value = String(v); if (middle) restart(); else { setValue(); draw(); } };
+      range.addEventListener('input', () => setB(+range.value));
+      presets.forEach((p) => p.addEventListener('click', () => setB(+p.dataset.a!)));
+      fireBtn.addEventListener('click', () => fire(BATCH));
+
+      onResize(canvas, size);
+      onTheme(draw);
+      onSeen(this, (v) => {
+        seen = v;
+        if (v && !started) { started = true; fire(BATCH); }
+        else if (v) kick();
+      });
+      setValue(); setFire(); size();
+    }
+  }
+  customElements.define('qce-three-filters', ThreeFilters);
+</script>
+
+<style>
+  qce-three-filters { display: grid }
+  canvas { height: 17rem }
+  .key { font-size: .875rem; color: var(--ink-2); max-width: var(--read) }
+  .tool-controls { display: grid; gap: var(--s3); align-items: start }
+  .toggle { display: inline-flex; align-items: center; gap: var(--s2); min-height: 2.75rem; cursor: pointer }
+  .toggle input { flex: none; width: 1.5rem; height: 1.5rem; margin: 0; accent-color: var(--signal); cursor: pointer }
+  .angle { display: grid; gap: var(--s1); min-width: 0 }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2) }
+  .row output { font-size: 1.25rem }
+  .presets { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .presets button { min-width: 3rem; min-height: 2.75rem; padding: 0 var(--s2); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer }
+  .presets button:hover { border-color: var(--ink) }
+  .presets button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .fire { justify-self: start }
+  .tool-readout { min-height: 4.8em }
+  @media (min-width: 40rem) {
+    canvas { height: 20rem }
+    .tool-controls { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); column-gap: var(--s5) }
+    .angle { grid-column: 2; grid-row: 1 / span 2 }
+  }
+</style>
