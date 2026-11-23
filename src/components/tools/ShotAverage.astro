@@ -1,0 +1,310 @@
+---
+// Measures Z or X on fresh copies of one qubit (started as 0, then RY), each +1 or −1 a Born-rule draw, against the exact
+// ⟨ψ|A|ψ⟩ and ΔA/√N band, all computed in sims/expectation-values.ts.
+import { MIN_DEG, MAX_DEG, STEP, BATCH, PRESETS, OBSERVABLES, ketText, sumText, keepTerms, describe, degText, sliderText } from '../../lib/sims/expectation-values.ts';
+const uid = 'ev-' + Math.random().toString(36).slice(2, 8);
+const START = 60;
+---
+<qce-shot-average class="tool">
+  <div class="views">
+    <figure>
+      <canvas data-piles aria-hidden="true"></canvas>
+      <figcaption class="label">Each shot gives +1 or −1</figcaption>
+    </figure>
+    <figure>
+      <canvas data-trace aria-hidden="true"></canvas>
+      <figcaption class="label">The average after each shot</figcaption>
+    </figure>
+  </div>
+
+  <dl class="math">
+    <div><dt class="label">State</dt><dd><code data-ket>{keepTerms(ketText(START))}</code></dd></div>
+    <div><dt class="label">Exact average</dt><dd><code data-sum>{keepTerms(sumText(START, 'Z'))}</code></dd></div>
+  </dl>
+
+  <div class="panel">
+    <fieldset>
+      <legend class="label">Start state</legend>
+      <div class="row">
+        <label for={`${uid}-deg`}>Started as 0, then RY</label>
+        <output for={`${uid}-deg`}>{degText(START)}</output>
+      </div>
+      <input id={`${uid}-deg`} type="range" min={MIN_DEG} max={MAX_DEG} step={STEP} value={START} aria-valuetext={sliderText(START, 'Z')} />
+      <div class="chips" role="group" aria-label="Preset start states">
+        {PRESETS.map(([d, name]) => <button type="button" data-deg={d} aria-pressed="false">{name}</button>)}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend class="label">Observable</legend>
+      <div class="chips">
+        {OBSERVABLES.map((o) => <label><input type="radio" name={`${uid}-obs`} value={o} checked={o === 'Z'} />Measure {o}</label>)}
+      </div>
+    </fieldset>
+
+    <div class="tool-controls">
+      <button class="btn btn-sm" type="button" data-shots="1">Run 1 shot</button>
+      <button class="btn btn-sm" type="button" data-shots={BATCH}>Run {BATCH} shots</button>
+      <button class="btn btn-sm btn-line" type="button" data-clear disabled>Clear</button>
+    </div>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">{describe(START, 'Z', { n: 0, plus: 0 })}</p>
+  <p class="note">An ideal qubit, with no noise. Each shot measures a fresh copy of the start state, and its result, +1 or −1, is drawn at random by the Born rule. Top: the two piles count the results, the dashed line is the exact average ⟨ψ|A|ψ⟩, and the triangle is the average of the shots so far, which is the balance point of the two piles. Bottom: one dot per shot shows the average after that shot. The shaded band is the exact average plus or minus ΔA/√N, one standard deviation of an average of N shots. An average can land outside the band. That is normal: about 1 in 3 averages land outside. In a circuit, measuring X is a Hadamard gate, then the standard measurement: result 0 counts as +1. The slider reaches only real amplitudes: one circle on the Bloch sphere, through |0⟩, |+⟩, |1⟩ and |−⟩.</p>
+</qce-shot-average>
+
+<script>
+  import { prepare, odds, expectation, spread, shoot, room, average, band, axisMax, grid, num, exact, degText, ketText, sumText,
+    describe, sliderText, keepTerms, CAP, MEAN_D, type Obs, type Result } from '../../lib/sims/expectation-values.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  const TAU = Math.PI * 2;
+  /** Shots that join the pictures per animation frame. */
+  const PER_FRAME = 4;
+  type Pal = ReturnType<typeof palette>;
+  type Pane = { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D; w: number; h: number };
+
+  class ShotAverage extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const slider = $<HTMLInputElement>('input[type="range"]'), out = $('output'), readout = $('.tool-readout');
+      const ketEl = $('[data-ket]'), sumEl = $('[data-sum]');
+      const presets = [...this.querySelectorAll<HTMLButtonElement>('[data-deg]')];
+      const radios = [...this.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+      const runs = [...this.querySelectorAll<HTMLButtonElement>('[data-shots]')];
+      const clear = $<HTMLButtonElement>('[data-clear]');
+      const pane = (s: string): Pane => { const canvas = $<HTMLCanvasElement>(s); return { canvas, ctx: canvas.getContext('2d')!, w: 0, h: 0 }; };
+      const upper = pane('[data-piles]'), lower = pane('[data-trace]');
+
+      let deg = +slider.value, obs: Obs = (radios.find((r) => r.checked)?.value as Obs) ?? 'Z';
+      let shots: Result[] = [], shown = 0, plusN = 0, avgs: number[] = [];
+      let raf = 0, seen = false;
+
+      // ---- Words and controls
+
+      /** Set text, keeping each ket like |+⟩ or ⟨Z⟩ on one line. */
+      const put = (el: Element, text: string) => el.replaceChildren(...text.split(/(\|[^|⟩\s]{1,3}⟩|⟨[^⟩\s]{1,6}⟩)/).map((part, i) =>
+        i % 2 ? Object.assign(document.createElement('span'), { className: 'ket', textContent: part }) : part));
+      const say = () => put(readout, describe(deg, obs, { n: shown, plus: plusN }));
+
+      const syncState = () => {
+        slider.value = String(deg);
+        out.textContent = degText(deg);
+        slider.setAttribute('aria-valuetext', sliderText(deg, obs));
+        ketEl.textContent = keepTerms(ketText(deg));
+        sumEl.textContent = keepTerms(sumText(deg, obs));
+        presets.forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.deg! === deg)));
+      };
+      const syncButtons = () => {
+        const full = shots.length >= CAP, lost = full && runs.some((b) => b === document.activeElement);
+        runs.forEach((b) => { b.disabled = full; });
+        clear.disabled = shots.length === 0;
+        if (lost) clear.focus();
+      };
+      /** A new state or a new observable is a new experiment, so the shots start over. */
+      const reset = () => {
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        shots = []; shown = 0; plusN = 0; avgs = [];
+        syncButtons(); draw();
+      };
+
+      slider.addEventListener('input', () => { deg = +slider.value; syncState(); reset(); });
+      slider.addEventListener('change', say);
+      presets.forEach((b) => b.addEventListener('click', () => { deg = +b.dataset.deg!; syncState(); reset(); say(); }));
+      radios.forEach((r) => r.addEventListener('change', () => { obs = r.value as Obs; syncState(); reset(); say(); }));
+      clear.addEventListener('click', () => { reset(); say(); runs[0].focus(); });
+      runs.forEach((b) => b.addEventListener('click', () => {
+        const k = room(shots.length, +b.dataset.shots!);
+        if (!k) return;
+        shots.push(...shoot(odds(prepare(deg), obs), k, Math.random));
+        syncButtons();
+        if (reduceMotion() || !seen) { reveal(Infinity); draw(); say(); } else kick();
+      }));
+
+      // ---- Shots join the pictures
+
+      const reveal = (k: number) => {
+        for (let i = 0; i < k && shown < shots.length; i++) {
+          if (shots[shown++] === 1) plusN++;
+          avgs.push(average(plusN, shown));
+        }
+      };
+      const step = () => {
+        raf = 0;
+        reveal(PER_FRAME);
+        draw();
+        if (shown === shots.length) { say(); return; }
+        if (seen) raf = requestAnimationFrame(step);
+      };
+      const kick = () => { if (!raf && seen && shown < shots.length) raf = requestAnimationFrame(step); };
+
+      // ---- Drawing
+
+      const ring = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, lw: number) => {
+        ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke();
+      };
+      /** +1 is a solid signal dot, −1 a hollow ring (a faint dot when too small for a ring): shape and place tell them apart. */
+      const mark = (ctx: CanvasRenderingContext2D, res: Result, x: number, y: number, r: number, C: Pal) => {
+        if (res === 1) dot(ctx, x, y, r, C.signal);
+        else if (r >= 1.6) ring(ctx, x, y, r - 0.5, C.ink2, Math.min(1.8, r * 0.5));
+        else dot(ctx, x, y, r, C.ink2);
+      };
+      /** Text with a plate halo, kept inside the canvas. */
+      const text = (ctx: CanvasRenderingContext2D, s: string, x: number, y: number, w: number, color: string, C: Pal, font: string) => {
+        ctx.font = font; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+        const half = ctx.measureText(s).width / 2, tx = Math.max(half + 2, Math.min(w - half - 2, x));
+        ctx.lineWidth = 4; ctx.strokeStyle = C.plate; ctx.strokeText(s, tx, y);
+        ctx.fillStyle = color; ctx.fillText(s, tx, y);
+        return tx - half;
+      };
+      const meanText = (e: number) => `⟨${obs}⟩ ${exact(e, MEAN_D) ? '=' : '≈'} ${num(e, MEAN_D)}`;
+
+      /** Top: piles of +1 and −1 on a number line from −1 to +1, the exact average and the shots' balance point. */
+      const drawPiles = (C: Pal, mono: string) => {
+        const { ctx, w, h } = upper;
+        ctx.clearRect(0, 0, w, h);
+        const e = expectation(prepare(deg), obs), neg = shown - plusN;
+        const pw = Math.min(w * 0.26, 150), xm = 4 + pw / 2, xp = w - 4 - pw / 2;
+        const X = (v: number) => xm + ((v + 1) / 2) * (xp - xm);
+        const roof = 30, axisY = h - 52;
+        const [cols, rows] = grid(Math.max(plusN, neg));
+        const pitch = Math.min(pw / cols, (axisY - 6 - roof) / rows, 11), r = pitch * 0.38;
+        const pile = (n: number, cx: number, res: Result) => {
+          const x0 = cx - (pitch * cols) / 2;
+          for (let i = 0; i < n; i++) mark(ctx, res, x0 + ((i % cols) + 0.5) * pitch, axisY - 5 - (Math.floor(i / cols) + 0.5) * pitch, r, C);
+        };
+        pile(neg, xm, -1); pile(plusN, xp, 1);
+
+        // The number line, as dots, with ticks at −1, 0 and +1.
+        ctx.globalAlpha = 0.7;
+        const n = Math.max(12, Math.round((xp - xm) / 5));
+        for (let k = 0; k <= n; k++) dot(ctx, xm + ((xp - xm) * k) / n, axisY, 1, C.ink2);
+        for (const v of [-1, 0, 1]) for (let k = 1; k <= 3; k++) dot(ctx, X(v), axisY - k * 3, 1, C.ink2);
+        ctx.globalAlpha = 1;
+
+        // The exact average: a dashed line and its value.
+        const xe = X(e);
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+        ctx.beginPath(); ctx.moveTo(xe, roof - 6); ctx.lineTo(xe, axisY); ctx.stroke(); ctx.setLineDash([]);
+        text(ctx, `exact ${meanText(e)}`, xe, 12, w, C.ink, C, `600 12px ${mono}`);
+
+        // The shots' average: a triangle under the line, the balance point of the piles.
+        if (shown) {
+          const xa = X(avgs[shown - 1]);
+          ctx.fillStyle = C.hot; ctx.beginPath(); ctx.moveTo(xa, axisY + 3); ctx.lineTo(xa - 7, axisY + 15); ctx.lineTo(xa + 7, axisY + 15); ctx.closePath(); ctx.fill();
+          text(ctx, `average ${num(avgs[shown - 1], 3)}`, xa, axisY + 26, w, C.hot, C, `600 12px ${mono}`);
+        }
+
+        // Pile labels, each after its mark, kept inside the canvas as one group.
+        ctx.font = `600 12px ${mono}`;
+        ([[-1, neg, xm], [1, plusN, xp]] as const).forEach(([res, k, cx]) => {
+          const s = `${res === 1 ? '+1' : '−1'}: ${k}`, gw = ctx.measureText(s).width + 14;
+          const gx = Math.max(2, Math.min(w - gw - 2, cx - gw / 2));
+          mark(ctx, res, gx + 4, axisY + 43, 4, C);
+          text(ctx, s, gx + 14 + (gw - 14) / 2, axisY + 43, w, C.ink, C, `600 12px ${mono}`);
+        });
+      };
+
+      /** Bottom: the running average against the shot number, the exact average and the ΔA/√N band. */
+      const drawTrace = (C: Pal, mono: string) => {
+        const { ctx, w, h } = lower;
+        ctx.clearRect(0, 0, w, h);
+        const s = prepare(deg), e = expectation(s, obs), sd = spread(s, obs);
+        const padL = 30, padR = 8, padT = 12, padB = 24, pw = w - padL - padR, ph = h - padT - padB;
+        const M = axisMax(Math.max(shown, 1));
+        const Xk = (k: number) => padL + (k / M) * pw, Y = (v: number) => padT + ((1 - v) / 2) * ph;
+
+        // Grid at +1, 0 and −1, as faint dots, with labels.
+        ctx.font = `500 11px ${mono}`; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (const v of [1, 0, -1]) {
+          ctx.globalAlpha = 0.5;
+          for (let x = padL; x <= padL + pw; x += 6) dot(ctx, x, Y(v), 0.8, C.ink2);
+          ctx.globalAlpha = 1; ctx.fillStyle = C.ink2; ctx.fillText(v === 1 ? '+1' : v === 0 ? '0' : '−1', padL - 6, Y(v));
+        }
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText('0', padL, h - 6);
+        ctx.textAlign = 'right'; ctx.fillText(`${M.toLocaleString('en-US')} shots`, padL + pw, h - 6);
+
+        // The band: exact average ± ΔA/√k, filled, with dotted edges. Sampled densely near k = 1, where it changes fast.
+        if (sd > 0) {
+          const S = 90, ks = Array.from({ length: S + 1 }, (_, i) => M ** (i / S));
+          const hi = ks.map((k) => band(e, sd, k)[1]), lo = ks.map((k) => band(e, sd, k)[0]);
+          ctx.beginPath();
+          ks.forEach((k, i) => ctx[i ? 'lineTo' : 'moveTo'](Xk(k), Y(hi[i])));
+          for (let i = S; i >= 0; i--) ctx.lineTo(Xk(ks[i]), Y(lo[i]));
+          ctx.closePath(); ctx.fillStyle = C.rule; ctx.globalAlpha = 0.6; ctx.fill(); ctx.globalAlpha = 1;
+          ctx.strokeStyle = C.ink2; ctx.lineWidth = 1.2; ctx.lineCap = 'round'; ctx.setLineDash([0.5, 3.5]);
+          for (const edge of [hi, lo]) { ctx.beginPath(); ks.forEach((k, i) => ctx[i ? 'lineTo' : 'moveTo'](Xk(k), Y(edge[i]))); ctx.stroke(); }
+          ctx.setLineDash([]); ctx.lineCap = 'butt';
+        }
+
+        // The exact average: a dashed line, labeled on the side away from the edge.
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+        ctx.beginPath(); ctx.moveTo(padL, Y(e)); ctx.lineTo(padL + pw, Y(e)); ctx.stroke(); ctx.setLineDash([]);
+        text(ctx, `exact ${meanText(e)}`, padL + pw - 60, Y(e) + (e > 0.5 ? 11 : -11), w, C.ink, C, `600 11px ${mono}`);
+
+        // One dot per shot: the average after that shot. The newest is a bigger vermilion dot.
+        const r = Math.max(1.1, Math.min(3, (0.4 * pw) / M));
+        ctx.globalAlpha = 0.85;
+        for (let k = 1; k <= shown; k++) dot(ctx, Xk(k), Y(avgs[k - 1]), r, C.ink);
+        ctx.globalAlpha = 1;
+        if (shown) dot(ctx, Xk(shown), Y(avgs[shown - 1]), 4, C.hot);
+      };
+
+      const draw = () => {
+        if (!upper.w || !lower.w) return;
+        const C = palette(), mono = token('--mono');
+        drawPiles(C, mono); drawTrace(C, mono);
+      };
+      const resize = () => {
+        for (const p of [upper, lower]) { const f = fit(p.canvas); p.ctx = f.ctx; p.w = f.w; p.h = f.h; }
+        draw();
+      };
+
+      onResize(this, resize);
+      onTheme(draw);
+      onSeen(this, (v) => { seen = v; if (v) kick(); });
+      syncState();
+      syncButtons();
+      say();
+      resize();
+    }
+  }
+  customElements.define('qce-shot-average', ShotAverage);
+</script>
+
+<style>
+  .views { display: grid; gap: var(--s4) }
+  figure { display: grid; gap: var(--s2); margin: 0; min-width: 0 }
+  [data-piles] { height: 15rem }
+  [data-trace] { height: 13rem }
+
+  .math { display: grid; gap: var(--s2); margin: 0 }
+  .math div { display: grid; gap: var(--s1) }
+  .math dd { margin: 0 }
+  .math code { font-size: 1rem }
+
+  .panel { display: grid; gap: var(--s4); align-items: start }
+  fieldset { display: grid; align-content: start; gap: var(--s2); margin: 0; padding: 0; border: 0; min-width: 0 }
+  legend { padding: 0; margin-bottom: var(--s2) }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .chips { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .chips label, .chips button {
+    position: relative; display: inline-grid; place-items: center; min-width: 3.25rem; min-height: 2.75rem; padding: 0 .9rem;
+    border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer;
+  }
+  .chips input { position: absolute; opacity: 0; width: 1px; height: 1px }
+  .chips label:hover, .chips button:hover { border-color: var(--ink) }
+  .chips label:has(:checked), .chips button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .chips label:has(:focus-visible) { outline: 3px solid var(--signal); outline-offset: 2px }
+
+  .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  .tool-readout :global(.ket) { white-space: nowrap }
+
+  @media (min-width: 40rem) {
+    .views { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end }
+    [data-piles], [data-trace] { height: 17rem }
+    .math { grid-template-columns: auto minmax(0, 1fr); column-gap: var(--s5) }
+    .panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--s5) }
+    .panel > .tool-controls { grid-column: 1 / -1 }
+  }
+</style>
