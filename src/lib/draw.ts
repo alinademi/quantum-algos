@@ -40,8 +40,11 @@ export function dot(ctx: CanvasRenderingContext2D, x: number, y: number, r: numb
   ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
 }
 
-/** Format a probability as a percent for readouts: 0.5 -> "50%", 0.003 -> "0.3%", 0.998 -> "99.8%". Never rounds a real chance to 0% or 100%. */
+/** Format a probability as a percent for readouts: 0.5 -> "50%", 0.003 -> "0.3%", 0.998 -> "99.8%", 0.0002 -> "<0.1%".
+ *  Never shows a real chance as 0% or 100%. */
 export const pct = (p: number): string => {
   const v = p * 100;
+  if (v > 0 && v < 0.05) return '<0.1%';
+  if (v > 99.95 && v < 100) return '>99.9%';
   return `${(v > 0 && v < 1) || (v > 99 && v < 100) ? v.toFixed(1) : Math.round(v)}%`;
 };
