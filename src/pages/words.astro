@@ -1,0 +1,52 @@
+---
+// Words, A to Z: most stop titles are words, plus the extra words listed in docs/curriculum.md.
+import Layout from '../layouts/Layout.astro';
+import { stops, extraWords, notWords, regionName, href, type Stop } from '../lib/curriculum.ts';
+
+// A stop title counts as a word unless it is industry or software, or reads like a sentence.
+const isWord = (s: Stop) => !notWords.includes(s.id) && !['industry', 'software'].includes(s.region) && !/[:?]| 101|^(How|Why|What|Where|Who) /.test(s.name);
+const entries: { name: string; stop?: Stop }[] = [
+  ...[...stops.values()].filter(isWord).map((s) => ({ name: s.name, stop: s })),
+  ...extraWords.map((w) => ({ name: w[0].toUpperCase() + w.slice(1) })),
+].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+const groups = Map.groupBy(entries, (e) => e.name[0].toUpperCase());
+---
+<Layout title="Words, A to Z" description={`${entries.length} quantum computing terms from A to Z, each linked to the stop that teaches it.`}>
+  <div class="wrap">
+    <header class="page-head">
+      <p class="label">A to Z</p>
+      <h1>Words</h1>
+      <p class="answer">{entries.length} terms. Most stops on The Map are also words, and each word points to where it is taught.</p>
+      <nav class="jump" aria-label="Letters">{[...groups.keys()].map((l) => <a href={`#letter-${l}`}>{l}</a>)}</nav>
+    </header>
+    <div class="letters">
+      {[...groups].map(([letter, es]) => (
+        <section id={`letter-${letter}`} aria-labelledby={`h-${letter}`}>
+          <h2 id={`h-${letter}`} class="doto">{letter}</h2>
+          <ul>
+            {es.map((e) => e.stop
+              ? <li style={`--c: var(--r-${e.stop.region})`}><a href={href(e.stop.id)}>{e.name}</a><span class="label">{regionName(e.stop.region)}</span></li>
+              : <li class="plain">{e.name}<span class="label">Word page coming</span></li>)}
+          </ul>
+        </section>
+      ))}
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .page-head { display: grid; gap: var(--s3); padding-top: var(--s5) }
+  h1 { font-size: clamp(2.6rem, 1.4rem + 5vw, 5.4rem) }
+  .answer { max-width: 40rem; font-size: clamp(1.25rem, 1.1rem + .6vw, 1.5rem); line-height: 1.45 }
+  .jump { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: var(--s3) }
+  .jump a { display: grid; place-items: center; min-width: 2.75rem; min-height: 2.75rem; border: 1px solid var(--rule); border-radius: var(--r); font: 500 1rem var(--mono); text-decoration: none }
+  .jump a:hover { border-color: var(--ink) }
+  .letters { display: grid; gap: var(--s5); margin-top: var(--s6); padding-bottom: var(--s6) }
+  section { display: grid; gap: var(--s3); scroll-margin-top: var(--s4) }
+  h2 { font-size: 3rem; color: var(--signal) }
+  ul { display: grid; gap: var(--s2) }
+  li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .25rem var(--s3); padding: var(--s2) 0 var(--s2) var(--s3); border-left: 3px solid var(--c, var(--rule)) }
+  li a { font-weight: 600 }
+  .plain { color: var(--ink-2) }
+  @media (min-width: 40rem) { ul { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--s5) } }
+</style>

@@ -38,7 +38,10 @@ function parseCurriculum() {
     }
   }
   lines.forEach((l, i) => l.stops.forEach((id) => stops.get(id)?.lines.push(i)));
-  return { regions, stops, lines };
+  const words = md.split('\n## Words')[1] ?? '';
+  const extraWords = list(words.match(/Extra words, each gets a page:\s*\n\n([^\n]+)\./)?.[1]);
+  const notWords = list(words.match(/Stops that are not words: ([^.]+)\./)?.[1]);
+  return { regions, stops, lines, extraWords, notWords };
 }
 
 function parseReferences(): Map<string, Pick[]> {
@@ -55,7 +58,7 @@ function parseReferences(): Map<string, Pick[]> {
   return picks;
 }
 
-export const { regions, stops, lines } = parseCurriculum();
+export const { regions, stops, lines, extraWords, notWords } = parseCurriculum();
 export const learnMore = parseReferences();
 export const regionName = (id: string) => regions.find((r) => r.id === id)?.name ?? id;
 export const stop = (id: string): Stop => { const s = stops.get(id); if (!s) throw new Error(`unknown stop ${id}`); return s; };
