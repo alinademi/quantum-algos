@@ -26,6 +26,7 @@ Not a "course". Learning area = **The Map**. Lessons = **stops**. Paths = **line
 - **Lines** say the order to learn: paths across regions ("Road to Shor"). A stop can sit on many lines.
 - **The Map page is a catalog:** search box, region chips, "only stops on" line filter, and two views: By region (tiles) and By line (dotted tracks, top-down on phones).
 - **Tiles:** dot-cloud icon (more links, more dots), Open or Soon, learn first, leads to, line badges. Each tile has its own link (`/map#bb84`).
+- **Long link lists:** show 3, best first (next on a shared line, then easiest). Fold the rest under "N more", grouped by region with its color dot. Same on stop pages.
 - **Each stop page** shows where it sits: learn first, this stop, leads to.
 - **Self-updating:** every stop file declares region, lines, needs, terms. The build turns that into The Map, the word index and the home counts. Plain HTML, crawlable.
 - **Build checks the graph:** missing prerequisite or a loop fails the deploy.
