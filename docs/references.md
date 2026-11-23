@@ -264,7 +264,7 @@ Rules:
 | devetak-2005-private | Devetak | 2005 | The Private Classical Capacity and Quantum Capacity of a Quantum Channel | IEEE Transactions on Information Theory | Paper | Research | Yes | 10.1109/TIT.2004.839515 | arXiv:quant-ph/0304127 | - | - |
 | devitt-2013-qec | Devitt, Munro and Nemoto | 2013 | Quantum error correction for beginners | Reports on Progress in Physics | Review | University | Yes | 10.1088/0034-4885/76/7/076001 | arXiv:0905.2794 | - | - |
 | devitt-2016-cloud | Devitt | 2016 | Performing quantum computing experiments in the cloud | Physical Review A | Paper | University | Yes | 10.1103/PhysRevA.94.032329 | arXiv:1605.05709 | - | - |
-| dewolf-notes | Wolf | 2019 | Quantum Computing: Lecture Notes | arXiv | Lecture notes | University | Yes | - | arXiv:1907.09415 | - | - |
+| dewolf-notes | de Wolf | 2019 | Quantum Computing: Lecture Notes | arXiv | Lecture notes | University | Yes | - | arXiv:1907.09415 | - | - |
 | diffie-1976-directions | Diffie and Hellman | 1976 | New directions in cryptography | IEEE Transactions on Information Theory | Paper | University | No | 10.1109/TIT.1976.1055638 | - | - | - |
 | ding-2023-shorter | Ding and Lin | 2023 | Even Shorter Quantum Circuit for Phase Estimation on Early Fault-Tolerant Quantum Computers with Applications to Ground-State Energy Estimation | PRX Quantum | Paper | Research | Yes | 10.1103/PRXQuantum.4.020331 | arXiv:2211.11973 | - | - |
 | dirac-1939-notation | Dirac | 1939 | A new notation for quantum mechanics | Mathematical Proceedings of the Cambridge Philosophical Society | Paper | Research | No | 10.1017/S0305004100021162 | - | - | - |
@@ -778,7 +778,7 @@ Rules:
 | vandenberg-2023-pec | van den Berg et al. | 2023 | Probabilistic error cancellation with sparse Pauli–Lindblad models on noisy quantum processors | Nature Physics | Paper | Research | Yes | 10.1038/s41567-023-02042-2 | arXiv:2201.09866 | - | - |
 | vandersypen-2001-shor | Vandersypen et al. | 2001 | Experimental realization of Shor's quantum factoring algorithm using nuclear magnetic resonance | Nature | Paper | Research | Yes | 10.1038/414883a | arXiv:quant-ph/0112176 | - | - |
 | vandersypen-2005-nmr | Vandersypen and Chuang | 2005 | NMR techniques for quantum control and computation | Reviews of Modern Physics | Review | Graduate | Yes | 10.1103/RevModPhys.76.1037 | arXiv:quant-ph/0404064 | - | - |
-| vandewetering-2020-zx | Wetering | 2020 | ZX-calculus for the working quantum computer scientist | arXiv | Review | Graduate | Yes | - | arXiv:2012.13966 | - | - |
+| vandewetering-2020-zx | van de Wetering | 2020 | ZX-calculus for the working quantum computer scientist | arXiv | Review | Graduate | Yes | - | arXiv:2012.13966 | - | - |
 | vanmeter-2014-networking | Van Meter | 2014 | Quantum Networking | Wiley | Textbook | Graduate | No | 10.1002/9781118648919 | - | - | - |
 | vatan-2004-optimal | Vatan and Williams | 2004 | Optimal quantum circuits for general two-qubit gates | Physical Review A | Paper | Research | Yes | 10.1103/PhysRevA.69.032315 | arXiv:quant-ph/0308006 | - | - |
 | vedral-1996-arithmetic | Vedral, Barenco and Ekert | 1996 | Quantum networks for elementary arithmetic operations | Physical Review A | Paper | Research | Yes | 10.1103/PhysRevA.54.147 | arXiv:quant-ph/9511018 | - | - |
