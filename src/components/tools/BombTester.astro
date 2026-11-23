@@ -1,0 +1,278 @@
+---
+// Tests imaginary bombs one photon at a time: each dot is one bomb, each result a Born-rule draw from the exact amplitudes in sims/bomb-tester.ts.
+import { BATCH, N_MIN, N_MAX, odds, share, turnDeg, blochDeg } from '../../lib/sims/bomb-tester.ts';
+const uid = 'bt-' + Math.random().toString(36).slice(2, 8);
+const N0 = 10;
+const [b0, s0, o0] = odds('basic', 'live', N0);
+const cols = [
+  { k: 'boom', name: 'Boom' },
+  { k: 'safe', name: 'Dark click: live, no boom' },
+  { k: 'other', name: 'Bright click: no answer' },
+];
+---
+<qce-bomb-tester class="tool" data-n={N0}>
+  <div class="setup">
+    <div data-show="basic">
+      <svg class="mz" viewBox="0 0 300 200" role="img" aria-label="Diagram: a photon enters a Mach-Zehnder interferometer: a beam splitter, two mirrors, a second beam splitter, then a bright detector and a dark detector. A live bomb sits on the lower arm.">
+        <path class="beam" d="M14 40H220V140M70 40V140H262M220 140V176" />
+        <path class="split" d="M59 29l22 22M209 129l22 22" />
+        <path class="mirror" d="M209 29l22 22M59 129l22 22" />
+        <rect class="det" x="262" y="128" width="24" height="24" rx="4" />
+        <rect class="det" x="208" y="176" width="24" height="20" rx="4" />
+        <g class="bomb" data-bomb-icon>
+          <path d="M153 130q6-8 12-6" />
+          <circle cx="145" cy="140" r="12" />
+        </g>
+        <text x="6" y="64">photon</text>
+        <text x="286" y="120" text-anchor="end">bright</text>
+        <text x="238" y="192">dark</text>
+        <text x="145" y="172" text-anchor="middle" data-bomb-label>live bomb</text>
+      </svg>
+    </div>
+    <div data-show="zeno" hidden>
+      <svg class="zn" viewBox="0 0 300 104" role="img" aria-label={`Diagram: the photon starts as 0. Each round turns it by 9°, then the live bomb checks it. ${N0} rounds, then a final measurement.`}>
+        <text x="119" y="12" text-anchor="middle" data-rounds>{N0} rounds</text>
+        <rect class="loop" x="36" y="20" width="166" height="54" rx="8" />
+        <path class="beam" d="M32 47H232" />
+        <rect class="box" x="44" y="29" width="98" height="36" rx="5" />
+        <text x="93" y="52" text-anchor="middle" data-turn>turn 9°</text>
+        <g class="bomb" data-bomb-icon>
+          <path d="M180 37q6-8 12-6" />
+          <circle cx="172" cy="47" r="12" />
+        </g>
+        <rect class="box" x="232" y="29" width="50" height="36" rx="5" />
+        <path class="meter" d="M243 57a14 14 0 0 1 28 0M257 57l8-14" />
+        <text x="2" y="52">|0⟩</text>
+        <text x="172" y="96" text-anchor="middle" data-bomb-label>live bomb</text>
+        <text x="257" y="96" text-anchor="middle">0 or 1?</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="tool-controls">
+    <fieldset>
+      <legend class="label">Bomb</legend>
+      <label><input type="radio" name={`${uid}-bomb`} value="live" checked /> Live</label>
+      <label><input type="radio" name={`${uid}-bomb`} value="dud" /> Dud</label>
+    </fieldset>
+    <fieldset>
+      <legend class="label">Method</legend>
+      <label><input type="radio" name={`${uid}-method`} value="basic" checked /> One pass</label>
+      <label><input type="radio" name={`${uid}-method`} value="zeno" /> Many small turns (Zeno)</label>
+    </fieldset>
+  </div>
+
+  <div class="turns" data-show="zeno" hidden>
+    <div class="row">
+      <label for={`${uid}-n`}>Rounds, N</label>
+      <output for={`${uid}-n`} class="doto">{N0}</output>
+    </div>
+    <input id={`${uid}-n`} type="range" min={N_MIN} max={N_MAX} step="1" value={N0} />
+    <p class="turn-note" data-turn-note>Turn per round: {turnDeg(N0)} ({blochDeg(N0)} on the Bloch sphere)</p>
+  </div>
+
+  <p><button class="btn btn-sm" type="button" data-run>Test {BATCH} bombs</button></p>
+
+  <div class="piles">
+    {cols.map((c) => (
+      <figure class={c.k}>
+        <canvas aria-hidden="true"></canvas>
+        <figcaption><span data-name>{c.name}</span> <b class="doto" data-count>0</b></figcaption>
+      </figure>
+    ))}
+  </div>
+
+  <p class="tool-readout" aria-live="polite">Exact chances for a live bomb and one photon: {share(b0)} boom, {share(s0)} dark click, {share(o0)} bright click.</p>
+
+  <p class="note">Each dot is one bomb, tested by one photon. Every result is a random draw that follows the Born rule. The dashed line is where the exact chance says each pile should reach. Ideal parts: no photon is lost. No real bombs: labs test the idea with photons and no bombs.</p>
+</qce-bomb-tester>
+
+<script>
+  import { BATCH, CAP, odds, shot, checkRisk, share, turnDeg, blochDeg, pile, dotAt, type Bomb, type Method } from '../../lib/sims/bomb-tester.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  const NAMES: Record<Method, string[]> = {
+    basic: ['Boom', 'Dark click: live, no boom', 'Bright click: no answer'],
+    zeno: ['Boom', 'Ends as 0: live, no boom', 'Ends as 1: dud'],
+  };
+  const COLOR = ['hot', 'signal', 'ink2'] as const;
+  const rounds = (n: number) => `${n} ${n === 1 ? 'round' : 'rounds'}`;
+
+  class BombTester extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const $$ = <T extends Element>(s: string) => [...this.querySelectorAll<T>(s)];
+      const range = $<HTMLInputElement>('input[type="range"]'), out = $<HTMLOutputElement>('output');
+      const run = $<HTMLButtonElement>('[data-run]'), readout = $('.tool-readout');
+      const figs = $$<HTMLElement>('.piles figure').map((f) => ({
+        canvas: f.querySelector('canvas')!, count: f.querySelector('[data-count]')!, name: f.querySelector('[data-name]')!,
+        ctx: null as CanvasRenderingContext2D | null, w: 0, h: 0,
+      }));
+
+      let method: Method = 'basic', bomb: Bomb = 'live', n = +range.value;
+      // results[k] is the result for bomb k: 0 boom, 1 safe proof, 2 other. Only the first `shown` are drawn.
+      const results = new Uint8Array(CAP);
+      let made = 0, shown = 0, raf = 0, seen = false, started = false;
+      // While the slider is being dragged, the readout waits for the release, so screen readers are not flooded.
+      let hush = false;
+
+      const counts = () => {
+        const c = [0, 0, 0];
+        for (let k = 0; k < shown; k++) c[results[k]]++;
+        return c;
+      };
+
+      const paint = () => {
+        const p = palette(), exact = odds(method, bomb, n), c = counts();
+        figs.forEach((f, i) => {
+          if (!f.ctx) return;
+          const { ctx, w, h } = f, g = pile(w, h, Math.max(made, 1), 16), r = g.pitch * 0.36;
+          ctx.clearRect(0, 0, w, h);
+          ctx.fillStyle = p.rule; ctx.fillRect(0, h - 1, w, 1);
+          for (let k = 0, j = 0; k < shown; k++) {
+            if (results[k] !== i) continue;
+            const [x, y] = dotAt(j++, g, h);
+            dot(ctx, x, y, r, p[COLOR[i]]);
+          }
+          if (shown > 0) {
+            // Where the pile should reach: the exact chance times the bombs tested, in rows of dots.
+            const y = Math.max(1, h - (exact[i] * shown / g.cols) * g.pitch);
+            ctx.strokeStyle = p.ink; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); ctx.setLineDash([]);
+          }
+          f.count.textContent = String(c[i]);
+        });
+      };
+
+      const say = () => {
+        const [pb, ps, po] = odds(method, bomb, n), [b, s, o] = counts(), t = shown;
+        const what = bomb === 'live' ? `live ${t === 1 ? 'bomb' : 'bombs'}` : `${t === 1 ? 'dud' : 'duds'}`;
+        if (method === 'basic') {
+          const head = t ? `${t} ${what} tested, one photon each: ${b} went off, ${s} gave a dark click, ${o} gave a bright click. ` : '';
+          readout.textContent = head + (bomb === 'live'
+            ? `Exact chances: ${share(pb)} boom, ${share(ps)} dark click (proof the bomb is live, and it did not go off), ${share(po)} bright click (no answer).`
+            : `A dud changes nothing, so the two amplitudes at the dark detector cancel and it never clicks. Exact chances: ${share(pb)} boom, ${share(ps)} dark click, ${share(po)} bright click.`);
+        } else {
+          const head = t ? `${t} ${what} tested, each by one photon making ${rounds(n)} with a turn of ${turnDeg(n)} (${blochDeg(n)} on the Bloch sphere): ${b} went off, ${s} ended as 0, ${o} ended as 1. ` : '';
+          readout.textContent = head + (bomb === 'live'
+            ? `Each check sets a live bomb off with chance ${share(checkRisk(n))}. Exact chances: ${share(ps)} it passes ${n === 1 ? 'the check' : `all ${n} checks`} and ends as 0 (proof it is live, and it did not go off), ${share(pb)} boom.`
+            : `With a dud the ${n === 1 ? 'turn is' : `${n} turns add up to`} 90°, so the photon always ends as 1. 90° here is the photon's polarization turn, 180° on the Bloch sphere. Exact chances: ${share(pb)} boom, ${share(ps)} ends as 0, ${share(po)} ends as 1.`);
+        }
+      };
+
+      const label = () => { run.textContent = made >= CAP ? 'Start over' : made ? `Test ${BATCH} more bombs` : `Test ${BATCH} bombs`; };
+
+      const step = () => {
+        raf = 0;
+        shown = reduceMotion() ? made : Math.min(made, shown + 2);
+        paint();
+        if (shown < made) { if (seen) raf = requestAnimationFrame(step); }
+        else if (!hush) say();
+      };
+      const kick = () => { if (!raf && seen && shown < made) raf = requestAnimationFrame(step); };
+
+      const fire = () => {
+        if (made >= CAP) { made = 0; shown = 0; }
+        const end = Math.min(CAP, made + BATCH);
+        for (; made < end; made++) results[made] = shot(method, bomb, n, Math.random);
+        label();
+        if (reduceMotion() || !seen) { shown = made; paint(); if (!hush) say(); } else kick();
+      };
+
+      const setup = () => {
+        const live = bomb === 'live', deg = turnDeg(n);
+        $$<HTMLElement>('[data-show]').forEach((el) => { el.hidden = el.dataset.show !== method; });
+        $$<SVGGElement>('[data-bomb-icon]').forEach((g) => g.classList.toggle('dud', !live));
+        $$<SVGTextElement>('[data-bomb-label]').forEach((t) => { t.textContent = live ? 'live bomb' : 'dud'; });
+        $('[data-turn]').textContent = `turn ${deg}`;
+        $('[data-turn-note]').textContent = `Turn per round: ${deg} (${blochDeg(n)} on the Bloch sphere)`;
+        $('[data-rounds]').textContent = rounds(n);
+        $('svg.mz').setAttribute('aria-label', `Diagram: a photon enters a Mach-Zehnder interferometer: a beam splitter, two mirrors, a second beam splitter, then a bright detector and a dark detector. A ${live ? 'live bomb' : 'dud'} sits on the lower arm.`);
+        $('svg.zn').setAttribute('aria-label', `Diagram: the photon starts as 0. Each round turns it by ${deg}, then ${live ? 'the live bomb checks it' : 'it passes the dud'}. ${rounds(n)}, then a final measurement.`);
+        out.textContent = String(n);
+        const ps = odds('zeno', 'live', n)[1];
+        range.setAttribute('aria-valuetext', `${rounds(n)}, each a turn of ${deg}, ${blochDeg(n)} on the Bloch sphere. A live bomb passes with chance ${share(ps)}.`);
+        figs.forEach((f, i) => { f.name.textContent = NAMES[method][i]; });
+      };
+
+      const change = () => {
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        made = 0; shown = 0;
+        setup();
+        if (started) fire(); else { paint(); if (!hush) say(); label(); }
+      };
+
+      this.addEventListener('change', (e) => {
+        const t = e.target as HTMLInputElement;
+        if (t.type !== 'radio') return;
+        hush = false;
+        if (t.value === 'live' || t.value === 'dud') bomb = t.value;
+        else method = t.value as Method;
+        change();
+      });
+      range.addEventListener('input', () => { hush = true; n = +range.value; change(); });
+      // Released (or a key press done): now speak, at once if the batch is drawn, else when it ends.
+      range.addEventListener('change', () => { hush = false; if (shown === made) say(); });
+      run.addEventListener('click', () => { started = true; hush = false; fire(); });
+
+      const size = () => {
+        figs.forEach((f) => { const r = fit(f.canvas); f.ctx = r.ctx; f.w = r.w; f.h = r.h; });
+        paint();
+      };
+      onResize($('.piles'), size);
+      onTheme(paint);
+      onSeen(this, (v) => {
+        seen = v;
+        if (v && !started) { started = true; fire(); }
+        else if (v) kick();
+      });
+      setup();
+      size();
+    }
+  }
+  customElements.define('qce-bomb-tester', BombTester);
+</script>
+
+<style>
+  .setup svg { width: 100%; max-width: 22rem; height: auto; margin-inline: auto; overflow: visible }
+  .setup [hidden] { display: none }
+  svg text { fill: var(--ink); font: 500 15px var(--mono) }
+  .beam { fill: none; stroke: var(--ink-2); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 0 7 }
+  .split { stroke: var(--ink); stroke-width: 3; stroke-dasharray: 4 3 }
+  .mirror { stroke: var(--ink); stroke-width: 4; stroke-linecap: round }
+  .det, .box { fill: var(--paper); stroke: var(--ink); stroke-width: 2 }
+  .loop { fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 5 4 }
+  .meter { fill: none; stroke: var(--ink); stroke-width: 2 }
+  .bomb circle { fill: var(--hot); stroke: var(--hot); stroke-width: 2 }
+  .bomb path { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round }
+  .bomb.dud circle { fill: var(--paper); stroke: var(--ink-2); stroke-dasharray: 4 3 }
+
+  fieldset { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { float: left; width: 100%; margin-bottom: var(--s2); padding: 0 }
+  .tool-controls { align-items: start; gap: var(--s3) var(--s5) }
+  fieldset label { display: inline-flex; align-items: center; gap: .5rem; min-height: 2.75rem; padding: 0 .9rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); cursor: pointer }
+  fieldset label:hover, fieldset label:has(:checked) { border-color: var(--ink) }
+  fieldset input { width: 1.1rem; height: 1.1rem; margin: 0; accent-color: var(--signal) }
+
+  .turns { display: grid; gap: var(--s2); max-width: 32rem }
+  .turns[hidden] { display: none }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .row output { font: 900 2rem/1 var(--dots) }
+  .turn-note { font: 500 .9375rem var(--mono); color: var(--ink-2) }
+
+  .piles { max-width: 36rem; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s3) }
+  figure { display: grid; align-content: start; gap: var(--s2); min-width: 0 }
+  canvas { height: 9rem }
+  figcaption { display: grid; gap: .1rem; font-size: .875rem; line-height: 1.3; color: var(--ink-2); overflow-wrap: anywhere }
+  figcaption span::before { content: ""; display: inline-block; width: .7rem; height: .7rem; margin-right: .35rem; border-radius: 50%; vertical-align: -.05rem }
+  .boom span::before { background: var(--hot) }
+  .safe span::before { background: var(--signal) }
+  .other span::before { background: var(--ink-2) }
+  figcaption b { font-size: 1.5rem; line-height: 1.1; color: var(--ink) }
+  .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+
+  @media (min-width: 40rem) {
+    canvas { height: 11rem }
+    figcaption { font-size: .9375rem }
+  }
+</style>

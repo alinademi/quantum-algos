@@ -1,0 +1,52 @@
+---
+description: "Find a live bomb without setting it off. One photon, two paths and cancelling amplitudes give an interaction-free measurement."
+answer: "The Elitzur-Vaidman bomb tester puts a photon-triggered bomb on one arm of an interferometer. A click at the detector where amplitudes normally cancel proves the bomb is live without setting it off: an interaction-free measurement."
+myth:
+  claim: "The quantum bomb tester checks every bomb safely."
+  truth: "With one photon, the simple version finds only 1 in 4 live bombs safely, and half of all live bombs go off. Many small steps can push the safe share close to 100%, but never all the way."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import BombTester from '../../components/tools/BombTester.astro';
+
+<Depth level="kid">
+Picture a maze for light where two paths split and meet again. Send in one photon, a piece of light. Quantum rules give it an amplitude for each path, a number that can be plus or minus. The maze is built so the two amplitudes cancel at one exit, the dark door. So the dark door never beeps.
+
+Now put a bomb on one path. A live bomb goes off if the photon hits it. A dud lets it pass, so the dark door stays dark. A live bomb blocks its path like a wall, so nothing cancels, and the dark door can beep. A beep means: live bomb, and it did not go off!
+
+The catch: this works for only 1 in 4 live bombs. Half of all live bombs go off.
+
+Where the picture breaks: a photon is not a ball rolling down one path. Balls never cancel.
+</Depth>
+
+<Depth level="student">
+Send one photon into a [Mach-Zehnder interferometer](/learn/mach-zehnder/). The first beam splitter gives it an amplitude of 1/√2 for each arm. At the second splitter, the two amplitudes add at the bright detector and cancel at the dark one. So the dark detector never clicks.
+
+Put a bomb on one arm. A dud lets the photon pass, so nothing changes. A live bomb is a [measurement](/learn/measurement/) of the arm. With chance |1/√2|² = 1/2 the result is the bomb's arm, and it goes off. Otherwise the photon is left in the free arm only, so nothing cancels, and each detector gets half of that 1/2: 1/4 each.
+
+A dark click proves the bomb is live, and it did not go off. That is 1 in 4 live bombs. Many small steps, the [quantum Zeno effect](/learn/quantum-zeno/), can push this close to 100%, but not all the way.
+</Depth>
+
+<Depth level="engineer">
+Treat the photon's arm as a qubit: $|0\rangle$ is the free arm, $|1\rangle$ the bomb arm. It starts as $|0\rangle$, and a balanced beam splitter acts as $H$. With a dud, $HH|0\rangle = |0\rangle$: the dark-port amplitude is $\tfrac12 - \tfrac12 = 0$.
+
+A live bomb measures in the $\{|0\rangle, |1\rangle\}$ basis between the splitters. After the first $H$ the state is $(|0\rangle + |1\rangle)/\sqrt2$, so
+
+$$
+P(\text{boom}) = \tfrac12, \qquad P(\text{bright}) = P(\text{dark}) = \tfrac12 \cdot \tfrac12 = \tfrac14 .
+$$
+
+A dark click is the interaction-free result: no boom, no photon absorbed, yet the bomb is shown to be live. Resending after each bright click finds $\sum_{n \ge 1} 4^{-n} = \tfrac13$ of live bombs. Unbalanced splitters push that share, dark/(dark + boom), toward $\tfrac12$ but never past it, at the cost of many more photons per bomb.
+
+The Zeno version beats $\tfrac12$ from $N = 4$ on. Start at $|0\rangle$ and repeat $N$ times: apply $R_\varepsilon$, which maps $|0\rangle$ to $\cos\varepsilon\,|0\rangle + \sin\varepsilon\,|1\rangle$ with $\varepsilon = \pi/2N$, then let the bomb measure. With a dud the turns add up to $\pi/2$, so the qubit ends as $|1\rangle$. With a live bomb each check sets it off with probability $\sin^2\varepsilon$ and otherwise resets the state to $|0\rangle$. A final measurement reads 0 for live and 1 for a dud, and
+
+$$
+P(\text{safe}) = \cos^{2N}\!\frac{\pi}{2N} \;\ge\; 1 - \frac{\pi^2}{4N}.
+$$
+
+$N = 2$ gives $\tfrac14$, $N = 10$ about 78%, $N = 100$ about 97.6%. It tends to 1 but never reaches it. Each test costs $N$ rounds, and these are ideal numbers: real optics lose photons, which keeps labs below them (Kwiat et al. 1999, Physical Review Letters, [arXiv:quant-ph/9909083](https://arxiv.org/abs/quant-ph/9909083)).
+</Depth>
+
+<Lab title="Test bombs with one photon" intro="Test live bombs and duds, see which piles grow, then switch to many small turns and raise N.">
+  <BombTester />
+</Lab>
