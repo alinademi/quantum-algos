@@ -1,0 +1,62 @@
+---
+description: "What is a random bit? A bit you know only by its chances, written as a probability vector. Set a coin's odds and flip it 1,000 times."
+answer: "A random bit is a bit you know only by its chances. You write it as a probability vector: the chance of 0 above the chance of 1, two numbers that are never negative and add up to 1."
+myth:
+  claim: "A qubit is just a coin we have not looked at yet."
+  truth: "A covered coin has already landed; its chances only describe what we do not know. A qubit has amplitudes, which can cancel each other, and chances never cancel."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import RandomBit from '../../components/tools/RandomBit.astro';
+
+<Depth level="kid">
+
+Flip a coin and cover it with your hand. It has already landed, heads or tails, but you do not know which. You only know the chances: half heads, half tails.
+
+A computer bit is 0 or 1. Call heads 0 and tails 1, and the covered coin is a random bit: a bit you know only by its chances. We write the two chances as a pair, the chance of 0 first. A fair coin is ½ and ½. A trick coin that lands heads three times out of four is ¾ and ¼. The chances are never below zero, and they add up to 1.
+
+Lift your hand and you see one side, never the chances. To see them, flip many times and count.
+
+A qubit grows out of this picture, but here the coin picture breaks. A qubit has amplitudes, not chances, and amplitudes can cancel out. Chances never do.
+
+</Depth>
+
+<Depth level="student">
+
+A bit is 0 or 1. A random bit is one you know only by its chances. Its probability vector lists them, the chance of 0 first: a fair coin is $(0.5, 0.5)$, and a bit that gives 0 three times in four is $(0.75, 0.25)$. No entry is negative, and the entries add up to 1.
+
+The sure bits are $(1, 0)$ and $(0, 1)$, written $|0\rangle$ and $|1\rangle$. Every random bit is a weighted sum of them: $(0.75, 0.25) = 0.75|0\rangle + 0.25|1\rangle$.
+
+Look and you see 0 or 1, never the vector. Your vector then becomes $|0\rangle$ or $|1\rangle$: the bit did not change, but what you know did. The vector shows only in the counts over many flips.
+
+A [qubit](/learn/qubit/) keeps the vector, but each entry is an amplitude. The chance of a result is $|\text{amplitude}|^2$. Amplitudes can be negative or complex, so they can cancel; chances cannot.
+
+</Depth>
+
+<Depth level="engineer">
+
+Take a bit with classical states $\Sigma = \{0, 1\}$. A probabilistic state is a column vector
+
+$$
+p = (p_0, p_1)^{\mathsf T} = p_0|0\rangle + p_1|1\rangle,
+$$
+
+with $p_0, p_1 \ge 0$ and $p_0 + p_1 = 1$. Here $|0\rangle = (1, 0)^{\mathsf T}$ and $|1\rangle = (0, 1)^{\mathsf T}$ are the standard basis vectors. All probability vectors of a bit fill the line segment from $|0\rangle$ to $|1\rangle$, whose two ends are the only deterministic states.
+
+Measuring gives $a$ with probability $p_a$, and the description becomes $|a\rangle$: what you know changes, not the bit. One shot never reveals $p$. Over $N$ independent flips the count of 1s is binomial, with mean $Np_1$ and standard deviation $\sqrt{Np_0p_1}$, so the observed share of 1s closes in on $p_1$ only like $1/\sqrt{N}$.
+
+A [qubit](/learn/qubit/) keeps the vector and the basis but changes the entries and the norm:
+
+$$
+|\psi\rangle = \alpha|0\rangle + \beta|1\rangle,
+$$
+
+with complex $\alpha, \beta$ and $|\alpha|^2 + |\beta|^2 = 1.$ A measurement gives 0 with probability $|\alpha|^2$ and 1 with probability $|\beta|^2$ (the Born rule). "Entries add up to 1" (1-norm equal to 1) becomes "squared magnitudes add up to 1" (2-norm equal to 1). Probability vectors change by [stochastic matrices](/learn/stochastic-matrices/), qubit states by unitary matrices.
+
+Same odds do not mean same state. Started as $|0\rangle$, a Hadamard gate gives $|+\rangle = (|0\rangle + |1\rangle)/\sqrt{2}$, which reads 0 or 1 at 50/50, like a fair coin. A second Hadamard gives $|0\rangle$ every time, because the two contributions to the amplitude of 1 cancel. A qubit set to $|0\rangle$ or $|1\rangle$ by a fair coin flip gives 50/50 after one Hadamard or two: each case alone gives 50/50, so nothing cancels. More at [Superposition](/learn/superposition/).
+
+</Depth>
+
+<Lab title="Flip a random bit" intro="Set the chance of 1 and flip once to see your vector change when you look, then flip hundreds and watch the counts close in on the dashed lines.">
+  <RandomBit />
+</Lab>

@@ -1,0 +1,226 @@
+---
+// Flips a random bit with the chance you set: each dot is one flip drawn from the probability vector, and each dashed line is chance times flips, the count that vector predicts.
+import { fromPercent, fmt, ket, pair } from '../../lib/sims/probabilistic-bits.ts';
+
+const START = 25; // percent chance of 1: the vector (3/4, 1/4)
+const v = fromPercent(START);
+const uid = `rb-${Math.random().toString(36).slice(2, 8)}`;
+const presets = [
+  { k: 0, text: 'Always 0' },
+  { k: 25, text: '¾ zeros' },
+  { k: 50, text: 'Fair coin' },
+  { k: 100, text: 'Always 1' },
+];
+---
+<qce-random-bit class="tool">
+  <div class="tool-controls">
+    <div class="knob">
+      <div class="row"><label for={uid}>Chance of 1</label><output for={uid}>{START}%</output></div>
+      <input id={uid} type="range" min="0" max="100" step="1" value={START} aria-valuetext={`${START}% chance of 1, ${100 - START}% chance of 0`} />
+    </div>
+    <div class="presets" role="group" aria-label="Example coins">
+      {presets.map((p) => <button type="button" data-k={p.k} aria-pressed={String(p.k === START)}>{p.text}</button>)}
+    </div>
+  </div>
+
+  <div class="vectors">
+    <div class="box">
+      <p class="label">Before you look</p>
+      <div class="vec">
+        <span class="n" data-b0>{fmt(v[0])}</span><span class="t">chance of 0</span>
+        <span class="n" data-b1>{fmt(v[1])}</span><span class="t">chance of 1</span>
+      </div>
+      <p><code data-bket>{ket(v)}</code></p>
+    </div>
+    <div class="box">
+      <p class="label">Last flip, after you look</p>
+      <p class="none" data-none>No flip yet.</p>
+      <div data-after hidden>
+        <div class="vec">
+          <span class="n" data-a0></span><span class="t">chance of 0</span>
+          <span class="n" data-a1></span><span class="t">chance of 1</span>
+        </div>
+        <p><code data-aket></code></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-controls flips">
+    <button type="button" class="btn btn-sm" data-flip="1">Flip once</button>
+    <button type="button" class="btn btn-sm" data-flip="100">Flip 100</button>
+    <button type="button" class="btn btn-sm btn-line" data-clear>Clear</button>
+  </div>
+
+  <div class="shots">
+    <canvas aria-hidden="true"></canvas>
+    <div class="piles">
+      <p>Gave 0 <b class="doto" data-n0>0</b></p>
+      <p>Gave 1 <b class="doto" data-n1>0</b></p>
+    </div>
+    <p class="key">Each dot is one flip of a fresh coin with this vector; the ringed dot is the last one. The dashed line in each pile is chance × flips: the count the vector predicts.</p>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">No flips yet. Each flip is a new coin with vector {pair(v)}.</p>
+</qce-random-bit>
+
+<script>
+  import { CAP, fromPercent, flip, seen, expected, spread, fmt, ket, pair, approx, pileGrid, slot, fillHeight } from '../../lib/sims/probabilistic-bits.ts';
+  import type { Bit, PVec } from '../../lib/sims/probabilistic-bits.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot, pct } from '../../lib/draw.ts';
+
+  class RandomBit extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector(s) as T;
+      const canvas = $<HTMLCanvasElement>('canvas'), slider = $<HTMLInputElement>('input[type="range"]'), out = $<HTMLOutputElement>('output');
+      const readout = $<HTMLElement>('.tool-readout'), presets = [...this.querySelectorAll<HTMLButtonElement>('[data-k]')];
+      const flips = [...this.querySelectorAll<HTMLButtonElement>('[data-flip]')], after = $<HTMLElement>('[data-after]'), none = $<HTMLElement>('[data-none]');
+      const text = (s: string, t: string) => { $<HTMLElement>(s).textContent = t; };
+
+      let v: PVec = fromPercent(+slider.value);
+      let n: [number, number] = [0, 0], last: Bit | null = null, queue = 0, added = 0, raf = 0, seenNow = false;
+      let box = fit(canvas);
+      const total = () => n[0] + n[1];
+
+      function paint() {
+        const { ctx, w, h } = box, c = palette(), gap = 16, pw = (w - gap) / 2, base = h - 2;
+        const g = pileGrid(pw, base - 4), r = g.pitch * 0.34, N = total(), e = expected(v, N);
+        ctx.clearRect(0, 0, w, h);
+        for (const a of [0, 1] as Bit[]) {
+          const x0 = a * (pw + gap) + (pw - g.cols * g.pitch) / 2, at = (k: number) => { const [x, y] = slot(k, g.cols, g.pitch); return [x0 + x, base - y]; };
+          for (let k = n[a]; k < CAP; k++) { const [x, y] = at(k); dot(ctx, x, y, Math.max(0.6, r * 0.4), c.rule); }
+          for (let k = 0; k < n[a]; k++) { const [x, y] = at(k); dot(ctx, x, y, r, a ? c.signal : c.ink); }
+          ctx.fillStyle = c.ink; ctx.fillRect(x0, base, g.cols * g.pitch, 2);
+          if (last === a && n[a]) {
+            const [x, y] = at(n[a] - 1), rr = Math.max(4, g.pitch * 0.9);
+            ring(ctx, x, y, rr, c.paper, 4); ring(ctx, x, y, rr, c.ink, 1.5);
+          }
+          if (N) {
+            const y = base - fillHeight(e[a], g.cols, g.pitch), x1 = x0 - 4, x2 = x0 + g.cols * g.pitch + 4;
+            rule(ctx, x1, x2, y, c.paper, 4, []); rule(ctx, x1, x2, y, c.hot, 2, [5, 4]);
+          }
+        }
+        text('[data-n0]', n[0].toLocaleString('en')); text('[data-n1]', n[1].toLocaleString('en'));
+      }
+
+      function ring(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, lw: number) {
+        ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+      }
+
+      function rule(ctx: CanvasRenderingContext2D, x1: number, x2: number, y: number, color: string, lw: number, dash: number[]) {
+        ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke(); ctx.setLineDash([]);
+      }
+
+      const many = (k: number, word: string) => `${k.toLocaleString('en')} ${word}${k === 1 ? '' : 's'}`;
+
+      function predict(N: number): string {
+        if (v[0] === 0 || v[1] === 0) return `The vector ${pair(v)} says every flip gives ${v[1] ? 1 : 0}.`;
+        const [e0, e1] = expected(v, N);
+        return `The vector predicts about ${approx(e0)} zeros and ${approx(e1)} ones, give or take ${approx(spread(v, N))} each.`;
+      }
+
+      function say() {
+        const N = total();
+        let s: string;
+        if (!N) s = `No flips yet. Each flip is a new coin with vector ${pair(v)}.`;
+        else if (added === 1 && last !== null) s = `Flip number ${N.toLocaleString('en')} gave ${last}. Before you looked, its vector was ${pair(v)}; now it is ${pair(seen(last))}. So far: ${many(n[0], 'zero')}, ${many(n[1], 'one')}.`;
+        else s = `Flipped ${added.toLocaleString('en')} more. ${many(N, 'flip')} so far: ${many(n[0], 'zero')} (${pct(n[0] / N)}) and ${many(n[1], 'one')} (${pct(n[1] / N)}). ${predict(N)}`;
+        if (N >= CAP) s += ' The piles are full: clear them to flip again.';
+        readout.textContent = s;
+        added = 0;
+      }
+
+      function showAfter() {
+        after.hidden = last === null; none.hidden = last !== null;
+        if (last === null) return;
+        const a = seen(last);
+        text('[data-a0]', fmt(a[0])); text('[data-a1]', fmt(a[1]));
+        text('[data-aket]', `${ket(a)}: it gave ${last}`);
+      }
+
+      function setFull() { flips.forEach((b) => b.setAttribute('aria-disabled', String(total() + queue >= CAP))); }
+
+      function run(k: number) { for (let i = 0; i < k; i++) { last = flip(v, Math.random); n[last]++; } queue -= k; added += k; }
+
+      function done() { paint(); showAfter(); setFull(); say(); }
+
+      function step() {
+        raf = 0;
+        if (!seenNow) return;
+        run(Math.min(queue, Math.max(4, Math.ceil(queue / 25))));
+        paint();
+        if (queue > 0) raf = requestAnimationFrame(step); else done();
+      }
+
+      function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; queue = 0; added = 0; }
+
+      function reset(k?: number) {
+        stop();
+        if (k !== undefined) {
+          v = fromPercent(k);
+          slider.value = String(k); out.textContent = pct(v[1]);
+          slider.setAttribute('aria-valuetext', `${pct(v[1])} chance of 1, ${pct(v[0])} chance of 0`);
+          text('[data-b0]', fmt(v[0])); text('[data-b1]', fmt(v[1])); text('[data-bket]', ket(v));
+          presets.forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.k! === k)));
+        }
+        n = [0, 0]; last = null;
+        done();
+      }
+
+      flips.forEach((b) => b.addEventListener('click', () => {
+        const k = Math.min(+b.dataset.flip!, CAP - total() - queue);
+        if (k <= 0) return;
+        queue += k;
+        if (reduceMotion() || !seenNow || k === 1 && queue === 1) { run(queue); done(); }
+        else if (!raf) raf = requestAnimationFrame(step);
+        setFull();
+      }));
+      $<HTMLButtonElement>('[data-clear]').addEventListener('click', () => reset());
+      slider.addEventListener('input', () => reset(+slider.value));
+      presets.forEach((b) => b.addEventListener('click', () => reset(+b.dataset.k!)));
+
+      const redraw = () => { box = fit(canvas); paint(); };
+      onResize(canvas, redraw);
+      onTheme(paint);
+      onSeen(this, (s) => { seenNow = s; if (s && queue > 0 && !raf) raf = requestAnimationFrame(step); });
+      paint();
+    }
+  }
+  customElements.define('qce-random-bit', RandomBit);
+</script>
+
+<style>
+  .tool-controls { display: grid; gap: var(--s3) }
+  .knob { display: grid; gap: var(--s1) }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .row output { font: 900 1.75rem/1 var(--dots) }
+  .presets { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .presets button { min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 .9375rem var(--mono); cursor: pointer }
+  .presets button:hover { border-color: var(--ink) }
+  .presets button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+
+  .vectors { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr)) }
+  .box { display: grid; gap: var(--s2); align-content: start; padding: var(--s3); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); min-width: 0 }
+  [data-after] { display: grid; gap: var(--s2) }
+  [data-after][hidden] { display: none }
+  .vec { display: grid; grid-template-columns: auto 1fr; column-gap: var(--s3); align-items: baseline; justify-self: start }
+  .vec::before { content: ""; grid-area: 1 / 1 / 3 / 2; align-self: stretch; border-inline: 2px solid var(--ink); border-radius: .6rem }
+  .vec .n { grid-column: 1; padding-inline: .55rem; font: 500 1.25rem/1.5 var(--mono); text-align: right }
+  .vec .t { grid-column: 2; color: var(--ink-2); font-size: .875rem }
+  .vec > :nth-child(-n + 2) { grid-row: 1 }
+  .vec > :nth-child(n + 3) { grid-row: 2 }
+  .box code { overflow-wrap: anywhere }
+  .none { color: var(--ink-2) }
+
+  .flips { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; background: var(--ink); color: var(--paper) }
+
+  .shots { display: grid; gap: var(--s2) }
+  canvas { height: 13rem }
+  .piles { display: grid; grid-template-columns: 1fr 1fr; column-gap: var(--s3); text-align: center; font: 500 .9375rem var(--mono); color: var(--ink-2) }
+  .piles b { display: block; font-size: 1.75rem; line-height: 1.1; color: var(--ink) }
+  .key { color: var(--ink-2); font-size: .875rem; max-width: var(--read) }
+
+  @media (min-width: 40rem) {
+    canvas { height: 15rem }
+  }
+</style>
