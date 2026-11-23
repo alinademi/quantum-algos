@@ -31,7 +31,7 @@ def names(people):
 def surname(full):
     # Keep particles: "Ronald de Wolf" -> "de Wolf"
     w = full.split(); i = len(w) - 1
-    while i > 0 and w[i - 1].lower() in ('de', 'da', 'di', 'del', 'della', 'van', 'von', 'der', 'den', 'le', 'la', 'du', 'dos', 'ter'): i -= 1
+    while i > 0 and w[i - 1].lower() in ('de', 'da', 'das', 'di', 'del', 'della', 'van', 'von', 'der', 'den', 'le', 'la', 'du', 'dos', 'ter'): i -= 1
     return ' '.join(w[i:])
 
 def doi(d):
