@@ -1,0 +1,70 @@
+---
+description: "Three players, no talking, one parity rule. Any plan made in advance wins at most 3 rounds in 4 on average; ideal qubits in a GHZ state win every round."
+answer: "The GHZ game is a test for three players who cannot talk: each gets one bit and answers one bit, and the team wins if the answers add up to an even number when all three got 0, and to an odd number otherwise. A plan made in advance wins at most 3 rounds in 4 on average; players sharing three ideal qubits in a GHZ state win every round."
+myth:
+  claim: "Entangled qubits let the players send each other signals."
+  truth: "No signal is sent. Each player's own answer comes out 0 or 1 at random, whatever the others were asked. Only the three answers taken together always fit the rule."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GhzGame from '../../components/tools/GhzGame.astro';
+
+<Depth level="kid">
+Three friends sit in far-apart rooms. A referee gives each a card, 0 or 1: all three get 0, or exactly two get 1. Each friend writes back 0 or 1. All 0 cards: the team wins if the answers add up to an even number. Any other deal: an odd number.
+
+They can plan ahead but cannot talk during the game. Every plan fails on at least one of the four deals, so with random deals a plan wins at most 3 rounds in 4 on average.
+
+Now give each friend one of three entangled qubits, in a GHZ state. Each measures their qubit one way for a 0 card, another way for a 1 card, and writes the result. With ideal qubits, the team wins every round.
+
+Is a note with the answers hidden in each qubit? That picture breaks: notes written in advance are just another plan, and every plan loses sometimes.
+</Depth>
+
+<Depth level="student">
+The referee picks one of four questions, each with chance 1/4: 000, 011, 101 or 110. Alice, Bob and Charlie each get one of its bits, answer one bit, and cannot talk. They win if the answers' sum is even for 000 and odd for the rest.
+
+A plan fixes what each player answers when asked 0 and when asked 1. Add the four answer sums: each planned answer counts twice, so the total is even. The rule wants even, odd, odd, odd: an odd total. So every plan loses at least one question: the best wins 3 of 4. Picking a plan at random does no better.
+
+The quantum team shares three qubits that started as 000; a Hadamard gate and two CNOTs made the [GHZ state](/learn/ghz-w/) (|000⟩ + |111⟩)/√2. Asked 0, a player measures in the X basis; asked 1, in the Y basis. Each answer alone is random, yet with ideal qubits the sum always fits the rule.
+</Depth>
+
+<Depth level="engineer">
+The referee draws $rst$ uniformly from $\{000, 011, 101, 110\}$. The players, who cannot communicate, return $a, b, c$ and win if
+
+$$
+a \oplus b \oplus c = r \lor s \lor t.
+$$
+
+**Classical.** Shared randomness only mixes deterministic strategies $a(r), b(s), c(t)$, so the best of those is the best overall. The four win conditions
+
+$$
+\begin{aligned}
+a_0 \oplus b_0 \oplus c_0 &= 0, \\
+a_0 \oplus b_1 \oplus c_1 &= 1, \\
+a_1 \oplus b_0 \oplus c_1 &= 1, \\
+a_1 \oplus b_1 \oplus c_0 &= 1
+\end{aligned}
+$$
+
+cannot all hold. Each variable appears twice, so the left sides XOR to 0, while the right sides XOR to 1. Every deterministic strategy breaks 1 or 3 of them. If everyone always answers 1, only the first breaks, so the classical value is $3/4$.
+
+**Quantum.** Share $|\mathrm{GHZ}\rangle = (|000\rangle + |111\rangle)/\sqrt{2}$, made from $|000\rangle$ by $H$ on qubit 1 and CNOTs from it to qubits 2 and 3. On input 0 measure $X$, on input 1 measure $Y$, and output $a$ for eigenvalue $(-1)^a$. Writing $XYY$ for $X \otimes Y \otimes Y$,
+
+$$
+\begin{aligned}
+XXX|\mathrm{GHZ}\rangle &= +|\mathrm{GHZ}\rangle, \\
+XYY|\mathrm{GHZ}\rangle &= -|\mathrm{GHZ}\rangle, \\
+YXY|\mathrm{GHZ}\rangle &= -|\mathrm{GHZ}\rangle, \\
+YYX|\mathrm{GHZ}\rangle &= -|\mathrm{GHZ}\rangle.
+\end{aligned}
+$$
+
+So the product of outcomes, $(-1)^{a \oplus b \oplus c}$, is $+1$ for 000 and $-1$ otherwise: the team wins with probability 1. The outcomes are uniform over the four strings of the right parity, so each single bit, and each pair, is uniform. Nothing is signalled.
+
+**Paradox.** Suppose each qubit carried results $x_i, y_i = \pm 1$ for $X$ and $Y$, fixed in advance and not changed by the other players' choices. The three $-1$ predictions multiply to $x_1 x_2 x_3 (y_1 y_2 y_3)^2 = x_1 x_2 x_3 = -1$, but $XXX$ predicts $+1$. Unlike the [CHSH test](/learn/bell-test/), this uses only predictions that hold with certainty.
+
+With noise, say the GHZ state with probability $v$ and the fully mixed state $I/8$ otherwise (white noise; $I/8$ wins half the time), the win probability is $(1 + v)/2$. It beats $3/4$ exactly when $v > 1/2$.
+</Depth>
+
+<Lab title="Beat the qubits" intro="Write a plan for the classical team, then let the referee ask. Find the questions your plan loses, and check if the quantum team ever loses one.">
+  <GhzGame />
+</Lab>

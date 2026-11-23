@@ -87,6 +87,7 @@ Rules:
 | brassard-1997-collision | Brassard, Hoyer and Tapp | 1997 | Quantum Algorithm for the Collision Problem | arXiv | Paper | Research | - | arXiv:quant-ph/9705002 | https://arxiv.org/abs/quant-ph/9705002 | - |
 | brassard-1998-counting | Brassard, Hoyer and Tapp | 1998 | Quantum Counting | arXiv | Paper | Research | - | arXiv:quant-ph/9805082 | https://arxiv.org/abs/quant-ph/9805082 | - |
 | brassard-2002-amplification | Brassard et al. | 2002 | Quantum amplitude amplification and estimation | Contemporary Mathematics | Paper | Research | 10.1090/conm/305/05215 | arXiv:quant-ph/0005055 | https://arxiv.org/abs/quant-ph/0005055 | - |
+| brassard-2004-telepathy | Brassard, Broadbent and Tapp | 2004 | Quantum Pseudo-Telepathy | arXiv | Review | Graduate | - | arXiv:quant-ph/0407221 | - | - |
 | braunstein-2005-cv | Braunstein and van Loock | 2005 | Quantum information with continuous variables | Reviews of Modern Physics | Review | Graduate | 10.1103/RevModPhys.77.513 | arXiv:quant-ph/0410100 | - | - |
 | bravyi-2005-magic | Bravyi and Kitaev | 2005 | Universal quantum computation with ideal Clifford gates and noisy ancillas | Physical Review A | Paper | Research | 10.1103/PhysRevA.71.022316 | arXiv:quant-ph/0403025 | - | - |
 | bravyi-2022-future | Bravyi et al. | 2022 | The future of quantum computing with superconducting qubits | Journal of Applied Physics | Review | University | 10.1063/5.0082975 | arXiv:2209.06841 | - | - |
@@ -637,6 +638,7 @@ Rules:
 | ghz-w | aaronson-2018-qclec | Section 10.1.2, The GHZ State and Monogamy of Entanglement | https://www.scottaaronson.com/qclec.pdf#page=73 |
 | ghz-w | dur-2000-three | Full paper | https://arxiv.org/abs/quant-ph/0005115 |
 | ghz-paradox | myrvold-2024-bell | Section 6, Variants of Bell's Theorem and of Bell inequalities experiments (GHZ) | https://plato.stanford.edu/entries/bell-theorem/#SomeVariBellTheo |
+| ghz-paradox | brassard-2004-telepathy | Section 3, Parity Games | https://arxiv.org/abs/quant-ph/0407221 |
 | contextuality | held-2022-kochenspecker | Section 1, Introduction | https://plato.stanford.edu/entries/kochen-specker/#intro |
 | contextuality | dewolf-notes | Section 17.3, Magic square game | https://homepages.cwi.nl/~rdewolf/qcnotes.pdf#page=160 |
 | contextuality | aaronson-2018-qclec | Section 14.3, The Magic Square Game | https://www.scottaaronson.com/qclec.pdf#page=114 |

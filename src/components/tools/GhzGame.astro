@@ -1,0 +1,264 @@
+---
+// Each round the referee asks one of four questions: your plan answers from its table, and three simulated ideal qubits in the GHZ state answer with Born rule draws, so a plan loses at least 1 question in 4 while the qubits never lose.
+import { PLAYERS, QUESTIONS, needOdd, answers, planWins, score, trio, type Plan } from '../../lib/sims/ghz-paradox.ts';
+const START: Plan = [[0, 0], [0, 0], [0, 0]];
+const won = planWins(START), w = score(START);
+const lost = QUESTIONS.filter((_, k) => !won[k]).map(trio);
+---
+<qce-ghz-game class="tool">
+  <fieldset class="plan">
+    <legend>Classical team: your plan</legend>
+    <p class="hint">Each player sees only their own bit and answers from this table. Press a bit to flip it. Can you win all four questions?</p>
+    <table>
+      <thead><tr><th scope="col">Player</th><th scope="col">Asked 0, says</th><th scope="col">Asked 1, says</th></tr></thead>
+      <tbody>
+        {PLAYERS.map((name, p) => (
+          <tr>
+            <th scope="row">{name}</th>
+            {[0, 1].map((b) => (
+              <td><button type="button" class="bit" data-p={p} data-b={b}><span class="visually-hidden">{name}, asked {b}, says </span><span data-v>{START[p][b]}</span></button></td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </fieldset>
+
+  <div class="check">
+    <table>
+      <caption>The four questions, each asked with chance 1/4</caption>
+      <thead><tr><th scope="col">Asked</th><th scope="col">Sum must be</th><th scope="col">Plan says</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+        {QUESTIONS.map((t, k) => (
+          <tr data-row={k} data-won={String(won[k])}>
+            <th scope="row"><code>{trio(t)}</code></th>
+            <td>{needOdd(t) ? 'odd' : 'even'}</td>
+            <td><code data-say>{trio(answers(START, t))}</code></td>
+            <td data-res>{won[k] ? 'won ✓' : 'lost ✗'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    <p data-score>Your plan wins {w} of 4. Every plan loses 1 or 3 of them.</p>
+  </div>
+
+  <div class="qteam">
+    <p class="label">Quantum team</p>
+    <p>Three qubits started as 000, then a Hadamard gate and two CNOTs made the GHZ state (|000⟩ + |111⟩)/√2. Each player holds one. Asked 0, a player measures in the X basis; asked 1, in the Y basis. The + result means answer 0, the − result answer 1.</p>
+  </div>
+
+  <div class="tool-controls">
+    <button type="button" class="btn btn-sm" data-run="1">Play 1 round</button>
+    <button type="button" class="btn btn-sm" data-run="50">Play 50 rounds</button>
+    <button type="button" class="btn btn-sm btn-line" data-clear>Clear</button>
+  </div>
+
+  <figure>
+    <p class="band">Classical team, your plan</p>
+    <canvas data-team="c" aria-hidden="true"></canvas>
+    <div class="qs" aria-hidden="true">{QUESTIONS.map((t) => <span>{trio(t)}</span>)}</div>
+    <p class="band">Quantum team, GHZ state</p>
+    <canvas data-team="q" aria-hidden="true"></canvas>
+    <div class="qs" aria-hidden="true">{QUESTIONS.map((t) => <span>{trio(t)}</span>)}</div>
+    <figcaption>
+      <span class="key"><span class="kw">won</span><span class="kl">lost</span></span>
+      <span>Each dot is one round, stacked over the question the referee asked. Both teams get the same questions.</span>
+    </figcaption>
+  </figure>
+
+  <dl class="tally">
+    <div><dt class="label">Classical team won</dt><dd><b class="doto" data-cw>0 of 0</b> <span data-ce>its plan wins {w} of 4 questions</span></dd></div>
+    <div><dt class="label">Quantum team won</dt><dd><b class="doto" data-qw>0 of 0</b> <span>expected all, with ideal qubits</span></dd></div>
+    <div><dt class="label">Quantum answers that were 1</dt><dd><b data-ones>none yet</b> <span>each player alone: about half, at random</span></dd></div>
+  </dl>
+
+  <p class="tool-readout" aria-live="polite">Your plan wins {w} of the 4 questions; it loses {lost.join(', ')}. Press Play to let the referee ask.</p>
+  <p class="note">A simulation of ideal, noise-free qubits. Each quantum round draws the three answers from the Born rule odds of the GHZ state, using your browser's random numbers. One computer plays all three quantum players here, so it sees every question; real players would each hold one qubit, far apart, and no message would pass between them. The quantum team always starts from this one GHZ state and measures only in the X or Y basis; you cannot change those here. Changing the plan replays the same questions with the new plan.</p>
+</qce-ghz-game>
+
+<script>
+  import { PLAYERS, QUESTIONS, BASIS, needOdd, wins, answers, planWins, score, playRound, tally, trio, sumText, about, type Plan, type Round, type Bit } from '../../lib/sims/ghz-paradox.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot, pct } from '../../lib/draw.ts';
+
+  /** Rounds the grid holds; rounds a column has room for before the canvas grows; ms between new rounds; ms a new dot stays enlarged. */
+  const MAX = 200, ROOM = 72, STEP = 28, POP = 260;
+  type Shot = Round & { t: number };
+  type Band = { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D | null; w: number; h: number; team: 'c' | 'q' };
+
+  /** Four columns, one per question. Dots fill each column from the bottom, k to a row. */
+  function layout(w: number, most: number) {
+    const col = w / 4, gap = Math.min(16, col * 0.14), inner = Math.max(1, col - gap);
+    const k = Math.max(4, Math.min(12, Math.floor(inner / 8)));
+    const cell = inner / k, r = Math.max(2, Math.min(4.5, cell * 0.36)), pad = r + 5;
+    const rows = Math.ceil(Math.max(ROOM, most) / k);
+    return { col, gap, k, cell, r, pad, rows, h: Math.ceil(2 * pad + rows * cell) };
+  }
+
+  class GhzGame extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const bits = [...this.querySelectorAll<HTMLButtonElement>('.bit')];
+      const goes = [...this.querySelectorAll<HTMLButtonElement>('[data-run]')];
+      const rows = [...this.querySelectorAll<HTMLTableRowElement>('[data-row]')];
+      const readout = $('.tool-readout');
+      const bands: Band[] = [...this.querySelectorAll<HTMLCanvasElement>('canvas')].map((canvas) => ({ canvas, ctx: null, w: 0, h: 0, team: canvas.dataset.team as 'c' | 'q' }));
+
+      const plan: Plan = [[0, 0], [0, 0], [0, 0]];
+      bits.forEach((x) => { plan[+x.dataset.p!][+x.dataset.b!] = +x.querySelector('[data-v]')!.textContent! as Bit; });
+      let shots: Shot[] = [], queue = 0, last = 0, raf = 0, seen = false, won = planWins(plan);
+      let g = layout(0, 0);
+
+      const most = () => Math.max(0, ...tally(shots, plan).perQuestion);
+
+      function paintBand(b: Band, now: number) {
+        const { ctx, w, h, team } = b;
+        if (!ctx) return;
+        const pal = palette(), { col, gap, k, cell, r, pad } = g, n = [0, 0, 0, 0];
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = pal.rule;
+        for (let c = 0; c < 4; c++) ctx.fillRect(c * col + gap / 2, h - 2, col - gap, 1.5);
+        for (const s of shots) {
+          if (now < s.t) continue;
+          const i = n[s.q]++, x = s.q * col + gap / 2 + (i % k + 0.5) * cell, y = h - pad - (Math.floor(i / k) + 0.5) * cell;
+          const age = now - s.t, rr = r * (age < POP ? 1 + 0.6 * (1 - age / POP) : 1);
+          const ok = team === 'q' ? wins(QUESTIONS[s.q], s.a) : won[s.q];
+          if (ok) dot(ctx, x, y, rr, pal.signal);
+          else {
+            ctx.strokeStyle = pal.hot; ctx.lineWidth = Math.max(1.25, rr * 0.38);
+            ctx.beginPath(); ctx.arc(x, y, Math.max(0.5, rr - ctx.lineWidth / 2), 0, Math.PI * 2); ctx.stroke();
+          }
+        }
+      }
+      const paint = (now = performance.now()) => bands.forEach((b) => paintBand(b, now));
+
+      function size() {
+        g = layout(bands[0].canvas.getBoundingClientRect().width, most());
+        bands.forEach((b) => { b.canvas.style.height = `${g.h}px`; Object.assign(b, fit(b.canvas)); });
+        paint();
+      }
+
+      /** The plan's table, its score, and the tally. */
+      function count() {
+        won = planWins(plan);
+        const w = score(plan), t = tally(shots, plan);
+        rows.forEach((row, k) => {
+          row.dataset.won = String(won[k]);
+          row.querySelector('[data-say]')!.textContent = trio(answers(plan, QUESTIONS[k]));
+          row.querySelector('[data-res]')!.textContent = won[k] ? 'won ✓' : 'lost ✗';
+        });
+        $('[data-score]').textContent = `Your plan wins ${w} of 4. Every plan loses 1 or 3 of them.`;
+        $('[data-cw]').textContent = `${t.classical} of ${t.n}`;
+        $('[data-ce]').textContent = t.n ? `its plan wins ${w} of 4 questions, so expect about ${about((t.n * w) / 4)}` : `its plan wins ${w} of 4 questions`;
+        $('[data-qw]').textContent = `${t.quantum} of ${t.n}`;
+        $('[data-ones]').textContent = t.n ? PLAYERS.map((name, p) => `${name} ${pct(t.ones[p] / t.n)}`).join(', ') : 'none yet';
+        const full = shots.length + queue >= MAX;
+        goes.forEach((x) => x.setAttribute('aria-disabled', String(full)));
+        return { w, t };
+      }
+
+      function say(lead = '') {
+        const { w, t } = count();
+        const lost = QUESTIONS.filter((_, k) => !won[k]).map(trio);
+        let txt = `${lead}Your plan wins ${w} of the 4 questions; it loses ${lost.join(', ')}. `;
+        if (w === 3) txt += 'That is the best any plan can do: every plan loses 1 or 3. ';
+        if (!t.n) { readout.textContent = txt + 'Press Play to let the referee ask.'; return; }
+        txt += `${t.n} ${t.n === 1 ? 'round' : 'rounds'}. Classical team won ${t.classical} (${pct(t.classical / t.n)}), expected about ${about((t.n * w) / 4)}. Quantum team, three qubits started as 000 and made into the GHZ state by a Hadamard gate and two CNOTs: won ${t.quantum} of ${t.n}. `;
+        const s = shots[shots.length - 1], q = QUESTIONS[s.q], c = answers(plan, q);
+        txt += `Last round: asked ${trio(q)}, so the sum must be ${needOdd(q) ? 'odd' : 'even'}. Your plan said ${trio(c)}, ${sumText(c)}: ${wins(q, c) ? 'won' : 'lost'}. `;
+        txt += `The GHZ qubits, measured in ${q.map((b) => BASIS[b]).join(', ')}, gave ${trio(s.a)}, ${sumText(s.a)}: ${wins(q, s.a) ? 'won' : 'lost'}.`;
+        if (t.n >= MAX) txt += ' The grid is full. Press Clear to start again.';
+        readout.textContent = txt;
+      }
+
+      const add = (t: number) => {
+        shots.push({ ...playRound(Math.random), t }); queue--;
+        if (most() > g.rows * g.k) size();
+        count();
+      };
+      /** Finish every queued round at once and draw the end state: for reduced motion, and when the tool is off screen. */
+      const flush = () => { while (queue > 0) add(-Infinity); shots.forEach((s) => { s.t = -Infinity; }); paint(); say(); };
+      const busy = (now: number) => queue > 0 || (shots.length > 0 && now < shots[shots.length - 1].t + POP);
+
+      function frame(now: number) {
+        raf = 0;
+        if (!seen) { flush(); return; }
+        if (queue > 0 && now - last >= STEP) { add(now); last = now; }
+        paint(now);
+        if (busy(now)) raf = requestAnimationFrame(frame); else say();
+      }
+      const kick = () => { if (reduceMotion() || !seen) flush(); else if (!raf) raf = requestAnimationFrame(frame); };
+
+      bits.forEach((x) => x.addEventListener('click', () => {
+        const p = +x.dataset.p!, b = +x.dataset.b!, v = (1 - plan[p][b]) as Bit;
+        plan[p][b] = v;
+        x.querySelector('[data-v]')!.textContent = String(v);
+        count(); paint();
+        if (!raf) say(`${PLAYERS[p]} now says ${v} when asked ${b}. `);
+      }));
+      goes.forEach((x) => x.addEventListener('click', () => {
+        const room = MAX - shots.length - queue;
+        if (room <= 0) { say(); return; }
+        queue += Math.min(+x.dataset.run!, room);
+        kick();
+      }));
+      $('[data-clear]').addEventListener('click', () => {
+        shots = []; queue = 0;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        size(); say();
+      });
+
+      onResize(bands[0].canvas, size);
+      onTheme(() => paint());
+      onSeen(this, (v) => { seen = v; if (!v && queue > 0) flush(); });
+      count();
+    }
+  }
+  customElements.define('qce-ghz-game', GhzGame);
+</script>
+
+<style>
+  .plan { display: grid; gap: var(--s3); min-width: 0; margin: 0; padding: 0; border: 0 }
+  .plan legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  .hint, .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+
+  table { border-collapse: collapse; background: var(--paper); border: 1px solid var(--rule) }
+  th, td { padding: var(--s1); border-top: 1px solid var(--rule); text-align: left; vertical-align: middle }
+  thead th { font: 500 .75rem/1.3 var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2) }
+  caption { padding-bottom: var(--s2); text-align: left; font-weight: 600 }
+  code { font-size: 1rem; white-space: nowrap }
+
+  .plan table { width: 100%; max-width: 26rem }
+  .bit { min-width: 2.75rem; min-height: 2.75rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 600 1.25rem var(--mono); cursor: pointer }
+  .bit:hover { border-color: var(--ink) }
+
+  .check { display: grid; gap: var(--s2); min-width: 0 }
+  .check table { width: 100%; max-width: 32rem }
+  .check tbody td:last-child { font-weight: 600; white-space: nowrap }
+  .check tr[data-won="false"] td:last-child { color: var(--hot) }
+  [data-score] { font-weight: 600 }
+
+  .qteam { display: grid; gap: var(--s1); max-width: var(--read); padding: var(--s3); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); overflow-wrap: anywhere }
+
+  [aria-disabled="true"] { opacity: .45; cursor: not-allowed }
+
+  figure { display: grid; gap: var(--s1); min-width: 0 }
+  .band { margin-top: var(--s2); font: 500 .875rem var(--mono); color: var(--ink) }
+  .qs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); font: 500 .8125rem var(--mono); color: var(--ink-2); text-align: center }
+  figcaption { display: grid; gap: var(--s2); margin-top: var(--s2); font-size: .9375rem; color: var(--ink-2) }
+  .key { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); font: 500 .875rem var(--mono) }
+  .key > span { display: inline-flex; align-items: center; gap: .4rem }
+  .key > span::before { content: ""; flex: none; width: .75rem; height: .75rem; border-radius: 50% }
+  .key > .kw::before { background: var(--signal) }
+  .key > .kl::before { border: 2px solid var(--hot) }
+
+  .tally { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule) }
+  .tally > div { display: grid; align-content: start; gap: var(--s1); min-width: 0; padding: var(--s3); background: var(--paper) }
+  .tally dd { margin: 0; display: grid; gap: var(--s1); color: var(--ink-2); font-size: .9375rem }
+  .tally b { color: var(--ink) }
+  .tally b.doto { font-size: 1.75rem; line-height: 1 }
+  [data-ones] { font: 500 .9375rem var(--mono) }
+
+  @media (min-width: 40rem) {
+    th, td { padding: var(--s1) var(--s2) }
+  }
+</style>
