@@ -54,6 +54,7 @@ Every claim, formula and widget gets fact-checked before it ships. Rules learned
 - Name the start state ("started as 0, then a Hadamard gate").
 - Blog facts carry a source.
 - Every important claim needs a primary-source link, the date it was checked, and its type: theorem, experiment, company claim or forecast. Research citations checked only through search snippets or memory are not verified yet.
+- Learn more: `docs/references.md`, one library of university-level sources plus a list per stop. `scripts/check-ref.py docs/references.md` catches ids for the wrong paper. Run it in CI.
 
 ## Page kit
 
