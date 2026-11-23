@@ -1,0 +1,235 @@
+---
+// Mach-Zehnder interferometer: each dot is one simulated photon sent to D0 or D1 at random with the Born-rule odds of
+// H P(phi) H on its path, or of the same circuit plus a marker that records the arm. Ideal, lossless parts.
+import { SHOTS, PHASE, PRESETS, report, valueText } from '../../lib/sims/mach-zehnder.ts';
+const uid = 'mz-' + Math.random().toString(36).slice(2, 8);
+---
+<qce-mach-zehnder class="tool">
+  <figure>
+    <canvas aria-hidden="true"></canvas>
+    <figcaption>
+      A picture, not to scale. A source sends one photon at a time into beam splitter BS1; the broken bars are beam splitters and the solid bars are mirrors. Beam splitters taken as H.
+      φ is a phase shifter in the lower arm. When marking is on, the ring on the lower arm is a marker that records which arm each photon took.
+      Each dot in a row is one photon that reached that detector, at random with odds |amplitude|². The short upright line in each row is the count the Born rule predicts.
+      Ideal parts: no light is lost. A new setting starts a new run.
+    </figcaption>
+  </figure>
+
+  <div class="phase">
+    <div class="row">
+      <label for={`${uid}-phi`}>Phase shift φ in the lower arm</label>
+      <output for={`${uid}-phi`}>{PHASE.start}°</output>
+    </div>
+    <input id={`${uid}-phi`} type="range" min={PHASE.min} max={PHASE.max} step={PHASE.step} value={PHASE.start} aria-valuetext={valueText(PHASE.start, false)} />
+    <div class="tool-controls presets" role="group" aria-label="Preset phases">
+      {PRESETS.map((d) => <button type="button" data-deg={d} aria-pressed={String(d === PHASE.start)}>{d}°</button>)}
+    </div>
+  </div>
+
+  <div class="tool-controls">
+    <label class="switch"><input type="checkbox" role="switch" data-mark /><span class="track" aria-hidden="true"></span>Mark which path</label>
+    <button class="btn btn-line" type="button" data-send>Send {SHOTS} new photons</button>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">{report(PHASE.start, false)}</p>
+</qce-mach-zehnder>
+
+<script>
+  import { SHOTS, PARTS, LABEL, layout, chances, detect, rate, report, valueText, type Layout, type Port } from '../../lib/sims/mach-zehnder.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  // How long a new dot stays large and blue, and how long a detector lights up, in ms.
+  const FRESH = 450, FLASH = 300;
+  type XY = readonly [number, number];
+
+  class MachZehnder extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const canvas = $<HTMLCanvasElement>('canvas'), slider = $<HTMLInputElement>('input[type="range"]'), out = $<HTMLOutputElement>('output');
+      const mark = $<HTMLInputElement>('[data-mark]'), send = $<HTMLButtonElement>('[data-send]'), readout = $('.tool-readout');
+      const presets = [...this.querySelectorAll<HTMLButtonElement>('[data-deg]')];
+
+      let ctx = canvas.getContext('2d')!, L: Layout | null = null, pal = palette(), mono = token('--mono');
+      let deg = Number(slider.value), marked = false, p = chances(deg, 1);
+      // Every photon of this run, by detector: the time it landed (for the fade).
+      const piles: [number[], number[]] = [[], []], flash = [-Infinity, -Infinity];
+      let queue = 0, acc = 0, raf = 0, last = 0, seen = false, done = false, lastLand = -Infinity;
+
+      // ---- Drawing
+
+      const at = ([x, y]: XY): XY => [L!.ox + x * L!.u, L!.oy + y * L!.u];
+      const text = (s: string, xy: XY, align: CanvasTextAlign, color: string, weight = 500) => {
+        ctx.font = `${weight} 12px ${mono}`; ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.fillStyle = color;
+        ctx.fillText(s, ...at(xy));
+      };
+      const bar = (xy: XY, dash: number[]) => {
+        const [x, y] = at(xy), half = 0.24 * L!.u;
+        ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x - half, y); ctx.lineTo(x + half, y); ctx.stroke();
+      };
+
+      const scene = (now: number) => {
+        const u = L!.u, { source, bs1, mirrorUp, mirrorDown, bs2, d0, d1, shifter, marker } = PARTS;
+        ctx.lineCap = 'round';
+
+        // Beams, drawn as dotted lines.
+        ctx.strokeStyle = pal.ink2; ctx.lineWidth = 2; ctx.setLineDash([0, Math.max(5, u * 0.1)]);
+        ctx.beginPath();
+        for (const [a, b] of [[source, bs1], [bs1, mirrorUp], [bs1, mirrorDown], [mirrorUp, bs2], [mirrorDown, bs2], [bs2, d0], [bs2, d1]] as const) {
+          ctx.moveTo(...at(a)); ctx.lineTo(...at(b));
+        }
+        ctx.stroke();
+
+        // Mirrors are solid bars; beam splitters (half-silvered) are broken bars.
+        ctx.strokeStyle = pal.ink; ctx.lineWidth = 3.5;
+        bar(mirrorUp, []); bar(mirrorDown, []); bar(bs1, [4, 4]); bar(bs2, [4, 4]);
+        ctx.setLineDash([]);
+
+        dot(ctx, ...at(source), Math.max(4, 0.11 * u), pal.ink);
+        text('source', [-2.35, -1.3], 'left', pal.ink2);
+        text('BS1', [-1.42, 0], 'right', pal.ink2);
+        text('BS2', [1.42, 0], 'left', pal.ink2);
+
+        // Phase shifter: a plate across the lower arm.
+        const [sx, sy] = at(shifter);
+        ctx.save(); ctx.translate(sx, sy); ctx.rotate(-Math.PI / 4);
+        ctx.fillStyle = pal.paper; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5;
+        ctx.fillRect(-0.2 * u, -0.065 * u, 0.4 * u, 0.13 * u); ctx.strokeRect(-0.2 * u, -0.065 * u, 0.4 * u, 0.13 * u);
+        ctx.restore();
+        text(`φ = ${deg}°`, [-0.76, 0.6], 'right', pal.ink);
+
+        // The marker, only when marking is on.
+        if (marked) {
+          const [mx, my] = at(marker);
+          ctx.strokeStyle = pal.hot; ctx.lineWidth = 2.5;
+          ctx.beginPath(); ctx.arc(mx, my, 0.12 * u, 0, Math.PI * 2); ctx.stroke();
+          dot(ctx, mx, my, 0.04 * u, pal.hot);
+          text('mark', [0.76, 0.6], 'left', pal.hot, 600);
+        }
+
+        // Detectors light up as a photon lands.
+        ([d0, d1] as const).forEach((xy, j) => {
+          const [x, y] = at(xy), r = 0.15 * u, t = (now - flash[j]) / FLASH;
+          dot(ctx, x, y, r, pal.paper);
+          if (t >= 0 && t < 1) { ctx.globalAlpha = 1 - t; dot(ctx, x, y, r, pal.signal); ctx.globalAlpha = 1; }
+          ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+        });
+        text('D0', [2, -1.3], 'center', pal.ink, 600);
+        text('D1', [2, 1.32], 'center', pal.ink, 600);
+      };
+
+      // One tray per detector: one dot per photon, filled column by column, and a tick at the predicted count.
+      const tray = (j: Port, now: number) => {
+        const t = L!.trays[j], top = t.y + LABEL, r = t.pitch * 0.36, pile = piles[j];
+        const cell = (k: number): XY => [t.x + (Math.floor(k / t.rows) + 0.5) * t.pitch, top + ((k % t.rows) + 0.5) * t.pitch];
+        ctx.font = `600 12px ${mono}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = pal.ink;
+        ctx.fillText(`D${j}: ${pile.length}`, t.x, t.y + LABEL / 2 - 2);
+        for (let k = pile.length; k < SHOTS; k++) dot(ctx, ...cell(k), Math.max(0.6, r * 0.4), pal.rule);
+        pile.forEach((born, k) => {
+          const age = (now - born) / FRESH;
+          if (age < 1) dot(ctx, ...cell(k), r * (2.2 - 1.2 * Math.max(0, age)), pal.signal);
+          else dot(ctx, ...cell(k), r, pal.ink);
+        });
+        const x = t.x + ((p[j] * SHOTS) / t.rows) * t.pitch;
+        ctx.strokeStyle = pal.signal; ctx.lineWidth = 2; ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(x, top - 4); ctx.lineTo(x, top + t.rows * t.pitch + 4); ctx.stroke();
+      };
+
+      const paint = (now = performance.now()) => {
+        if (!L) return;
+        ctx.clearRect(0, 0, L.w, L.h);
+        scene(now); tray(0, now); tray(1, now);
+      };
+
+      const size = () => {
+        const w = canvas.getBoundingClientRect().width;
+        if (!w) return;
+        L = layout(w);
+        canvas.style.height = `${L.h}px`;
+        ({ ctx } = fit(canvas));
+        pal = palette(); mono = token('--mono');
+        paint();
+      };
+
+      // ---- Runs
+
+      const say = () => { readout.textContent = report(deg, marked, done ? [piles[0].length, piles[1].length] : undefined); };
+
+      const land = (t: number) => {
+        const j = detect(p[0], Math.random);
+        piles[j].push(t); flash[j] = t; lastLand = t;
+      };
+
+      // Photons land at rate(landed) per second: one by one at first, then faster. Off screen, wait.
+      // With reduced motion, the whole run lands at once and the end state is drawn.
+      const step = (now: number) => {
+        raf = 0;
+        const dt = last ? Math.min(now - last, 50) : 16;
+        last = now;
+        if (queue > 0) {
+          const still = reduceMotion();
+          let k = queue;
+          if (!still) { acc += (rate(SHOTS - queue) * dt) / 1000; k = Math.min(queue, Math.floor(acc)); acc -= k; }
+          for (let i = 0; i < k; i++) land(still ? -Infinity : now);
+          queue -= k;
+          if (queue === 0) { done = true; say(); }
+        }
+        paint(now);
+        if (seen && (queue > 0 || now - lastLand < Math.max(FRESH, FLASH))) raf = requestAnimationFrame(step); else last = 0;
+      };
+      const kick = () => { if (!raf && seen) raf = requestAnimationFrame(step); };
+
+      // A new setting is a new experiment: empty the trays and send a fresh run.
+      const reset = () => {
+        piles[0].length = 0; piles[1].length = 0; flash.fill(-Infinity);
+        queue = SHOTS; acc = 0.75; done = false; lastLand = -Infinity;
+        p = chances(deg, marked ? 0 : 1);
+        paint(); kick();
+      };
+
+      const setPhase = (d: number) => {
+        deg = d; slider.value = String(d); out.textContent = `${d}°`;
+        slider.setAttribute('aria-valuetext', valueText(d, marked));
+        presets.forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.deg) === d)));
+        reset();
+      };
+
+      slider.addEventListener('input', () => setPhase(Number(slider.value)));
+      // Say the new setup once the reader lets go, not at every step of a drag.
+      slider.addEventListener('change', say);
+      presets.forEach((b) => b.addEventListener('click', () => { setPhase(Number(b.dataset.deg)); say(); }));
+      mark.addEventListener('change', () => {
+        marked = mark.checked;
+        slider.setAttribute('aria-valuetext', valueText(deg, marked));
+        reset(); say();
+      });
+      send.addEventListener('click', () => { reset(); say(); });
+
+      onResize(canvas, size);
+      onTheme(size);
+      onSeen(canvas, (v) => { seen = v; if (v) kick(); });
+      reset();
+    }
+  }
+  customElements.define('qce-mach-zehnder', MachZehnder);
+</script>
+
+<style>
+  figure { display: grid; gap: var(--s2); margin: 0; min-width: 0 }
+  canvas { height: 18rem; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r) }
+  figcaption { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+
+  .phase { display: grid; gap: var(--s1); max-width: 28rem }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .presets { margin-top: var(--s1) }
+  .presets button { min-width: 4rem; min-height: 2.75rem; padding: 0 .9rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer }
+  .presets button:hover { border-color: var(--ink) }
+  .presets button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+
+  .switch { position: relative; display: inline-flex; align-items: center; gap: .7rem; min-height: 2.75rem; cursor: pointer }
+  .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0 }
+  .track { position: relative; flex: none; width: 3rem; height: 1.75rem; border-radius: 1rem; background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--ink-2); transition: background .2s }
+  .track::after { content: ""; position: absolute; top: .25rem; left: .25rem; width: 1.25rem; height: 1.25rem; border-radius: 50%; background: var(--ink-2); transition: transform .2s }
+  .switch input:checked + .track { background: var(--hot); box-shadow: none }
+  .switch input:checked + .track::after { background: var(--paper); transform: translateX(1.25rem) }
+  .switch input:focus-visible + .track { outline: 3px solid var(--signal); outline-offset: 3px }
+</style>
