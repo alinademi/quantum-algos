@@ -45,6 +45,6 @@ export function dot(ctx: CanvasRenderingContext2D, x: number, y: number, r: numb
 export const pct = (p: number): string => {
   const v = p * 100;
   if (v > 0 && v < 0.05) return '<0.1%';
-  if (v > 99.95 && v < 100) return '>99.9%';
+  if (v >= 99.95 && v < 100) return '>99.9%';
   return `${(v > 0 && v < 1) || (v > 99 && v < 100) ? v.toFixed(1) : Math.round(v)}%`;
 };
