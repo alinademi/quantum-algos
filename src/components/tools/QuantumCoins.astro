@@ -1,0 +1,161 @@
+---
+// Two rows of coin flips: a simulated qubit (start as 0, Hadamard, measure, Born rule odds) and a seeded program.
+// "Run again" replays both from the same start, so the reader sees that a seed fixes every bit and a qubit has no seed.
+import { BATCH, MAX_BITS } from '../../lib/sims/quantum-random.ts';
+const seedId = 'qc-seed-' + Math.random().toString(36).slice(2, 8);
+---
+<qce-quantum-coins class="tool">
+  <canvas aria-hidden="true"></canvas>
+  <ul class="legend">
+    <li><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.5" fill="currentColor" /></svg>1</li>
+    <li><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="3.75" fill="none" stroke="currentColor" stroke-width="1.5" /></svg>0</li>
+    <li><svg viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="8" width="10" height="2.5" fill="var(--hot)" /></svg>changed since the last run</li>
+  </ul>
+  <div class="tool-controls">
+    <button type="button" class="btn btn-sm" data-flip>Flip {BATCH} more</button>
+    <button type="button" class="btn btn-sm btn-line" data-again>Run again, same start</button>
+    <div class="seed">
+      <label for={seedId}>Seed of the program</label>
+      <output for={seedId}>42</output>
+      <input id={seedId} type="range" min="1" max="100" step="1" value="42" />
+    </div>
+  </div>
+  <p class="tool-readout" aria-live="polite">Top row: qubits, each started as 0, then a Hadamard gate, then measured. Bottom row: a program that starts from a seed. Up to {MAX_BITS} flips each.</p>
+  <p class="note">The qubit here is simulated. Its random draws come from your browser's random number generator, a program on a normal computer, not a qubit. It gives the same odds a real qubit would, but only real quantum hardware gives quantum random bits.</p>
+</qce-quantum-coins>
+
+<script>
+  import { BATCH, MAX_BITS, flips, lcgBits, matches, ones, usualRange, type Bit } from '../../lib/sims/quantum-random.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot, token } from '../../lib/draw.ts';
+
+  const LABEL = 22, GAP = 14, PER_FRAME = 2;
+
+  /** The simulated qubit's draws: the browser's random number generator, not a qubit. */
+  const buf = new Uint32Array(1);
+  const browserRand = () => { crypto.getRandomValues(buf); return buf[0] / 2 ** 32; };
+
+  type Act = 'flip' | 'again' | 'seed';
+
+  class QuantumCoins extends HTMLElement {
+    connectedCallback() {
+      const canvas = this.querySelector('canvas')!;
+      const flipBtn = this.querySelector<HTMLButtonElement>('[data-flip]')!;
+      const againBtn = this.querySelector<HTMLButtonElement>('[data-again]')!;
+      const seedIn = this.querySelector<HTMLInputElement>('input[type="range"]')!;
+      const seedOut = this.querySelector('output')!;
+      const readout = this.querySelector('.tool-readout')!;
+
+      let seed = +seedIn.value;
+      let qBits: Bit[] = flips(BATCH, browserRand), pBits: Bit[] = lcgBits(seed, BATCH);
+      let prevQ: Bit[] | null = null, prevP: Bit[] | null = null;
+      let shown = 0, target = BATCH, act: Act = 'flip', raf = 0, seen = false;
+      let ctx: CanvasRenderingContext2D, w = 0, h = 0, cols = 32, cell = 10, x0 = 0, col = palette(), mono = '';
+
+      const layout = (width: number) => {
+        cols = width / 32 >= 11 ? 32 : 16;
+        cell = Math.min(width / cols, 22);
+        x0 = (width - cols * cell) / 2;
+        return 2 * (LABEL + (MAX_BITS / cols) * cell) + GAP;
+      };
+
+      const band = (y: number, title: string, bits: Bit[], prev: Bit[] | null, color: string) => {
+        const n = Math.min(shown, bits.length), r = cell * 0.32;
+        ctx.font = `500 11px ${mono}`; ctx.fillStyle = col.ink2;
+        ctx.textAlign = 'left'; ctx.fillText(title, x0, y + 14);
+        ctx.textAlign = 'right'; ctx.fillText(`${ones(bits.slice(0, n))} ones of ${n}`, x0 + cols * cell, y + 14);
+        for (let i = 0; i < MAX_BITS; i++) {
+          const cx = x0 + ((i % cols) + 0.5) * cell, cy = y + LABEL + (Math.floor(i / cols) + 0.42) * cell;
+          if (i >= n) { dot(ctx, cx, cy, Math.max(1, cell * 0.08), col.rule); continue; }
+          if (bits[i]) dot(ctx, cx, cy, r, color);
+          else { ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.25, cell * 0.1); ctx.beginPath(); ctx.arc(cx, cy, r - ctx.lineWidth / 2, 0, Math.PI * 2); ctx.stroke(); }
+          if (prev && i < prev.length && prev[i] !== bits[i]) { ctx.fillStyle = col.hot; ctx.fillRect(cx - r, cy + r + cell * 0.08, 2 * r, Math.max(2, cell * 0.12)); }
+        }
+      };
+
+      const paint = () => {
+        if (!ctx) return;
+        ctx.clearRect(0, 0, w, h);
+        const bandH = LABEL + (MAX_BITS / cols) * cell;
+        band(0, 'Qubit |+⟩, simulated', qBits, prevQ, col.signal);
+        band(bandH + GAP, `Program, seed ${seed}`, pBits, prevP, col.ink);
+      };
+
+      const size = () => {
+        canvas.style.height = `${layout(canvas.getBoundingClientRect().width)}px`;
+        ({ ctx, w, h } = fit(canvas));
+        col = palette(); mono = token('--mono');
+        paint();
+      };
+
+      const say = () => {
+        const n = qBits.length, kq = ones(qBits), kp = ones(pBits), r = usualRange(n);
+        const inRange = (k: number) => k >= r.lo && k <= r.hi;
+        if (act === 'again' && prevQ && prevP) {
+          const mq = matches(prevQ, qBits), mp = matches(prevP, pBits);
+          readout.textContent = `Run again from the same start, ${n} flips. Program, seed ${seed}: ${mp === n ? `all ${n}` : `${mp} of ${n}`} bits are the same as last time, because the seed fixes them. ` +
+            `Qubit, started as 0 then a Hadamard gate again: ${mq} of ${n} match last time. Fresh fair coins match about half the time, usually ${r.lo} to ${r.hi}.`;
+        } else if (act === 'seed') {
+          readout.textContent = `Seed ${seed}: ${kp} ones in ${n}. Each seed fixes its own list of bits. Go back to an earlier seed and you get its bits again.`;
+        } else {
+          readout.textContent = `${n} flips in each row. Qubit: ${kq} ones. Program, seed ${seed}: ${kp} ones. Fair coins usually give ${r.lo} to ${r.hi} ones in ${n}` +
+            (inRange(kq) && inRange(kp) ? ', and both rows do, so counting alone cannot tell them apart.' : '. A count outside that happens now and then.');
+        }
+        const full = n >= MAX_BITS;
+        flipBtn.setAttribute('aria-disabled', String(full));
+        if (full && act === 'flip') readout.textContent += ` The rows are full. Press Run again, or change the seed.`;
+      };
+
+      const step = () => {
+        raf = 0;
+        shown = Math.min(target, shown + PER_FRAME);
+        paint();
+        if (shown < target) { if (seen) raf = requestAnimationFrame(step); }
+        else say();
+      };
+      const play = () => {
+        if (reduceMotion()) { shown = target; paint(); say(); }
+        else if (!raf && seen) raf = requestAnimationFrame(step);
+      };
+
+      flipBtn.addEventListener('click', () => {
+        if (qBits.length >= MAX_BITS) { act = 'flip'; say(); return; }
+        const n = qBits.length + BATCH;
+        qBits = qBits.concat(flips(BATCH, browserRand)); pBits = lcgBits(seed, n);
+        prevQ = prevP = null; shown = Math.min(shown, n - BATCH); target = n; act = 'flip';
+        paint(); play();
+      });
+      againBtn.addEventListener('click', () => {
+        const n = qBits.length;
+        prevQ = qBits; prevP = pBits;
+        qBits = flips(n, browserRand); pBits = lcgBits(seed, n);
+        shown = 0; target = n; act = 'again';
+        paint(); play();
+      });
+      seedIn.addEventListener('input', () => {
+        seed = +seedIn.value; seedOut.textContent = String(seed);
+        pBits = lcgBits(seed, qBits.length); prevQ = prevP = null; shown = target = qBits.length; act = 'seed';
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        paint();
+      });
+      seedIn.addEventListener('change', say);
+
+      size();
+      onResize(canvas, size);
+      onTheme(size);
+      document.fonts?.ready.then(size);
+      onSeen(this, (v) => { seen = v; if (v && shown < target) play(); });
+      if (reduceMotion()) play();
+    }
+  }
+  if (!customElements.get('qce-quantum-coins')) customElements.define('qce-quantum-coins', QuantumCoins);
+</script>
+
+<style>
+  .legend { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); font: 500 .8125rem/1.4 var(--mono); color: var(--ink-2) }
+  .legend li { display: inline-flex; align-items: center; gap: var(--s2) }
+  .legend svg { width: .75rem; height: .75rem; flex: none }
+  .seed { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0 var(--s2); flex: 1 1 14rem; min-width: 0 }
+  .seed input { grid-column: 1 / -1 }
+  [aria-disabled="true"] { opacity: .45; cursor: not-allowed }
+  .note { font-size: .9375rem; color: var(--ink-2); max-width: var(--read) }
+</style>
