@@ -624,7 +624,7 @@ Rules:
 | multi-qubit | watrous-2025-understanding | Multiple systems: Ordering Cartesian product state sets | https://quantum.cloud.ibm.com/learning/en/courses/basics-of-quantum-information/multiple-systems/classical-information#ordering-cartesian-product-state-sets |
 | multi-qubit | aaronson-2018-qclec | Section 5.3, Multi-Qubit States and Operations | https://www.scottaaronson.com/qclec.pdf#page=38 |
 | partial-measurement | watrous-2025-understanding | Multiple systems: Partial measurements | https://quantum.cloud.ibm.com/learning/en/courses/basics-of-quantum-information/multiple-systems/quantum-information#partial-measurements |
-| partial-measurement | aaronson-2018-qclec | Section 4.1.1, Generalized Born Rule | https://www.scottaaronson.com/qclec.pdf#page=26 |
+| partial-measurement | aaronson-2018-qclec | Section 5.3, Multi-Qubit States: the Partial Measurement Rule | https://www.scottaaronson.com/qclec.pdf#page=38 |
 | entanglement | watrous-2025-understanding | Multiple systems: Entangled states | https://quantum.cloud.ibm.com/learning/en/courses/basics-of-quantum-information/multiple-systems/quantum-information#entangled-states |
 | entanglement | aaronson-2018-qclec | Section 5.3.2, Entanglement | https://www.scottaaronson.com/qclec.pdf#page=40 |
 | entanglement | zwiebach-2013-805 | Tensor product notes, Section 2, Entangled States | https://ocw.mit.edu/courses/8-05-quantum-physics-ii-fall-2013/ffe665c0cba2eae19a83e88dec42925c_MIT8_05F13_Chap_08.pdf#page=8 |
