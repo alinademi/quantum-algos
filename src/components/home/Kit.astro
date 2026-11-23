@@ -1,0 +1,27 @@
+---
+// "How a stop works": the tools a reader meets at every stop.
+import SectionHead from './SectionHead.astro';
+import Glyph from './Glyph.astro';
+const kit = [
+  { glyph: 'depth', title: 'Depth dial', text: 'Kid, Student or Engineer. Same stop, told at your level.' },
+  { glyph: 'myth', title: 'Myth trap', text: 'Each stop opens by breaking one common myth.' },
+  { glyph: 'four', title: 'A live tool', text: 'Every stop has its own simulator. Move it and the physics answers.' },
+  { glyph: 'guess', title: 'Guess, then run', text: 'Bet on the result, then run 1,000 shots and watch the columns fill.' },
+] as const;
+---
+<section class="section" aria-labelledby="kit-title">
+  <div class="wrap">
+    <SectionHead id="kit-title" title="How a stop works">You try the idea first and read about it second.</SectionHead>
+    <ul class="kit">{kit.map((k) => <li><Glyph name={k.glyph} /><h3>{k.title}</h3><p>{k.text}</p></li>)}</ul>
+  </div>
+</section>
+
+<style>
+  .section { padding-block: var(--s7) 0 }
+  .kit { display: grid; gap: var(--s5) var(--s4) }
+  li { display: grid; gap: var(--s2); align-content: start; padding-top: var(--s4); background: radial-gradient(circle, var(--rule) 1.4px, transparent 1.8px) 0 0 / 9px 6px repeat-x }
+  h3 { font-size: 1.375rem; letter-spacing: -.02em }
+  p { color: var(--ink-2); max-width: 26rem }
+  @media (min-width: 40rem) { .kit { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+  @media (min-width: 64rem) { .kit { grid-template-columns: repeat(4, minmax(0, 1fr)) } }
+</style>

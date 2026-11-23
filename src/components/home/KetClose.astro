@@ -1,0 +1,65 @@
+---
+// The closing band: the ket |psi> drawn as random dots whose odds follow the letter shapes.
+---
+<section class="close" aria-labelledby="close-title">
+  <div class="wrap close-in">
+    <canvas id="ket" aria-hidden="true"></canvas>
+    <div>
+      <h2 id="close-title">Even this ket is drawn by chance.</h2>
+      <p>Every dot in it landed at random, with the odds set by the shape. Your first stop shows how that works for one qubit.</p>
+      <a class="btn" href="/learn/superposition/">Start with superposition <span aria-hidden="true">→</span></a>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { fit, token, reduceMotion, onResize, onTheme, onSeen } from '../../lib/draw.ts';
+  const canvas = document.querySelector<HTMLCanvasElement>('#ket');
+  if (canvas) {
+    let pts: [number, number][] = [], i = 0, raf = 0, started = false;
+    let ctx: CanvasRenderingContext2D, w = 0, h = 0;
+    const build = () => {
+      ({ ctx, w, h } = fit(canvas));
+      const W = 360, H = Math.max(120, Math.round((360 * h) / w)), off = document.createElement('canvas');
+      off.width = W; off.height = H;
+      const g = off.getContext('2d')!, s = H * 0.74, cy = H / 2, lw = s * 0.075;
+      g.font = `italic 400 ${s}px Georgia, "Times New Roman", serif`;
+      const pw = g.measureText('ψ').width, total = lw + s * 0.12 + pw + s * 0.14 + s * 0.3;
+      let x = (W - total) / 2;
+      g.fillRect(x, cy - s * 0.56, lw, s * 1.12); x += lw + s * 0.12;
+      g.textBaseline = 'middle'; g.fillText('ψ', x, cy + s * 0.06); x += pw + s * 0.14;
+      g.lineWidth = lw; g.lineJoin = 'miter'; g.beginPath(); g.moveTo(x, cy - s * 0.56); g.lineTo(x + s * 0.28, cy); g.lineTo(x, cy + s * 0.56); g.stroke();
+      const d = g.getImageData(0, 0, W, H).data, cand: number[] = [];
+      for (let p = 0; p < W * H; p++) if (d[p * 4 + 3] > 110) cand.push(p);
+      const N = Math.min(9000, cand.length * 2);
+      pts = [];
+      for (let k = 0; k < N; k++) { const p = cand[(Math.random() * cand.length) | 0]; pts.push([(((p % W) + Math.random()) / W) * w, ((Math.floor(p / W) + Math.random()) / H) * h]); }
+      for (let k = 0; k < N * 0.05; k++) pts.push([Math.random() * w, Math.random() * h]);
+      for (let k = pts.length - 1; k > 0; k--) { const j = (Math.random() * (k + 1)) | 0; [pts[k], pts[j]] = [pts[j], pts[k]]; }
+      i = 0; ctx.clearRect(0, 0, w, h);
+    };
+    const step = () => {
+      raf = 0; ctx.fillStyle = token('--paper'); ctx.globalAlpha = 0.85;
+      const end = reduceMotion() ? pts.length : Math.min(pts.length, i + 70 + i / 25);
+      for (; i < end; i++) { ctx.beginPath(); ctx.arc(pts[i][0], pts[i][1], 1, 0, Math.PI * 2); ctx.fill(); }
+      ctx.globalAlpha = 1;
+      if (i < pts.length) raf = requestAnimationFrame(step);
+    };
+    const go = () => { build(); if (started && !raf) raf = requestAnimationFrame(step); };
+    onSeen(canvas, (v) => { if (v && !started) { started = true; if (!raf) raf = requestAnimationFrame(step); } });
+    onResize(canvas, go);
+    onTheme(go);
+    build();
+  }
+</script>
+
+<style>
+  .close { margin-top: var(--s7); padding-block: var(--s6); background: var(--ink); color: var(--paper) }
+  .close-in { display: grid; gap: var(--s4); align-items: center }
+  canvas { width: 100%; max-width: 30rem; height: clamp(180px, 34vw, 300px) }
+  h2 { font-size: clamp(2.2rem, 1.5rem + 3vw, 4rem) }
+  p { margin-top: var(--s3); color: color-mix(in oklab, var(--paper) 72%, var(--ink)); max-width: 28rem }
+  .btn { margin-top: var(--s4); background: var(--paper); color: var(--ink) }
+  .btn:hover { background: var(--signal); color: var(--on-signal) }
+  @media (min-width: 64rem) { .close-in { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--s6) } }
+</style>

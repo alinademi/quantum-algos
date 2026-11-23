@@ -1,0 +1,16 @@
+---
+// Title and one line of intro for a home page section.
+interface Props { id: string; title: string }
+const { id, title } = Astro.props;
+---
+<header class="sec-head">
+  <h2 id={id}>{title}</h2>
+  <p><slot /></p>
+</header>
+
+<style>
+  .sec-head { display: grid; gap: var(--s3); margin-bottom: var(--s5) }
+  h2 { font-size: clamp(2rem, 1.4rem + 2.6vw, 3.4rem) }
+  p { max-width: 34rem; color: var(--ink-2); font-size: 1.125rem }
+  @media (min-width: 64rem) { .sec-head { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end; column-gap: var(--s6) } }
+</style>

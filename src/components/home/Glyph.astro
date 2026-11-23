@@ -1,0 +1,43 @@
+---
+// Small dot drawings for the "How a stop works" kit, drawn at build time. Seeded, so they never change.
+interface Props { name: 'depth' | 'four' | 'guess' | 'scrub' | 'golf' | 'myth' }
+const TAU = Math.PI * 2;
+const rng = (seed: number) => () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+const dot = (x: number, y: number, r = 2.2, c = '') => `<circle${c ? ` class="${c}"` : ''} cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}"/>`;
+const glyphs: Record<Props['name'], () => string> = {
+  depth() {
+    const R = rng(7); let s = '';
+    for (const [cx, n] of [[22, 3], [66, 9], [110, 27]]) for (let k = 0; k < n; k++) { const a = R() * TAU, d = Math.sqrt(R()) * 18; s += dot(cx + Math.cos(a) * d, 36 + Math.sin(a) * d, n > 9 ? 1.6 : 2.2, k ? '' : 's'); }
+    return `<g fill="currentColor">${s}</g>`;
+  },
+  four: () => `<g fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="16" width="28" height="40" rx="4"/><rect x="36" y="16" width="28" height="40" rx="4"/><rect x="70" y="16" width="28" height="40" rx="4"/><rect x="104" y="16" width="26" height="40" rx="4"/><path d="M8 28h16M8 36h12M8 44h14"/><path d="M42 26v20M58 26l-4 10 4 10"/><path d="M78 26c-3 0-3 20 0 20M90 26c3 0 3 20 0 20"/><path d="M106 36h6M124 36h4"/><rect x="112" y="30" width="12" height="12" rx="2"/></g><g fill="currentColor"><circle cx="50" cy="36" r="2.4" class="s"/><circle cx="84" cy="31" r="2"/><circle cx="84" cy="41" r="2" class="s"/></g>`,
+  guess() {
+    let s = '';
+    for (let k = 0; k < 42; k++) s += dot(14 + (k % 6) * 8, 64 - Math.floor(k / 6) * 8, 2.6, 's');
+    for (let k = 0; k < 38; k++) s += `<circle class="o" cx="${78 + (k % 6) * 8}" cy="${64 - Math.floor(k / 6) * 8}" r="2.4"/>`;
+    return `<g fill="currentColor">${s}</g><path d="M6 14h120" stroke="var(--hot)" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+  },
+  scrub() {
+    let s = ''; const R = rng(3);
+    for (let k = 0; k < 15; k++) { const n = 1 + Math.round(R() * 4); for (let j = 0; j < n; j++) s += dot(8 + k * 8.4, 40 - j * 7, 2, k === 8 ? 's' : ''); }
+    return `<g fill="currentColor">${s}</g><path d="M4 56h124" stroke="currentColor" stroke-width="1.5"/><path d="M75 14v48" stroke="var(--signal)" stroke-width="2"/><circle cx="75" cy="56" r="5" fill="var(--signal)"/>`;
+  },
+  golf() {
+    let s = '';
+    for (let k = 0; k <= 20; k++) { const t = k / 20; s += dot(10 + t * 108, 56 - Math.sin(t * Math.PI) * 30 - t * 10, 1.5); }
+    return `<g fill="currentColor">${s}</g><circle cx="10" cy="56" r="5" fill="var(--signal)"/><g fill="var(--paper)" stroke="currentColor" stroke-width="1.5"><rect x="34" y="22" width="12" height="12" rx="2"/><rect x="72" y="16" width="12" height="12" rx="2"/></g><circle cx="118" cy="46" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="118" cy="46" r="2.4" fill="currentColor"/>`;
+  },
+  myth() {
+    let s = ''; const R = rng(11);
+    for (let k = 0; k < 60; k++) s += dot(6 + (k % 20) * 6.2, 26 + Math.floor(k / 20) * 10 + (R() - 0.5) * 2, 1.8);
+    return `<g fill="currentColor">${s}</g><path d="M2 40 130 30" stroke="var(--hot)" stroke-width="3" stroke-linecap="round"/>`;
+  },
+};
+---
+<svg class="glyph" viewBox="0 0 132 72" aria-hidden="true" set:html={glyphs[Astro.props.name]()} />
+
+<style>
+  .glyph { width: 100%; max-width: 13rem; height: auto; color: var(--ink) }
+  .glyph :global(.s) { fill: var(--signal) }
+  .glyph :global(.o) { fill: none; stroke: var(--ink-2); stroke-width: 1.2 }
+</style>
