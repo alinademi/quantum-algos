@@ -155,6 +155,19 @@ Public repo. One repo, split by folder, so writers never touch code.
 - CONTRIBUTING.md: two guides, "Write or fix content" (no code) and "Work on the code".
 - No CMS yet. Keystatic later if writers struggle; it edits the same files.
 
+## Authoring and verification (open)
+
+Open: we are not sure of the format yet. Goal: writing a stop should not cost a full codebase tour, and facts get checked by more than one reviewer.
+
+- **Writer skill** (`qce-stop-writer`): page template, frontmatter, voice, depth dial rules, widget tags, accuracy rules. Plain Markdown, so it also works as Claude or ChatGPT project knowledge.
+- **Context bundle per stop:** one command prints the stop's row, needs, leads, terms and house rules into one small file.
+- **Fact-check skill** (`qce-fact-check`): every claim goes in a ledger with type (theorem, experiment, company claim, forecast), primary source, checked date and verdict.
+- **Reviewers by lens, not by copy:** physics, math, teaching (misconceptions), sources and dates.
+- **Tests over opinions:** widget simulations get unit tests against known results.
+- **Agentic (Claude Code, Codex):** writer sub-agent, 4 reviewers in parallel, CI, then a human science reviewer on the pull request.
+- **Linear (Claude or ChatGPT projects):** same skill files; each reviewer runs in a fresh chat with only the draft and its checklist, or a different model reviews. Slower, still independent.
+- **Final gate either way:** repo checks, widget tests, human expert for advanced stops.
+
 ## Later
 
 - Company page on `/`.
