@@ -1,0 +1,56 @@
+---
+description: "Measure a qubit in the X, Y or any basis, and see why the same state gives different odds in each one. Try it live in your browser."
+answer: "Measuring in another basis asks a qubit a different two-answer question. The result is one of two opposite points on the Bloch sphere, such as |+⟩ or |−⟩ instead of |0⟩ or |1⟩, and the same state gives different odds in different bases."
+myth:
+  claim: "Measuring a qubit tells you what state it was in."
+  truth: "It gives one of the two answers your basis allows, nothing more. A qubit started as |0⟩ and one started as |+⟩ can both give 0, so one shot cannot tell them apart."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import BasisMeter from '../../components/tools/BasisMeter.astro';
+
+<Depth level="kid">
+A measurement is a question with only two answers. "Up or down?" is one question. "Left or right?" is another. Picking the question is picking a basis.
+
+Picture a qubit that started as 0 as an arrow pointing up. Ask "up or down?" and it says up, every time. Ask "left or right?" and it says left or right at random, half and half. After it answers, it points the way it said.
+
+In a quantum circuit, the usual question is "up or down?". To ask another one, you turn the qubit first, then ask. Turn it back after, if you want it to point the way it said.
+
+Where the picture breaks: you can look at a real arrow and see where it points. A qubit only answers the question you ask, one answer each time. And its arrow is a drawing of its state, not a real direction in space.
+</Depth>
+
+<Depth level="student">
+A measurement picks between two opposite points on the [Bloch sphere](/learn/bloch/). That pair is the basis. The usual Z basis is the top and bottom: |0⟩ and |1⟩. The X basis is |+⟩ and |−⟩, and the Y basis is |+i⟩ and |−i⟩, both on the equator.
+
+Take a qubit that started as 0. In the Z basis it gives 0 every time. For the X basis, write it with X states: |0⟩ = (|+⟩ + |−⟩)/√2. Each amplitude is 1/√2, so each chance is |1/√2|² = 1/2. Same qubit, new basis, new odds.
+
+A shortcut: if the state is at angle $a$ from one end of the axis, that end comes up with chance $\cos^2(a/2)$. After the measurement, the qubit sits at the end it gave.
+
+A circuit's standard measurement is in the Z basis and reads 0 or 1. To measure in X, apply a [Hadamard gate](/learn/hadamard/) first: result 0 means |+⟩, 1 means |−⟩. The qubit is then left as |0⟩ or |1⟩; apply H again to leave it as |+⟩ or |−⟩.
+</Depth>
+
+<Depth level="engineer">
+A measurement in an orthonormal basis $\{|b_0\rangle, |b_1\rangle\}$ gives outcome $k$ with probability $p_k = |\langle b_k|\psi\rangle|^2$ and leaves the qubit in $|b_k\rangle$. The [standard measurement](/learn/measurement/) is the Z basis $\{|0\rangle, |1\rangle\}$. The X and Y bases are the eigenbases of the Pauli matrices $X$ and $Y$:
+
+$$
+|{\pm}\rangle = \tfrac{1}{\sqrt{2}}\left(|0\rangle \pm |1\rangle\right),
+$$
+
+$$
+|{\pm i}\rangle = \tfrac{1}{\sqrt{2}}\left(|0\rangle \pm i|1\rangle\right).
+$$
+
+Orthogonal states sit at opposite points of the [Bloch sphere](/learn/bloch/), so every qubit basis is an axis, with unit vector $\hat n$ pointing to $|b_0\rangle$. For a state with Bloch vector $\vec r$,
+
+$$
+p_0 = \frac{1 + \vec r \cdot \hat n}{2} = \cos^2\frac{\gamma}{2},
+$$
+
+where $\gamma$ is the angle between $\vec r$ and $\hat n$. So $|0\rangle$ is certain in Z but 50/50 in X and Y. The states $|{+}\rangle$ and $|{-}\rangle$ differ only in [relative phase](/learn/phase/): Z gives both 50/50, while X tells them apart every time. A global phase changes no $p_k$ in any basis.
+
+To measure in $\{|b_0\rangle, |b_1\rangle\}$ with only a Z measurement, apply $U = |0\rangle\langle b_0| + |1\rangle\langle b_1|$ first, since $|\langle k|U|\psi\rangle|^2 = |\langle b_k|\psi\rangle|^2$. For X, $U = H$, the [Hadamard gate](/learn/hadamard/). For Y, $U = HS^\dagger$: first $S^\dagger$, then $H$. For the axis at polar angle $\theta$ and azimuth $\varphi$ (the lab's tilt and turn), $U = R_Y(-\theta)\,R_Z(-\varphi)$ works up to phases: first $R_Z(-\varphi)$, then $R_Y(-\theta)$. Apply $U^\dagger$ afterwards if you need the qubit left in $|b_k\rangle$.
+</Depth>
+
+<Lab title="Ask one qubit different questions" intro="Pick a start state and a basis, then measure fresh copies. Keep the state, change only the basis, and watch the odds change.">
+  <BasisMeter />
+</Lab>

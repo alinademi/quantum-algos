@@ -1,0 +1,289 @@
+---
+// Measures fresh copies of one qubit along any axis of the Bloch sphere. Every shot is a Born-rule draw with odds |<b_k|ψ>|², from sims/bases.ts.
+import { STATE_IDS, ketText, NAMED, describe, recipeText, BATCH } from '../../lib/sims/bases.ts';
+const uid = 'bm-' + Math.random().toString(36).slice(2, 8);
+const bases = ['Z', 'X', 'Y'] as const;
+---
+<qce-basis-meter class="tool">
+  <canvas aria-hidden="true"></canvas>
+
+  <div class="panel">
+    <fieldset>
+      <legend class="label">Start state</legend>
+      <div class="chips">
+        {STATE_IDS.map((id) => (
+          <label><input type="radio" name={`${uid}-state`} value={id} checked={id === '0'} />{ketText(id)}</label>
+        ))}
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend class="label">Measure in</legend>
+      <div class="chips" role="group" aria-label="Named bases">
+        {bases.map((n) => <button type="button" data-basis={n} aria-pressed={String(n === 'Z')}>{n} basis</button>)}
+      </div>
+      <div class="row">
+        <label for={`${uid}-tilt`}>Tilt the axis from |0⟩</label>
+        <output for={`${uid}-tilt`} data-out="tilt">0°</output>
+      </div>
+      <input id={`${uid}-tilt`} data-axis="tilt" type="range" min="0" max="180" step="1" value="0" aria-valuetext="0 degrees, the Z basis" />
+      <div class="row">
+        <label for={`${uid}-turn`}>Turn the axis around Z</label>
+        <output for={`${uid}-turn`} data-out="turn">0°</output>
+      </div>
+      <input id={`${uid}-turn`} data-axis="turn" type="range" min="0" max="359" step="1" value="0" aria-valuetext="0 degrees" />
+    </fieldset>
+
+    <div class="tool-controls">
+      <button class="btn btn-sm" type="button" data-shots="1">Measure 1 copy</button>
+      <button class="btn btn-sm" type="button" data-shots={BATCH}>Measure {BATCH} copies</button>
+      <button class="btn btn-sm btn-line" type="button" data-clear>Clear</button>
+    </div>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">{describe('0', NAMED.Z, [0, 0])}</p>
+  <p class="note" data-recipe>{recipeText(NAMED.Z)}</p>
+  <p class="note">Each shot measures a fresh copy of the start state, and its result is drawn at random by the Born rule. In the picture, the ring is the start state and the solid line is the measurement axis, with an outcome at each end. The left pile and the solid end are the first outcome; the right pile and the hollow end are the second. The dashed line on each pile marks shots × odds. The moving dots are only a picture of each copy landing on the end it gave.</p>
+</qce-basis-meter>
+
+<script>
+  import { CARDINAL, startState, ketText, named, direction, odds, angle, outcomes, describe, recipeText, shoot, room, expected, view, arc, point, NAMED, CAP, COLS, ROWS, type Axis, type BasisName, type Bit, type StateId, type Vec3 } from '../../lib/sims/bases.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  const TAU = Math.PI * 2;
+  /** Flight time of a picture dot, in ms, and how many shots join the piles per frame. */
+  const FLY = 450, PER_FRAME = 3;
+  const same = (u: Vec3, v: Vec3) => Math.abs(u[0] - v[0]) + Math.abs(u[1] - v[1]) + Math.abs(u[2] - v[2]) < 1e-9;
+  const neg = (v: Vec3): Vec3 => [-v[0], -v[1], -v[2]];
+  const dot3 = (u: Vec3, v: Vec3) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+  const times = (v: Vec3, k: number): Vec3 => [v[0] * k, v[1] * k, v[2] * k];
+
+  class BasisMeter extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const canvas = $<HTMLCanvasElement>('canvas'), readout = $('.tool-readout'), recipe = $('[data-recipe]');
+      const tilt = $<HTMLInputElement>('[data-axis="tilt"]'), turn = $<HTMLInputElement>('[data-axis="turn"]');
+      const radios = [...this.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+      const basisButtons = [...this.querySelectorAll<HTMLButtonElement>('[data-basis]')];
+      const shotButtons = [...this.querySelectorAll<HTMLButtonElement>('[data-shots]')];
+      const clear = $<HTMLButtonElement>('[data-clear]');
+
+      let id: StateId = '0', axis: Axis = { ...NAMED.Z };
+      let shots: Bit[] = [], shown = 0, counts: [number, number] = [0, 0];
+      let flying: { bit: Bit; t0: number }[] = [];
+      const ctx = canvas.getContext('2d')!;
+      let W = 0, Hh = 0, raf = 0, seen = false;
+
+      // ---- Words and controls
+
+      /** Set text, keeping each ket like |+i⟩ on one line (a line may break after "|"). */
+      const put = (el: Element, text: string) => el.replaceChildren(...text.split(/(\|[^|⟩\s]{1,3}⟩)/).map((part, i) =>
+        i % 2 ? Object.assign(document.createElement('span'), { className: 'ket', textContent: part }) : part));
+      const say = () => put(readout, describe(id, axis, counts));
+      const syncControls = () => {
+        tilt.value = String(axis.tilt); turn.value = String(axis.turn);
+        $('[data-out="tilt"]').textContent = `${axis.tilt}°`;
+        $('[data-out="turn"]').textContent = `${axis.turn}°`;
+        const n = named(axis);
+        tilt.setAttribute('aria-valuetext', `${axis.tilt} degrees${n ? `, the ${n} basis` : ''}`);
+        turn.setAttribute('aria-valuetext', `${axis.turn} degrees${n ? `, the ${n} basis` : ''}`);
+        basisButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.basis === n)));
+        put(recipe, recipeText(axis));
+        const full = shots.length >= CAP, lost = full && shotButtons.some((b) => b === document.activeElement);
+        shotButtons.forEach((b) => { b.disabled = full; });
+        clear.disabled = shots.length === 0;
+        if (lost) clear.focus();
+      };
+      /** A new experiment: new state or new basis, so the piles start empty. */
+      const reset = () => {
+        shots = []; shown = 0; counts = [0, 0]; flying = [];
+        syncControls(); say(); draw();
+      };
+
+      radios.forEach((r) => r.addEventListener('change', () => { id = r.value as StateId; reset(); }));
+      basisButtons.forEach((b) => b.addEventListener('click', () => { axis = { ...NAMED[b.dataset.basis as BasisName] }; reset(); }));
+      tilt.addEventListener('input', () => { axis = { ...axis, tilt: +tilt.value }; reset(); });
+      turn.addEventListener('input', () => { axis = { ...axis, turn: +turn.value }; reset(); });
+      clear.addEventListener('click', () => { reset(); shotButtons[0].focus(); });
+      shotButtons.forEach((b) => b.addEventListener('click', () => {
+        const k = room(shots.length, +b.dataset.shots!);
+        if (!k) return;
+        shots.push(...shoot(odds(startState(id), axis), k, Math.random));
+        syncControls();
+        if (reduceMotion()) { release(shots.length - shown, -Infinity); say(); draw(); }
+        else kick();
+      }));
+
+      // ---- Shots join the piles
+
+      const release = (k: number, now: number) => {
+        for (let i = 0; i < k && shown < shots.length; i++, shown++) {
+          const bit = shots[shown];
+          counts[bit]++;
+          if (now > -Infinity) flying.push({ bit, t0: now });
+        }
+      };
+      const step = (now: number) => {
+        raf = 0;
+        release(PER_FRAME, now);
+        flying = flying.filter((f) => now - f.t0 < FLY);
+        draw(now);
+        if (shown === shots.length && !flying.length) { say(); return; }
+        if (seen) raf = requestAnimationFrame(step);
+      };
+      const kick = () => { if (!raf && seen) raf = requestAnimationFrame(step); };
+
+      // ---- Drawing
+
+      const ring = (x: number, y: number, r: number, color: string, lw = 1.2) => {
+        ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke();
+      };
+      /** Outcome 0 is a solid signal dot, outcome 1 a hollow ring: shape tells them apart, not only color. */
+      const mark = (bit: Bit, x: number, y: number, r: number, C: ReturnType<typeof palette>) =>
+        bit ? ring(x, y, Math.max(0.6, r - 0.6), C.ink2, Math.min(2, r * 0.55)) : dot(ctx, x, y, r, C.signal);
+
+      const draw = (now = performance.now()) => {
+        if (!W) return;
+        const C = palette(), mono = token('--mono');
+        ctx.clearRect(0, 0, W, Hh);
+        const side = W >= 1.3 * Hh;
+        const sh = side ? Hh : Math.min(W * 0.85, Hh * 0.58);
+        const sw = side ? W * 0.52 : W;
+        sphere(0, 0, sw, sh, C, mono, now);
+        piles(side ? sw : 0, side ? 0 : sh, side ? W - sw : W, side ? Hh : Hh - sh, C, mono);
+      };
+
+      const sphere = (bx: number, by: number, bw: number, bh: number, C: ReturnType<typeof palette>, mono: string, now: number) => {
+        const R = Math.max(24, Math.min(bw, bh) / 2 - 32), cx = bx + bw / 2, cy = by + bh / 2;
+        const at = (v: Vec3): Vec3 => { const [a, b, d] = view(v); return [cx + R * a, cy - R * b, d]; };
+        /** A label beside point v, pushed away from the center (or toward it when `inward`, to dodge a nearby label). */
+        const label = (text: string, v: Vec3, color: string, bold: boolean, inward = false) => {
+          const [x, y] = at(v);
+          let dx = x - cx, dy = y - cy;
+          const L = Math.hypot(dx, dy);
+          if (L < R * 0.15) { dx = Math.SQRT1_2; dy = -Math.SQRT1_2; } else { dx /= L; dy /= L; }
+          if (inward) { dx = -dx; dy = -dy; }
+          ctx.font = `${bold ? 700 : 500} ${bold ? 14 : 12}px ${mono}`;
+          const tw = ctx.measureText(text).width, tx = x + dx * (9 + tw / 2), ty = y + dy * 16;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+          ctx.lineWidth = 4; ctx.strokeStyle = C.plate; ctx.strokeText(text, tx, ty);
+          ctx.fillStyle = color; ctx.fillText(text, tx, ty);
+        };
+
+        // The sphere: outline, equator and the X, Y, Z axes, all as faint dots. Far side fainter.
+        const n = Math.max(24, Math.round((TAU * R) / 7));
+        ctx.globalAlpha = 0.6;
+        for (let k = 0; k < n; k++) dot(ctx, cx + R * Math.cos((k / n) * TAU), cy + R * Math.sin((k / n) * TAU), 1, C.ink2);
+        for (let k = 0; k < 72; k++) {
+          const t = (k / 72) * TAU, [x, y, d] = at([Math.cos(t), Math.sin(t), 0]);
+          ctx.globalAlpha = d >= 0 ? 0.55 : 0.2; dot(ctx, x, y, 1, C.ink2);
+        }
+        for (const [, e] of CARDINAL.filter((_, i) => i % 2 === 0)) for (let k = -10; k <= 10; k++) {
+          const [x, y, d] = at(times(e, k / 10));
+          ctx.globalAlpha = d >= 0 ? 0.35 : 0.18; dot(ctx, x, y, 0.9, C.ink2);
+        }
+        ctx.globalAlpha = 1;
+
+        // The measurement axis, from the b1 end to the b0 end.
+        const nv = direction(axis), m = neg(nv), [x0, y0] = at(nv), [x1, y1] = at(m);
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x0, y0); ctx.stroke();
+
+        // The angle from the start state to the b0 end, as an arc of dots near the center.
+        const r = point(id), g = angle(startState(id), axis), pts = arc(r, nv, 24);
+        if (pts.length) {
+          pts.forEach((p) => { const [x, y] = at(times(p, 0.3)); dot(ctx, x, y, 1.3, C.ink); });
+          const [mx, my] = at(times(pts[12], 0.44));
+          ctx.font = `500 11px ${mono}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.lineWidth = 3; ctx.strokeStyle = C.plate; ctx.strokeText(`${Math.round(g)}°`, mx, my);
+          ctx.fillStyle = C.ink; ctx.fillText(`${Math.round(g)}°`, mx, my);
+        }
+
+        // The start state: a dotted line from the center and a ring.
+        for (let k = 1; k < 15; k++) { const [x, y] = at(times(r, k / 15)); dot(ctx, x, y, 1.1, C.ink); }
+        const [sx, sy] = at(r);
+        ring(sx, sy, 10, C.ink, 2);
+
+        // Axis ends: solid for the first outcome, hollow for the second.
+        dot(ctx, x0, y0, 6.5, C.signal);
+        ctx.fillStyle = C.plate; ctx.beginPath(); ctx.arc(x1, y1, 6, 0, TAU); ctx.fill();
+        ring(x1, y1, 5.5, C.ink2, 2.2);
+
+        // Picture dots: each new shot flies from the start state to the end it gave.
+        for (const f of flying) {
+          const t = Math.min(1, (now - f.t0) / FLY), e = 1 - (1 - t) ** 3;
+          const [tx, ty] = f.bit ? [x1, y1] : [x0, y0];
+          ctx.globalAlpha = 1 - 0.5 * t;
+          mark(f.bit, sx + (tx - sx) * e, sy + (ty - sy) * e, 3, C);
+        }
+        ctx.globalAlpha = 1;
+
+        // Labels last, so they sit on top. Axis ends are bold; the start state is bold ink; the rest are faint.
+        // A faint label close to an axis end is left out; the start state's label moves inward instead.
+        const [o0, o1] = outcomes(axis), near = (v: Vec3) => Math.max(dot3(v, nv), dot3(v, m)) > Math.cos(Math.PI / 6);
+        for (const [sid, v] of CARDINAL) {
+          if (same(v, nv) || same(v, m) || (near(v) && sid !== id)) continue;
+          label(ketText(sid), v, sid === id ? C.ink : C.ink2, sid === id, near(v));
+        }
+        label(o0, nv, C.signal, true);
+        label(o1, m, C.ink, true);
+      };
+
+      const piles = (bx: number, by: number, bw: number, bh: number, C: ReturnType<typeof palette>, mono: string) => {
+        const gap = 16, labelH = 30, top = 10, each = (bw - gap) / 2;
+        const pitch = Math.max(2, Math.min(each / COLS, (bh - labelH - top) / ROWS));
+        const gw = pitch * COLS, base = by + bh - labelH, r = pitch * 0.36;
+        const total = counts[0] + counts[1], p = odds(startState(id), axis), names = outcomes(axis);
+        ([0, 1] as const).forEach((k) => {
+          const gx = bx + k * (each + gap) + (each - gw) / 2;
+          ctx.globalAlpha = 0.5;
+          for (let i = 0; i < COLS; i++) dot(ctx, gx + (i + 0.5) * pitch, base + 3, 0.8, C.ink2);
+          ctx.globalAlpha = 1;
+          for (let i = 0; i < counts[k]; i++) mark(k, gx + ((i % COLS) + 0.5) * pitch, base - (Math.floor(i / COLS) + 0.5) * pitch, r, C);
+          if (total) {
+            const y = base - (expected(total, p[k]) / COLS) * pitch;
+            ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+            ctx.beginPath(); ctx.moveTo(gx - 3, y); ctx.lineTo(gx + gw + 3, y); ctx.stroke(); ctx.setLineDash([]);
+          }
+          const text = `${names[k]}: ${counts[k]}`;
+          ctx.font = `600 13px ${mono}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          const tw = ctx.measureText(text).width, lx = gx + gw / 2 + 7, ly = base + 19;
+          ctx.fillStyle = C.ink; ctx.fillText(text, lx, ly);
+          mark(k, lx - tw / 2 - 10, ly, 4, C);
+        });
+      };
+
+      const resize = () => { const f = fit(canvas); W = f.w; Hh = f.h; draw(); };
+      onResize(canvas, resize);
+      onTheme(() => draw());
+      onSeen(canvas, (v) => { seen = v; if (v && (shown < shots.length || flying.length)) kick(); });
+      syncControls();
+      say();
+      resize();
+    }
+  }
+  customElements.define('qce-basis-meter', BasisMeter);
+</script>
+
+<style>
+  canvas { height: auto; aspect-ratio: 2 / 3; max-height: 32rem }
+  .panel { display: grid; gap: var(--s4); align-items: start }
+  fieldset { display: grid; align-content: start; gap: var(--s3); margin: 0; padding: 0; border: 0; min-width: 0 }
+  legend { padding: 0; margin-bottom: var(--s3) }
+  .chips { display: flex; flex-wrap: wrap; align-content: flex-start; gap: var(--s2) }
+  .chips label, .chips button {
+    position: relative; display: inline-grid; place-items: center; min-width: 3.25rem; min-height: 2.75rem; padding: 0 .9rem;
+    border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer;
+  }
+  .chips input { position: absolute; opacity: 0; width: 1px; height: 1px }
+  .chips label:hover, .chips button:hover { border-color: var(--ink) }
+  .chips label:has(:checked), .chips button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .chips label:has(:focus-visible) { outline: 3px solid var(--signal); outline-offset: 2px }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  .tool-readout :global(.ket), .note :global(.ket) { white-space: nowrap }
+  @media (min-width: 40rem) {
+    canvas { aspect-ratio: auto; height: 22rem }
+    .panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--s5) }
+    .panel > .tool-controls { grid-column: 1 / -1 }
+  }
+</style>
