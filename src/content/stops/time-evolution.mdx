@@ -1,0 +1,70 @@
+---
+description: "A qubit left alone can still change, and its Hamiltonian H sets how. Use U = e^(−iHt/ħ) and see the state's point turn on the Bloch sphere."
+answer: "Time evolution is how the state of an isolated quantum system changes between measurements. The Schrödinger equation, iħ d|ψ⟩/dt = H|ψ⟩, says the Hamiltonian H, the system's energy written as a matrix, sets the change: for a fixed H, the state after time t is e^(−iHt/ħ)|ψ(0)⟩."
+myth:
+  claim: "A qubit in superposition flips back and forth between 0 and 1 until you measure it."
+  truth: "Standard quantum mechanics says that between measurements its amplitudes change smoothly and with no randomness, by the Schrödinger equation. It does not hop between 0 and 1. Under some H the chance to read 1 swings smoothly from 0% to 100% and back, but that is the state turning smoothly, not random flips. Chance enters only when you measure, and a state of definite energy does not change at all, apart from a global phase."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import Precession from '../../components/tools/Precession.astro';
+
+<Depth level="kid">
+
+Leave an ideal qubit alone and its state can still change, smoothly and in a way you can predict. Its energy sets the change. Physicists write the energy as a rule called the Hamiltonian, H.
+
+Picture the state as a point on a ball, 0 at the top and 1 at the bottom. H picks an axis through the ball. As time goes on, the point circles that axis, like the lean of a spinning top that slowly goes around. The bigger the energy difference between the axis's two ends, the faster it goes.
+
+A point on the axis does not move at all. Start at 0 with the axis lying on its side, and the point goes down to 1 and back up.
+
+Where the picture breaks: the ball is a map of the state, not a thing in space, and you never see the point. A measurement gives only 0 or 1.
+
+</Depth>
+
+<Depth level="student">
+
+Between measurements, an isolated quantum system changes by a fixed rule, the Schrödinger equation, with no chance involved. The rule comes from the Hamiltonian H, the system's energy as a matrix. For a qubit, H has two eigenstates, each with a definite energy.
+
+Each energy turns the phase of its own eigenstate's amplitude, at a speed set by that energy. So an eigenstate alone gains only a global phase, which no measurement can see. In a superposition of the two, the relative phase turns, and results can change. Only the energy gap ΔE matters.
+
+On the [Bloch sphere](/learn/bloch/), the point circles the axis through the two eigenstates, one turn every T = h/ΔE (h is Planck's constant). Say the axis runs through |+⟩ and |−⟩. Started as 0, the chance to read 1 is 0%, 50%, 100%, 50% and 0% at times 0, T/4, T/2, 3T/4 and T.
+
+</Depth>
+
+<Depth level="engineer">
+
+An isolated system obeys the Schrödinger equation, with a Hermitian Hamiltonian $H$:
+
+$$
+i\hbar\,\frac{d}{dt}|\psi(t)\rangle = H\,|\psi(t)\rangle
+$$
+
+For an $H$ that does not change in time, $|\psi(t)\rangle = U(t)|\psi(0)\rangle$ with $U(t) = e^{-iHt/\hbar}$. Write $H = \sum_k E_k |k\rangle\langle k|$ and apply the exponential to each eigenvalue ([functions of matrices](/learn/matrix-functions/)):
+
+$$
+U(t) = \sum_k e^{-iE_k t/\hbar}\,|k\rangle\langle k|
+$$
+
+The $E_k$ are real, so $U$ is unitary. Each amplitude $\langle k|\psi\rangle$ only turns in phase, so the odds $|\langle k|\psi\rangle|^2$ of each energy and the mean energy $\langle H\rangle$ never change, and an eigenstate gains only a global phase. Results depend only on the differences $E_j - E_k$.
+
+Every one-qubit Hamiltonian can be written $H = g_0 I + \tfrac{\hbar\omega}{2}\,\hat n\cdot\vec\sigma$, with energies $g_0 \pm \tfrac{\hbar\omega}{2}$, so $\omega = \Delta E/\hbar$. The $g_0 I$ part only adds the global phase $e^{-ig_0 t/\hbar}$. Drop it; since $(\hat n\cdot\vec\sigma)^2 = I$,
+
+$$
+U(t) = \cos\tfrac{\omega t}{2}\,I - i\,\sin\tfrac{\omega t}{2}\,\hat n\cdot\vec\sigma
+$$
+
+This is the [rotation](/learn/rotations/) $R_{\hat n}(\omega t)$: the Bloch vector precesses about $\hat n$, $d\vec r/dt = \omega\,\hat n \times \vec r$, with period $T = 2\pi/\omega = h/\Delta E$. At $t = T$, $U = -I$, only a global sign. A spin-½ in a magnetic field $\vec B$ has $H = -\gamma\,\vec B\cdot\vec S$, so it precesses about the line of $\vec B$ at the angular Larmor frequency $\omega = |\gamma| B$. Here $\omega\,\hat n = -\gamma\vec B$, so the sense of the turn flips with the sign of $\gamma$ (electron vs proton).
+
+Take $\hat n = (\sin\alpha, 0, \cos\alpha)$ and start in $|0\rangle$:
+
+$$
+P_1(t) = \sin^2\!\alpha\,\sin^2\tfrac{\omega t}{2}
+$$
+
+So $H = \tfrac{\hbar\omega}{2}X$ takes $|0\rangle$ to $-i|1\rangle$ at $t = T/2$. With $H \propto Z$, started as $|0\rangle$ then a Hadamard gate, the 0/1 odds stay 50/50; a Hadamard gate, then a 0/1 measurement (a measurement in the X basis), shows the turning phase: $P_1 = \sin^2(\omega t/2)$.
+
+</Depth>
+
+<Lab title="Run the clock on a qubit" intro="Pick a start state and an axis for H, then run the clock: the point circles the axis, and the shots show when the odds change and when they do not.">
+  <Precession />
+</Lab>

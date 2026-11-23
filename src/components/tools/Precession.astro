@@ -1,0 +1,322 @@
+---
+// One qubit left alone under a fixed Hamiltonian H: its state is e^{−iHt/ħ} times the start state, so its Bloch point turns
+// around H's axis. Fresh copies, each run for a time t and measured once by the Born rule, draw the odds over time as dots.
+import { STARTS, ketName, COPIES, MAX_TURNS, hText, ketText, energyText, energy, evolve, timeText, describe } from '../../lib/sims/time-evolution.ts';
+const uid = 'pr-' + Math.random().toString(36).slice(2, 8);
+const A0 = 90;
+const presets = [{ a: 0, name: 'Z', words: 'H along Z' }, { a: 45, name: 'Z + X', words: 'H halfway between Z and X' }, { a: 90, name: 'X', words: 'H along X' }];
+const measures = [{ v: 'Z', name: '0/1' }, { v: 'X', name: 'X basis (Hadamard, then 0/1)' }];
+---
+<qce-precession class="tool">
+  <div class="cols">
+    <canvas data-sphere aria-hidden="true"></canvas>
+
+    <div class="panel">
+      <fieldset>
+        <legend class="label">Start state</legend>
+        <div class="chips">
+          {STARTS.map((id) => <label><input type="radio" name={`${uid}-start`} value={id} checked={id === '0'} />{ketName(id)}</label>)}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend class="label">Axis of H</legend>
+        <div class="row"><label for={`${uid}-tilt`}>Tilt from Z toward X</label><output for={`${uid}-tilt`} data-out="tilt">{A0}°</output></div>
+        <input id={`${uid}-tilt`} name="tilt" type="range" min="0" max="180" step="1" value={A0} aria-valuetext={`${A0} degrees, H along X`} />
+        <div class="chips" role="group" aria-label="Named axes">
+          {presets.map((p) => <button type="button" data-tilt={p.a} aria-pressed={String(p.a === A0)}>{p.name}<span class="visually-hidden">: {p.words}</span></button>)}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend class="label">Measure in</legend>
+        <div class="chips">
+          {measures.map((m) => <label><input type="radio" name={`${uid}-basis`} value={m.v} checked={m.v === 'Z'} />{m.name}</label>)}
+        </div>
+      </fieldset>
+
+      <dl class="views">
+        <div><dt class="label">Hamiltonian</dt><dd><code data-h>{hText(A0)}</code></dd></div>
+        <div><dt class="label">State at time t</dt><dd><code data-ket>{ketText(evolve('0', A0, 0))}</code></dd></div>
+        <div><dt class="label">Energy ⟨H⟩, the same at every time</dt><dd><code data-e>{energyText(energy('0', A0))}</code></dd></div>
+      </dl>
+    </div>
+  </div>
+
+  <div class="clock">
+    <div class="row"><label for={`${uid}-time`}>Time t</label><output for={`${uid}-time`} data-out="time">{timeText(0)}</output></div>
+    <input id={`${uid}-time`} name="time" type="range" min="0" max={MAX_TURNS * 100} step="1" value="0" aria-valuetext="0.00 periods" />
+    <div class="tool-controls">
+      <button type="button" class="btn btn-sm" data-run>Run the clock</button>
+      <button type="button" class="btn btn-sm btn-line" data-new>New shots</button>
+    </div>
+  </div>
+
+  <figure class="strip">
+    <figcaption>Fresh copies, each run for its time, then measured once</figcaption>
+    <canvas data-strip aria-hidden="true"></canvas>
+  </figure>
+
+  <p class="tool-readout" aria-live="polite">{describe('0', A0, 0, 'Z', { ones: 0, columns: 1 })}</p>
+  <p class="note">The sphere is a picture of the state, not something you can see. The vermilion line is the axis of H: its filled end is the eigenstate with energy +ħω/2, its open end the one with −ħω/2. The large blue dot is the state at time t, the small ring is where it started, and the dotted circle is its path. Time counts in periods T = h/ΔE, the time for one full turn, where ΔE = ħω is the gap between the two energies. This tool keeps the axis of H in the x-z plane and starts only from |0⟩, |1⟩, |+⟩ and |−⟩; any one-qubit H turns the point the same way about its own axis. In the strip, each column is {COPIES} fresh copies run for that time and measured once, with Born rule odds: filled dots gave 1, open dots gave 0, and the dashed line is {COPIES} × the chance of 1. In the X basis, 0 means |+⟩ and 1 means |−⟩. Each copy keeps its own random draw, so a change of setting flips dots instead of re-rolling them.</p>
+</qce-precession>
+
+<script>
+  import {
+    axis, pointAt, oddsAt, energy, isEigen, rotate, evolve, columnTurns, columnsUpTo, onesIn, ketText, hText, energyText, timeText, describe,
+    view, spherePoints, NAMED, COLS, COPIES, MAX_TURNS, type Basis, type StartId, type Vec3,
+  } from '../../lib/sims/time-evolution.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  // Drawing only: these dots draw the sphere, its equator and axes. They are not states or shots.
+  const SURFACE = spherePoints(520);
+  const EQUATOR: Vec3[] = Array.from({ length: 120 }, (_, k) => [Math.cos((k * Math.PI) / 60), Math.sin((k * Math.PI) / 60), 0]);
+  const AXES: Vec3[] = [];
+  for (let k = 0; k < 3; k++) for (let i = -20; i <= 20; i++) { const v: Vec3 = [0, 0, 0]; v[k] = i / 20; AXES.push(v); }
+  const PERIOD_MS = 4000; // one period of the clock takes 4 seconds on screen
+  const times = (v: Vec3, k: number): Vec3 => [v[0] * k, v[1] * k, v[2] * k];
+
+  type Item = { d: number; x: number; y: number; r: number; color: string; a: number; kind: 'dot' | 'ring' | 'halo' };
+  type Pane = { c: HTMLCanvasElement; ctx: CanvasRenderingContext2D | null; w: number; h: number };
+
+  class Precession extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const sphere: Pane = { c: $('[data-sphere]'), ctx: null, w: 0, h: 0 };
+      const strip: Pane = { c: $('[data-strip]'), ctx: null, w: 0, h: 0 };
+      const tiltIn = $<HTMLInputElement>('input[name="tilt"]'), timeIn = $<HTMLInputElement>('input[name="time"]');
+      const starts = [...this.querySelectorAll<HTMLInputElement>('input[name$="-start"]')];
+      const measures = [...this.querySelectorAll<HTMLInputElement>('input[name$="-basis"]')];
+      const presets = [...this.querySelectorAll<HTMLButtonElement>('[data-tilt]')];
+      const run = $<HTMLButtonElement>('[data-run]'), readout = $('.tool-readout');
+      const still = reduceMotion();
+      const fresh = () => Array.from({ length: COLS }, () => Array.from({ length: COPIES }, () => Math.random()));
+
+      let id = (starts.find((r) => r.checked)?.value ?? '0') as StartId;
+      let basis = (measures.find((r) => r.checked)?.value ?? 'Z') as Basis;
+      let alpha = +tiltIn.value, turns = +timeIn.value / 100;
+      // One fixed uniform draw per copy, per column, so the batch stays the same batch while the settings move.
+      let us = fresh();
+      let col = palette(), playing = false, seen = false, raf = 0, last = 0;
+
+      /** Copies that gave 1 in column k, and in all columns shown so far. */
+      const onesAt = (k: number) => onesIn(us[k], oddsAt(id, alpha, columnTurns(k), basis)[1]);
+      const shots = () => {
+        const columns = columnsUpTo(turns);
+        let ones = 0;
+        for (let k = 0; k < columns; k++) ones += onesAt(k);
+        return { ones, columns };
+      };
+
+      function drawSphere() {
+        const { ctx: g, w } = sphere;
+        if (!g || !w) return;
+        const cx = w / 2, cy = w / 2, R = w * 0.34, u = R / 100, items: Item[] = [];
+        const put = (p: Vec3, r: number, color: string, a = 1, lift = 0, kind: Item['kind'] = 'dot') => {
+          const [x, y, d] = view(p);
+          items.push({ d: d + lift, x: cx + R * x, y: cy - R * y, r, color, a, kind });
+        };
+        const shade = (p: Vec3, back: number, front: number) => back + ((front - back) * (view(p)[2] + 1)) / 2;
+        const line = (a: Vec3, b: Vec3, r: number, color: string, alpha = 1, lift = 0.001) => {
+          const n = Math.max(2, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) * 26));
+          for (let i = 0; i <= n; i++) { const f = i / n; put([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f], r, color, alpha, lift); }
+        };
+        g.clearRect(0, 0, sphere.w, sphere.h);
+
+        // The sphere: an outline, surface dots (fainter at the back), the equator and the three axes.
+        for (let k = 0; k < 144; k++) dot(g, cx + R * Math.cos((k * Math.PI) / 72), cy + R * Math.sin((k * Math.PI) / 72), Math.max(0.6, u * 0.6), col.rule);
+        for (const p of SURFACE) put(p, Math.max(0.6, u * 0.85), col.ink2, shade(p, 0.1, 0.38));
+        for (const p of EQUATOR) put(p, Math.max(0.7, u * 0.95), col.ink2, shade(p, 0.25, 0.75));
+        for (const p of AXES) put(p, Math.max(0.7, u * 0.9), col.ink2, shade(p, 0.25, 0.75));
+
+        // The axis of H, past the sphere at both ends: filled end +ħω/2, open end −ħω/2.
+        const n = axis(alpha), END = 1.14;
+        line(times(n, -END), times(n, END), Math.max(1, u * 1.3), col.hot, 1);
+        put(times(n, END), Math.max(3.5, u * 4.5), col.hot, 1, 0.02);
+        put(times(n, -END), Math.max(3.5, u * 4.5), col.hot, 1, 0.02, 'ring');
+
+        // The path: the full circle faint, the part already run in blue. Only a picture of where the point goes.
+        const r0 = pointAt(id, alpha, 0), moving = !isEigen(id, alpha);
+        if (moving) {
+          for (let d = 0; d < 360; d += 3) { const p = rotate(r0, n, d); put(p, Math.max(0.8, u * 1), col.ink, shade(p, 0.35, 0.8), 0.003); }
+          const span = Math.min(360, turns * 360);
+          for (let d = 0; d <= span; d += 3) put(rotate(r0, n, d), Math.max(1, u * 1.5), col.signal, 1, 0.004);
+        }
+        put(r0, Math.max(4, u * 5), col.ink, 1, 0.03, 'ring');
+
+        // The state at time t, from its amplitudes.
+        const v = pointAt(id, alpha, turns);
+        line([0, 0, 0], v, Math.max(1, u * 1.4), col.signal, 1, 0.005);
+        put(v, Math.max(4.5, u * 6), col.signal, 1, 0.06, 'halo');
+
+        items.sort((a, b) => a.d - b.d);
+        for (const it of items) {
+          g.globalAlpha = it.a;
+          if (it.kind === 'ring') {
+            g.lineWidth = Math.max(1.5, it.r * 0.4); g.strokeStyle = it.color;
+            g.beginPath(); g.arc(it.x, it.y, it.r, 0, Math.PI * 2); g.stroke();
+          } else {
+            if (it.kind === 'halo') dot(g, it.x, it.y, it.r + 2, col.plate);
+            dot(g, it.x, it.y, it.r, it.color);
+          }
+        }
+        g.globalAlpha = 1;
+
+        // Labels: the six named states, past the ends of the axes. A label slides outward until it clears
+        // the state and the two ends of H's axis, so it never covers them.
+        const fs = Math.round(Math.min(14, Math.max(11, R * 0.12)));
+        g.font = `500 ${fs}px ${token('--mono')}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+        const marks = [v, times(n, END), times(n, -END)].map((p) => { const [x, y] = view(p); return [cx + R * x, cy - R * y]; });
+        const clear = Math.max(4.5, u * 6) + 3;
+        for (const [name, p] of NAMED) {
+          const [x, y] = view(times(p, 1.3)), half = g.measureText(name).width / 2 + 2;
+          let lx = cx + R * x, ly = cy - R * y;
+          const k = Math.hypot(lx - cx, ly - cy) || 1, ux = (lx - cx) / k, uy = (ly - cy) / k;
+          const hit = () => marks.some(([mx, my]) => Math.abs(lx - mx) < half + clear && Math.abs(ly - my) < fs / 2 + clear);
+          for (let i = 0; i < 30 && hit(); i++) { lx += ux * 3; ly += uy * 3; }
+          lx = Math.min(w - half, Math.max(half, lx)); ly = Math.min(w - fs, Math.max(fs, ly));
+          g.lineWidth = 4; g.lineJoin = 'round'; g.strokeStyle = col.plate; g.strokeText(name, lx, ly);
+          g.fillStyle = col.ink2; g.fillText(name, lx, ly);
+        }
+      }
+
+      function drawStrip() {
+        const { ctx: g, w, h } = strip;
+        if (!g || !w) return;
+        g.clearRect(0, 0, w, h);
+        const pad = 8, base = h - 20, gap = (w - 2 * pad) / (COLS - 1);
+        const pitch = Math.min(gap, (base - 6) / COPIES), r = Math.max(0.9, pitch * 0.36);
+        const xAt = (t: number) => pad + (t / MAX_TURNS) * (w - 2 * pad);
+        const shown = columnsUpTo(turns);
+
+        // Time axis: a baseline and the marks 0, T and 2T.
+        g.fillStyle = col.rule; g.fillRect(pad - r, base + 2, w - 2 * pad + 2 * r, 1);
+        g.font = `500 11px ${token('--mono')}`; g.textBaseline = 'top'; g.fillStyle = col.ink2;
+        ['0', 'T', '2T'].forEach((s, i) => { g.textAlign = i === 0 ? 'left' : i === 2 ? 'right' : 'center'; g.fillText(s, i === 0 ? 0 : i === 2 ? w : xAt(i), base + 6); });
+
+        // Each column: copies that gave 1 as filled dots from the bottom, then copies that gave 0 as open dots.
+        g.lineWidth = Math.max(1, r * 0.4); g.strokeStyle = col.ink2;
+        for (let k = 0; k < shown; k++) {
+          const x = xAt(columnTurns(k)), ones = onesAt(k);
+          for (let j = 0; j < COPIES; j++) {
+            const y = base - (j + 0.5) * pitch;
+            if (j < ones) dot(g, x, y, r, col.signal);
+            else { g.beginPath(); g.arc(x, y, Math.max(0.5, r - g.lineWidth / 2), 0, Math.PI * 2); g.stroke(); }
+          }
+        }
+
+        // The Born rule prediction so far: COPIES × P(1) at every time from 0 to t, dashed.
+        g.strokeStyle = col.ink; g.lineWidth = 1.5; g.setLineDash([4, 3]); g.beginPath();
+        const steps = Math.max(1, Math.round(turns * 100));
+        for (let i = 0; i <= steps; i++) {
+          const t = (turns * i) / steps, y = base - COPIES * oddsAt(id, alpha, t, basis)[1] * pitch;
+          if (i === 0) g.moveTo(xAt(t), y); else g.lineTo(xAt(t), y);
+        }
+        g.stroke(); g.setLineDash([]);
+
+        // Now: a dotted line at time t.
+        const xn = xAt(turns);
+        for (let y = 3; y < base; y += 5) dot(g, xn, y, 1.1, col.hot);
+      }
+
+      const draw = () => { drawSphere(); drawStrip(); };
+
+      /** Bring every control and number in line with the settings, then draw. Does not speak. */
+      function sync() {
+        tiltIn.value = String(alpha);
+        $('[data-out="tilt"]').textContent = `${alpha}°`;
+        const named = presets.find((b) => +b.dataset.tilt! === alpha);
+        tiltIn.setAttribute('aria-valuetext', `${alpha} degrees${alpha === 0 ? ', H along Z' : alpha === 90 ? ', H along X' : alpha === 180 ? ', H along minus Z' : ''}`);
+        presets.forEach((b) => b.setAttribute('aria-pressed', String(b === named)));
+        const shownT = Math.round(turns * 100) / 100;
+        timeIn.value = String(Math.round(turns * 100));
+        $('[data-out="time"]').textContent = timeText(shownT);
+        timeIn.setAttribute('aria-valuetext', `${shownT.toFixed(2)} periods`);
+        $('[data-h]').textContent = hText(alpha);
+        $('[data-ket]').textContent = ketText(evolve(id, alpha, turns));
+        $('[data-e]').textContent = energyText(energy(id, alpha));
+        draw();
+      }
+
+      const speak = () => { readout.textContent = describe(id, alpha, turns, basis, shots()); };
+
+      const stopLoop = () => { if (raf) { cancelAnimationFrame(raf); raf = 0; } };
+      const setPlaying = (on: boolean) => { playing = on; run.textContent = on ? 'Pause' : 'Run the clock'; };
+
+      function step(now: number) {
+        raf = 0;
+        turns = Math.min(MAX_TURNS, turns + Math.max(0, Math.min(64, now - last)) / PERIOD_MS);
+        last = now;
+        if (turns >= MAX_TURNS) { setPlaying(false); sync(); speak(); return; }
+        sync();
+        if (seen) raf = requestAnimationFrame(step);
+      }
+      const kick = () => { if (playing && seen && !raf) { last = performance.now(); raf = requestAnimationFrame(step); } };
+
+      run.addEventListener('click', () => {
+        if (playing) {
+          // Pause on a slider step, so the picture, the slider and the readout show the same time.
+          stopLoop(); setPlaying(false); turns = Math.round(turns * 100) / 100; sync(); speak(); return;
+        }
+        if (turns >= MAX_TURNS) turns = 0;
+        if (still) { turns = MAX_TURNS; sync(); speak(); return; } // reduced motion: show the end state, no animation
+        setPlaying(true); sync(); kick();
+      });
+
+      timeIn.addEventListener('input', () => { stopLoop(); setPlaying(false); turns = +timeIn.value / 100; sync(); });
+      timeIn.addEventListener('change', speak);
+      tiltIn.addEventListener('input', () => { alpha = +tiltIn.value; sync(); });
+      tiltIn.addEventListener('change', () => { if (!playing) speak(); });
+      presets.forEach((b) => b.addEventListener('click', () => { alpha = +b.dataset.tilt!; sync(); if (!playing) speak(); }));
+      starts.forEach((r) => r.addEventListener('change', () => { id = r.value as StartId; sync(); if (!playing) speak(); }));
+      measures.forEach((r) => r.addEventListener('change', () => { basis = r.value as Basis; sync(); if (!playing) speak(); }));
+      $('[data-new]').addEventListener('click', () => { us = fresh(); sync(); if (!playing) speak(); });
+
+      const size = () => {
+        for (const p of [sphere, strip]) { const f = fit(p.c); p.ctx = f.ctx; p.w = f.w; p.h = f.h; }
+        draw();
+      };
+      onResize(this, size);
+      onTheme(() => { col = palette(); draw(); });
+      onSeen(this, (v) => { seen = v; if (v) kick(); else stopLoop(); });
+      size(); sync(); speak();
+    }
+  }
+  customElements.define('qce-precession', Precession);
+</script>
+
+<style>
+  qce-precession { container-type: inline-size }
+  .cols { display: grid; gap: var(--s4); min-width: 0 }
+  [data-sphere] { aspect-ratio: 1; max-width: 24rem; justify-self: center }
+  .panel { display: grid; gap: var(--s4); align-content: start; min-width: 0 }
+  fieldset { display: grid; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { padding: 0; margin-bottom: var(--s2) }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2) }
+  .row output { flex: none; font-size: 1.25rem }
+  .chips { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .chips label, .chips button {
+    position: relative; display: inline-grid; place-items: center; min-width: 3.25rem; min-height: 2.75rem; padding: 0 .9rem;
+    border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer;
+  }
+  .chips input { position: absolute; opacity: 0; width: 1px; height: 1px }
+  .chips label:hover, .chips button:hover { border-color: var(--ink) }
+  .chips label:has(:checked), .chips button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .chips label:has(:focus-visible) { outline: 3px solid var(--signal); outline-offset: 2px }
+  .views { display: grid; gap: var(--s3) }
+  .views div { display: grid; gap: var(--s1); min-width: 0 }
+  dd { margin: 0; overflow-wrap: anywhere }
+  .clock { display: grid; gap: var(--s1); min-width: 0 }
+  .clock .tool-controls { margin-top: var(--s2) }
+  .strip { display: grid; gap: var(--s2); min-width: 0 }
+  figcaption { font-weight: 600 }
+  [data-strip] { height: 7.5rem }
+  .tool-readout { min-height: 9.6em }
+  .note { max-width: var(--read); font-size: .875rem; color: var(--ink-2) }
+  @container (min-width: 38rem) {
+    .cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--s5); align-items: start }
+    [data-sphere] { max-width: none }
+    [data-strip] { height: 10rem }
+    .tool-readout { min-height: 6.4em }
+  }
+</style>
