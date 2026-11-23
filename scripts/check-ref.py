@@ -28,6 +28,12 @@ def names(people):
     people = [p for p in people if p]
     return people[0] + ' et al.' if len(people) > 3 else ' and '.join([', '.join(people[:-1]), people[-1]] if len(people) > 1 else people)
 
+def surname(full):
+    # Keep particles: "Ronald de Wolf" -> "de Wolf"
+    w = full.split(); i = len(w) - 1
+    while i > 0 and w[i - 1].lower() in ('de', 'da', 'di', 'del', 'della', 'van', 'von', 'der', 'den', 'le', 'la', 'du', 'dos', 'ter'): i -= 1
+    return ' '.join(w[i:])
+
 def doi(d):
     m = json.loads(get('https://api.crossref.org/works/' + urllib.parse.quote(d)))['message']
     clean = lambda t: ' '.join(html.unescape(re.sub(r'<[^>]+>', '', t or '')).split())
@@ -48,7 +54,7 @@ def arxiv(ids):
             got = re.sub(r'v\d+$', '', e.findtext('a:id', '', ns).split('/abs/')[-1])
             if title and title != 'Error':
                 out[got] = {'year': e.findtext('a:published', '', ns)[:4], 'title': title, 'venue': 'arXiv',
-                            'authors': names([a.text.split()[-1] for a in e.findall('a:author/a:name', ns)])}
+                            'authors': names([surname(a.text) for a in e.findall('a:author/a:name', ns)])}
     return out
 
 bare = lambda a: re.sub(r'v\d+$', '', re.sub('(?i)^arxiv:', '', a))
