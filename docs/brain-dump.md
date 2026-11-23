@@ -22,7 +22,7 @@ One concept graph. Many views.
 
 Not a "course". Learning area = **The Map**. Lessons = **stops**. Paths = **lines**.
 
-- **Regions** say what a stop is: Foundations, Gates and circuits, Algorithms, Protocols and crypto, Hardware and machines, Industry and business.
+- **Regions** (12) say what a stop is: Math toolkit, Foundations, Gates and circuits, Algorithms, Theory, Quantum information, Protocols and crypto, Networks and sensing, Hardware and machines, Error correction, Software and tools, Industry and business.
 - **Lines** say the order to learn: paths across regions ("Road to Shor"). A stop can sit on many lines.
 - **The Map page is a catalog:** search box, region chips, "only stops on" line filter, and two views: By region (tiles) and By line (dotted tracks, top-down on phones).
 - **Tiles:** dot-cloud icon (more links, more dots), Open or Soon, learn first, leads to, line badges. Each tile has its own link (`/map#bb84`).
@@ -30,7 +30,9 @@ Not a "course". Learning area = **The Map**. Lessons = **stops**. Paths = **line
 - **Self-updating:** every stop file declares region, lines, needs, terms. The build turns that into The Map, the word index and the home counts. Plain HTML, crawlable.
 - **Build checks the graph:** missing prerequisite or a loop fails the deploy.
 - **Search:** instant filter on The Map now. Pagefind for full-site search in Astro (index built at deploy, no server).
-- **Algorithms vs protocols:** protocols (teleportation, superdense coding, BB84, E91) are not algorithms. 12 algorithms plus 4 building blocks.
+- **Algorithms vs protocols:** protocols (teleportation, superdense coding, BB84, E91) are not algorithms. Each algorithm stop is marked Algorithm, Building block or Concept.
+- **Needs vs Deeper:** `Needs` are must-learn-first and never point to a harder level. `Deeper` are optional. The build checks both rules.
+- **Size:** about 530 stops, 62 lines (`docs/curriculum.md`). Research behind it: `docs/research/`.
 - **Retired:** a 3D graph of dot clouds. Beautiful, but zoom and labels did not work on phones.
 - Content: `docs/curriculum.md`.
 ## Design: Shot Noise (chosen)
@@ -51,6 +53,7 @@ Every claim, formula and widget gets fact-checked before it ships. Rules learned
 - Which-path: a record destroys the stripes, no observer needed. Say "mark" or "record", never "watch".
 - Name the start state ("started as 0, then a Hadamard gate").
 - Blog facts carry a source.
+- Every important claim needs a primary-source link, the date it was checked, and its type: theorem, experiment, company claim or forecast. Research citations checked only through search snippets or memory are not verified yet.
 
 ## Page kit
 
@@ -163,5 +166,5 @@ Public repo. One repo, split by folder, so writers never touch code.
 
 1. Fix all fact-check findings in the Shot Noise sample.
 2. Review `docs/curriculum.md`.
-3. Catalog Map prototype (done in the Shot Noise sample).
+3. Ship a small beginner journey first (the First steps line), end to end, before more stops.
 4. Port Shot Noise into Astro.
