@@ -82,3 +82,10 @@ test('inner product and normalize', () => {
   close(q.abs2(q.inner(q.plus(), q.minus())), 0);
   close(q.norm2(q.normalize([q.c(3), q.c(0, 4)])), 1);
 });
+
+test('draw never returns a zero-chance outcome, even when chances sum a hair under 1', () => {
+  const p = [0.5, 0.5 - 1e-12, 0];
+  assert.equal(q.draw(p, () => 0.9999999999999), 1);
+  assert.equal(q.draw([0, 1], () => 0), 1);
+  for (let k = 0; k < 2000; k++) assert.notEqual(q.draw([0.3, 0, 0.7 - 1e-13], Math.random), 1);
+});

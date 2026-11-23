@@ -97,9 +97,11 @@ export function measureQubit(s: State, q: number, rand: () => number, n = Math.l
 
 /** Draw one basis index from a probability list. */
 export function draw(p: number[], rand: () => number): number {
-  let r = rand(), i = 0;
-  for (; i < p.length - 1; i++) { r -= p[i]; if (r < 0) return i; }
-  return i;
+  let r = rand();
+  for (let i = 0; i < p.length; i++) { r -= p[i]; if (r < 0 && p[i] > 0) return i; }
+  // Rounding left the chances a hair under 1: fall back to the last outcome that can happen, never a zero-chance one.
+  for (let i = p.length - 1; i >= 0; i--) if (p[i] > 0) return i;
+  throw new Error('draw: no outcome has a chance above 0');
 }
 
 /** Counts of each basis index over many shots. */
