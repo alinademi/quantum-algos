@@ -78,7 +78,17 @@ def table(md, name):
     head = [c.lower() for c in cells(rows[0])]
     return [dict(zip(head, cells(r))) for r in rows[1:]]
 
-def check_picks(md, keys, open_links):
+def beginner_reading(md, path):
+    # A Beginner stop needs at least one pick a beginner can read: level Intro or University.
+    import os
+    cur = open(os.path.join(os.path.dirname(path), 'curriculum.md')).read()
+    beginner = set(re.findall(r'^\| ([a-z0-9-]+) \|(?:[^|\n]*\|){3} Beginner \|', cur, re.M))
+    level = {r['key']: r['level'] for r in table(md, 'Sources')}
+    by = {}
+    for p in table(md, 'Learn more'): by.setdefault(p['stop'], []).append(level.get(p['key']))
+    return [f'{s}: Beginner stop with no Intro or University reading' for s in sorted(beginner) if s in by and not set(by[s]) & {'Intro', 'University'}]
+
+def check_picks(md, keys, open_links, path_of_md):
     problems, per = [], {}
     for p in table(md, 'Learn more'):
         s, link, where = p['stop'], p['link'], f"{p['stop']} > {p['key']}"
@@ -89,6 +99,7 @@ def check_picks(md, keys, open_links):
         if re.match(r'https://(dx\.)?doi\.org/|https://arxiv\.org/(pdf|html)/', link): problems.append(f'{where}: use the arXiv abstract page or the exact page, not {link}')
         if urllib.parse.urlparse(link).path in ('', '/') and '#' not in link: problems.append(f'{where}: a home page is not the topic')
     problems += [f'{s}: {n} picks, keep at most 3' for s, n in per.items() if n > 3]
+    problems += beginner_reading(md, path_of_md)
     if open_links: problems += check_links(table(md, 'Learn more'))
     return problems
 
@@ -138,7 +149,7 @@ def check_file(path, open_links=False):
             if kind == 'DOI' and rec['year'] not in ('None', r['year']): problems.append(f'{k}: DOI year is {rec["year"]}, row says {r["year"]}')
         if '\ufffd' in ''.join(r.values()): problems.append(f'{k}: broken character (\ufffd), fix the text by hand')
         if r['doi'] == '-' and r['arxiv'] == '-' and r.get('url', '-') == '-': problems.append(f'{k}: no DOI, arXiv id or URL')
-    problems += check_picks(md, {r['key'] for r in rows}, open_links)
+    problems += check_picks(md, {r['key'] for r in rows}, open_links, path)
     print(*problems, f'{len(rows)} sources, {len(problems)} problems', sep='\n')
     return not problems
 

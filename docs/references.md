@@ -208,6 +208,7 @@ Rules:
 | hangleiter-2023-sampling | Hangleiter and Eisert | 2023 | Computational advantage of quantum random sampling | Reviews of Modern Physics | Review | Graduate | 10.1103/RevModPhys.95.035001 | arXiv:2206.04079 | https://arxiv.org/abs/2206.04079 | - |
 | harrigan-2024-qualtran | Harrigan et al. | 2024 | Expressing and Analyzing Quantum Algorithms with Qualtran | arXiv | Paper | Research | - | arXiv:2409.04643 | - | - |
 | harrow-2017-supremacy | Harrow and Montanaro | 2017 | Quantum computational supremacy | Nature | Review | University | 10.1038/nature23458 | arXiv:1809.07442 | https://arxiv.org/abs/1809.07442 | - |
+| harvey-2022-spin | Harvey | 2022 | Quantum Dots/Spin Qubits | Oxford Research Encyclopedia of Physics | Encyclopedia | University | 10.1093/acrefore/9780190871994.013.83 | arXiv:2204.04261 | - | - |
 | hastings-2021-floquet | Hastings and Haah | 2021 | Dynamically Generated Logical Qubits | Quantum | Paper | Research | 10.22331/q-2021-10-19-564 | arXiv:2107.02194 | - | - |
 | havlicek-2019-feature | Havlíček et al. | 2019 | Supervised learning with quantum-enhanced feature spaces | Nature | Paper | Research | 10.1038/s41586-019-0980-2 | arXiv:1804.11326 | https://arxiv.org/abs/1804.11326 | - |
 | held-2022-kochenspecker | Held | 2022 | The Kochen-Specker Theorem | Stanford Encyclopedia of Philosophy | Encyclopedia | University | - | - | https://plato.stanford.edu/entries/kochen-specker/ | - |
@@ -1511,8 +1512,9 @@ Rules:
 | linear-optics | kok-2007-loqc | Section II, A new paradigm for optical quantum computing (KLM) | https://arxiv.org/abs/quant-ph/0512071 |
 | linear-optics | knill-2001-linear | Full paper: KLM scheme | https://arxiv.org/abs/quant-ph/0006088 |
 | linear-optics | obrien-2007-optical | Full paper: optical quantum computing | https://arxiv.org/abs/0803.1554 |
+| spin-qubits | harvey-2022-spin | Section III.A, Single-Spin Qubits | https://arxiv.org/abs/2204.04261 |
+| spin-qubits | ling-2016-up3 | Section 8.3, Electron Spin | https://openstax.org/books/university-physics-volume-3/pages/8-3-electron-spin |
 | spin-qubits | burkard-2023-spin | Section II, Basics of spin qubits | https://arxiv.org/abs/2112.08863 |
-| spin-qubits | burkard-2023-spin | Section I, Introduction | https://arxiv.org/abs/2112.08863 |
 | silicon-fab | george-2024-cmos | Full paper: qubits from a 300 mm line | https://arxiv.org/abs/2410.16583 |
 | anyons | nayak-2008-anyons | Section IV, Quantum computing with anyons | https://arxiv.org/abs/0707.1889 |
 | anyons | kitaev-2003-anyons | Full paper: computing by anyons | https://arxiv.org/abs/quant-ph/9707021 |
