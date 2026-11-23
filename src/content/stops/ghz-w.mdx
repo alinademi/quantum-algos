@@ -1,0 +1,68 @@
+---
+description: "GHZ and W are two kinds of three-qubit entanglement. Local actions cannot turn one copy of either into the other. Measure one qubit and see what is left."
+answer: "GHZ, (|000⟩ + |111⟩)/√2, and W, (|001⟩ + |010⟩ + |100⟩)/√3, are two ways to entangle three qubits. They are different kinds: actions on each qubit alone, plus talk, cannot turn one copy of either into the other, not even with a small chance of success."
+myth:
+  claim: "Entanglement is just one thing. A state has more of it or less."
+  truth: "Not with three qubits. GHZ and W are two kinds: actions on each qubit alone, plus talk, cannot turn one copy of either into the other, not even with a small chance of success."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GhzW from '../../components/tools/GhzW.astro';
+
+<Depth level="kid">
+Alice, Bob and Carol each hold one qubit. The three can be entangled in two ways: GHZ and W.
+
+GHZ is like three linked rings: cut any one and the other two fall apart. Measure all three in 0/1 and they always agree: all 0 or all 1. Lose Carol's qubit, and Alice and Bob keep no entanglement.
+
+W is like three friends in a circle, each holding both others' hands. Measure all three in 0/1 and exactly one gives 1. Lose one qubit, and the other two stay a bit entangled.
+
+The surprise: working on each qubit alone, even while talking, nobody can turn one GHZ into one W, or back, not even with luck.
+
+The pictures break. Nothing ties real qubits: the link lives in their amplitudes. And Carol can measure her GHZ qubit in a way that leaves Alice and Bob fully entangled, which no cut ring could do.
+</Depth>
+
+<Depth level="student">
+Alice, Bob and Carol each hold one qubit. Kets list them in that order.
+
+GHZ = (|000⟩ + |111⟩)/√2. Start at |000⟩, apply a Hadamard gate to Alice's qubit, then a [CNOT](/learn/cnot/) from Alice to Bob and from Bob to Carol.
+
+W = (|001⟩ + |010⟩ + |100⟩)/√3: amplitude 1/√3 on each string with exactly one 1.
+
+Neither splits into one state per qubit: both are [entangled](/learn/entanglement/). Let Carol measure 0/1. From GHZ, Alice and Bob are left with |00⟩ or |11⟩: not entangled. From W, Carol's 0 comes from |010⟩ and |100⟩, so its chance is |1/√3|² + |1/√3|² = 2/3. Then Alice and Bob share the Bell pair (|01⟩ + |10⟩)/√2.
+
+Dür, Vidal and Cirac proved that local actions plus talk cannot turn one GHZ into one W or back, not even with a small chance. One clue: GHZ is a sum of 2 product states, but W needs at least 3. No local step, lucky or not, can raise that number, so GHZ cannot become W. The steps that lower it cut one qubit loose, so W cannot become GHZ.
+</Depth>
+
+<Depth level="engineer">
+Qubits A, B, C, written left to right:
+
+$$
+|\mathrm{GHZ}\rangle = \tfrac{1}{\sqrt2}(|000\rangle + |111\rangle)
+$$
+
+$$
+|W\rangle = \tfrac{1}{\sqrt3}(|001\rangle + |010\rangle + |100\rangle)
+$$
+
+GHZ is $|000\rangle$, then $H$ on A, then CNOT A→B and B→C.
+
+Call two states the same kind if LOCC turns each into the other with nonzero probability (SLOCC), for a single copy. Dür, Vidal and Cirac showed this holds exactly when $|\phi\rangle \propto (A\otimes B\otimes C)|\psi\rangle$ with invertible $A, B, C$. For two qubits every entangled pure state is one kind, the Bell pair's. Three qubits split into six classes: product, three with one qubit apart, and two with genuine three-way entanglement, GHZ and W.
+
+Two things keep them apart. Invertible local operators keep the fewest product terms: 2 for GHZ, 3 for W. The 3-tangle $\tau$ of Coffman, Kundu and Wootters is 1 for GHZ, nonzero on its whole class and 0 on the W class, and it never grows on average under LOCC. Non-invertible steps, such as measuring a qubit, only move down to lower classes.
+
+Losing C shows the difference:
+
+$$
+\rho^{\mathrm{GHZ}}_{AB} = \tfrac12\big(|00\rangle\langle 00| + |11\rangle\langle 11|\big)
+$$
+
+$$
+\rho^{W}_{AB} = \tfrac23|\Psi^+\rangle\langle\Psi^+| + \tfrac13|00\rangle\langle 00|
+$$
+
+with $|\Psi^+\rangle = (|01\rangle + |10\rangle)/\sqrt2$. The first is separable; the second is entangled, with concurrence $2/3$. Yet GHZ yields a Bell pair with certainty: measure C in the $X$ basis, then apply $Z$ to A on outcome $-$. Measuring C of $|W\rangle$ in $Z$ gives $|\Psi^+\rangle$ only with probability $2/3$. A random three-qubit pure state is in the GHZ class with probability 1.
+</Depth>
+
+<Lab title="Let Carol measure" intro="Pick a state and how Carol measures, then run, and see if Alice and Bob's results stay locked in both bases, the sign of a Bell pair.">
+  <GhzW />
+</Lab>

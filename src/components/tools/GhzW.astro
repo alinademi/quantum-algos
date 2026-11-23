@@ -1,0 +1,217 @@
+---
+// Carol measures her qubit of a GHZ or W state, then Alice and Bob measure theirs. Every result is a Born rule draw
+// from ghz-w.ts on a fresh copy, so each dot is one real run and the strips show shot noise around the exact odds printed beside them.
+import { afterCarol, basisName, chanceText, ghz, ketText, pairLine, readout, resultName, sameChance, w, type Basis, type Bit } from '../../lib/sims/ghz-w.ts';
+const uid = 'gw-' + Math.random().toString(36).slice(2, 8);
+const K0 = 'ghz', B0: Basis = 'Z';
+const boxes = ([0, 1] as Bit[]).map((r) => ({ r, ...afterCarol(K0, B0, r) }));
+const rows: Basis[] = ['Z', 'X'];
+---
+<qce-ghz-w class="tool">
+  <div class="setup">
+    <fieldset class="kind">
+      <legend>Alice, Bob and Carol share</legend>
+      <div class="opts">
+        <label><input type="radio" name={`${uid}-kind`} value="ghz" checked /><b>GHZ</b> <code>{ketText(ghz())}</code></label>
+        <label><input type="radio" name={`${uid}-kind`} value="w" /><b>W</b> <code>{ketText(w())}</code></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Carol measures her qubit in</legend>
+      <div class="opts">
+        <label><input type="radio" name={`${uid}-carol`} value="Z" checked />0/1</label>
+        <label><input type="radio" name={`${uid}-carol`} value="X" />+/−</label>
+      </div>
+    </fieldset>
+  </div>
+  <p class="hint">Kets list Alice, Bob and Carol, left to right. To measure in +/−, apply a Hadamard gate, then measure 0/1: 0 reads as +, 1 as −.</p>
+
+  <div class="tool-controls">
+    <button type="button" class="btn btn-sm" data-run="1">Run 1</button>
+    <button type="button" class="btn btn-sm" data-run="10">Run 10</button>
+    <button type="button" class="btn btn-sm" data-run="100">Run 100</button>
+    <button type="button" class="btn btn-sm btn-line" data-clear>Clear</button>
+  </div>
+
+  <div class="boxes">
+    {boxes.map(({ r, p, pair }) => (
+      <figure data-box={r}>
+        <figcaption>
+          <span class="who">Carol got <b data-name>{resultName(B0, r)}</b></span>
+          <span data-odds>Chance {chanceText(p)}. 0 runs.</span>
+          <span data-pair>{pairLine(K0, B0, r)}</span>
+        </figcaption>
+        {rows.map((ab) => (
+          <div class="strip">
+            <p><span class="label">Both measure {basisName(ab)}</span> <span data-count={ab}>Expected to match {chanceText(sameChance(pair, ab))}.</span></p>
+            <canvas data-strip={ab} aria-hidden="true"></canvas>
+          </div>
+        ))}
+      </figure>
+    ))}
+  </div>
+
+  <p class="key"><span class="k-same">Alice and Bob matched</span><span class="k-diff">they differed</span></p>
+  <p class="legend">Each dot is one run: a fresh copy of the state, measured by all three. Carol tells the others her result, which puts the run in her box. Alice and Bob take turns: one run both measure 0/1, the next both +/−. A Bell pair locks their results in both bases, so each row fills with one kind of dot only.</p>
+
+  <p class="tool-readout" aria-live="polite">{readout(K0, B0, [])}</p>
+  <p class="note">A simulation of ideal, noise-free qubits. It offers only these two states, both with real amplitudes, and only the 0/1 and +/− bases. Each result is a Born rule draw from your browser's random numbers. Changing the state or Carol's basis clears the boxes.</p>
+</qce-ghz-w>
+
+<script>
+  import { run, tally, readout, abBasisFor, afterCarol, chanceText, sameChance, resultName, pairLine, MAX, STRIP, type Kind, type Basis, type Bit, type Run } from '../../lib/sims/ghz-w.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  /** ms between runs when only a few are queued; ms a new dot stays enlarged. */
+  const STEP = 80, POP = 280;
+  type Shot = Run & { t: number };
+  type Strip = { r: Bit; ab: Basis; canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D | null; w: number; h: number };
+
+  /** Dot grid for a strip width: dots per line (a divisor of STRIP, so lines fill evenly), spacing, radius and height. */
+  function layout(w: number) {
+    const per = [50, 25, 20, 10].find((n) => w / n >= 9) ?? 10;
+    const cell = w / per, r = Math.max(2.2, Math.min(4, cell * 0.34)), pad = r + 3;
+    return { per, cell, r, pad, h: Math.ceil(2 * pad + (Math.ceil(STRIP / per) - 1) * cell) };
+  }
+
+  class GhzW extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string, el: ParentNode = this) => el.querySelector<T>(s)!;
+      const radios = [...this.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+      const goes = [...this.querySelectorAll<HTMLButtonElement>('[data-run]')];
+      const figs = [0, 1].map((r) => $<HTMLElement>(`[data-box="${r}"]`));
+      const strips: Strip[] = figs.flatMap((f, r) => (['Z', 'X'] as Basis[]).map((ab) => ({ r: r as Bit, ab, canvas: $<HTMLCanvasElement>(`[data-strip="${ab}"]`, f), ctx: null, w: 0, h: 0 })));
+      const out = $('.tool-readout');
+
+      let kind: Kind = 'ghz', cb: Basis = 'Z', shots: Shot[] = [], queue = 0, last = 0, raf = 0, seen = false;
+
+      function paint(now = performance.now()) {
+        const pal = palette();
+        for (const s of strips) {
+          if (!s.ctx) continue;
+          const g = layout(s.w), mine = shots.filter((x) => x.carol === s.r && x.basis === s.ab);
+          s.ctx.clearRect(0, 0, s.w, s.h);
+          for (let k = 0; k < STRIP; k++) {
+            const x = (k % g.per + 0.5) * g.cell, y = g.pad + Math.floor(k / g.per) * g.cell, m = mine[k];
+            if (!m) { dot(s.ctx, x, y, Math.max(1, g.r * 0.3), pal.rule); continue; }
+            const age = now - m.t, rr = g.r * (age < POP ? 1 + 0.5 * (1 - age / POP) : 1);
+            if (m.alice === m.bob) dot(s.ctx, x, y, rr, pal.signal);
+            else {
+              dot(s.ctx, x, y, rr, pal.paper);
+              s.ctx.strokeStyle = pal.ink2; s.ctx.lineWidth = Math.max(1.25, rr * 0.3);
+              s.ctx.beginPath(); s.ctx.arc(x, y, rr - s.ctx.lineWidth / 2, 0, Math.PI * 2); s.ctx.stroke();
+            }
+          }
+        }
+      }
+
+      function size() {
+        for (const s of strips) {
+          const g = layout(s.canvas.getBoundingClientRect().width);
+          s.canvas.style.height = `${g.h}px`;
+          const f = fit(s.canvas);
+          s.ctx = f.ctx; s.w = f.w; s.h = f.h;
+        }
+        paint();
+      }
+
+      /** The words around the boxes: Carol's result names, odds, run counts, the pair left, and matches per strip. */
+      function count() {
+        const t = tally(shots);
+        figs.forEach((f, i) => {
+          const r = i as Bit, { p, pair } = afterCarol(kind, cb, r), n = t[r].runs;
+          $('[data-name]', f).textContent = resultName(cb, r);
+          $('[data-odds]', f).textContent = `Chance ${chanceText(p)}. ${n} ${n === 1 ? 'run' : 'runs'}.`;
+          $('[data-pair]', f).textContent = pairLine(kind, cb, r);
+          for (const ab of ['Z', 'X'] as Basis[]) {
+            const c = t[r][ab], e = chanceText(sameChance(pair, ab));
+            $(`[data-count="${ab}"]`, f).textContent = c.runs ? `Matched ${c.same} of ${c.runs}, expected ${e}.` : `Expected to match ${e}.`;
+          }
+        });
+        const full = shots.length + queue >= MAX;
+        goes.forEach((x) => x.setAttribute('aria-disabled', String(full)));
+      }
+
+      const say = () => { out.textContent = readout(kind, cb, shots); };
+      const add = (t: number) => { shots.push({ ...run(kind, cb, abBasisFor(shots.length), Math.random), t }); queue--; count(); };
+      /** Finish every queued run at once and draw the end state: for reduced motion, and when the tool is off screen. */
+      const flush = () => { while (queue > 0) add(-Infinity); shots.forEach((s) => { s.t = -Infinity; }); paint(); say(); };
+      const busy = (now: number) => queue > 0 || (shots.length > 0 && now < shots[shots.length - 1].t + POP);
+
+      function frame(now: number) {
+        raf = 0;
+        if (!seen) { flush(); return; }
+        if (queue > 0 && now - last >= (queue > 10 ? 0 : STEP)) { add(now); last = now; }
+        paint(now);
+        if (busy(now)) raf = requestAnimationFrame(frame); else say();
+      }
+      const kick = () => { if (reduceMotion() || !seen) flush(); else if (!raf) raf = requestAnimationFrame(frame); };
+
+      function clear() {
+        shots = []; queue = 0;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        paint(); count();
+      }
+
+      /** Read the choices as the page shows them (a browser can restore form values on going back), then start fresh. */
+      function setup() {
+        kind = (radios.find((x) => x.name.endsWith('-kind') && x.checked)?.value ?? 'ghz') as Kind;
+        cb = (radios.find((x) => x.name.endsWith('-carol') && x.checked)?.value ?? 'Z') as Basis;
+        clear(); say();
+      }
+
+      radios.forEach((x) => x.addEventListener('change', () => x.checked && setup()));
+      goes.forEach((x) => x.addEventListener('click', () => {
+        const room = MAX - shots.length - queue;
+        if (room <= 0) { say(); return; }
+        queue += Math.min(+x.dataset.run!, room);
+        count(); kick();
+      }));
+      $('[data-clear]').addEventListener('click', () => { clear(); say(); });
+
+      onResize(strips[0].canvas, size);
+      onTheme(() => paint());
+      onSeen(this, (v) => { seen = v; if (!v && queue > 0) flush(); });
+      setup();
+    }
+  }
+  customElements.define('qce-ghz-w', GhzW);
+</script>
+
+<style>
+  .setup { display: grid; gap: var(--s4) }
+  fieldset { display: grid; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  .opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2) }
+  .kind .opts { grid-template-columns: minmax(0, 1fr) }
+  .opts label { position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 var(--s2); min-height: 2.75rem; padding: var(--s1) .75rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); text-align: center; cursor: pointer }
+  .opts label:hover { border-color: var(--ink) }
+  .opts input { position: absolute; opacity: 0; width: 1px; height: 1px }
+  .opts label:has(:checked) { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .opts label:has(:focus-visible) { outline: 3px solid var(--signal); outline-offset: 2px }
+  .opts code { font-weight: 500; overflow-wrap: anywhere }
+
+  .hint, .legend, .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  [aria-disabled="true"] { opacity: .45; cursor: not-allowed }
+
+  .boxes { display: grid; gap: var(--s3) }
+  figure { display: grid; gap: var(--s3); min-width: 0; margin: 0; padding: var(--s3); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r) }
+  figcaption { display: grid; gap: var(--s1); overflow-wrap: anywhere }
+  .who { font-size: 1.125rem; font-weight: 600 }
+  .who b { font: 600 1.25rem/1 var(--mono) }
+  [data-odds] { color: var(--ink-2); font-size: .9375rem }
+  .strip { display: grid; gap: var(--s1); min-width: 0 }
+  .strip p { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0 var(--s3); font-size: .9375rem; color: var(--ink-2) }
+  .strip canvas { height: 3rem }
+
+  .key { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); font: 500 .875rem var(--mono); color: var(--ink-2) }
+  .key > span { display: inline-flex; align-items: center; gap: .4rem }
+  .key > span::before { content: ""; flex: none; width: .75rem; height: .75rem; border-radius: 50% }
+  .key > .k-same::before { background: var(--signal) }
+  .key > .k-diff::before { border: 2px solid var(--ink-2) }
+
+  @media (min-width: 40rem) {
+    .setup { grid-template-columns: 3fr 2fr; column-gap: var(--s5) }
+    .boxes { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  }
+</style>
