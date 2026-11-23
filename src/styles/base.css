@@ -13,7 +13,9 @@ a:hover { text-decoration-thickness: 2px }
 :focus-visible { outline: 3px solid var(--signal); outline-offset: 3px; border-radius: 4px }
 img, svg, canvas { display: block; max-width: 100% }
 code { font: 500 .92em var(--mono) }
-math[display="block"] { overflow-x: auto; padding-block: var(--s2); font-size: 1.2em }
+/* Display math scrolls inside its own box on small screens, never the page. */
+.katex:has(> math[display="block"]) { display: block; max-width: 100%; overflow-x: auto; overflow-y: hidden }
+math[display="block"] { padding-block: var(--s2); font-size: 1.2em }
 
 .wrap { width: 100%; max-width: calc(var(--max) + 2 * var(--gut)); margin-inline: auto; padding-left: max(var(--gut), env(safe-area-inset-left, 0px)); padding-right: max(var(--gut), env(safe-area-inset-right, 0px)) }
 .doto { font-family: var(--dots); font-weight: 900; letter-spacing: .02em }

@@ -32,7 +32,7 @@ const { stop, description, answer, myth } = Astro.props;
 <style>
   .lesson { padding-bottom: var(--s6) }
   article { min-width: 0 }
-  .body { display: grid; gap: var(--s3); margin-top: var(--s5) }
+  .body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s3); margin-top: var(--s5) }
   @media (min-width: 64rem) {
     .lesson { display: grid; grid-template-columns: minmax(0, 1fr) 15rem; column-gap: var(--s6); align-items: start }
   }
