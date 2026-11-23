@@ -1354,7 +1354,7 @@ Rules:
 | finance | herman-2023-finance, chakrabarti-2021-threshold |
 | quantum-ml | biamonte-2017-qml, cerezo-2022-qml, tang-2019-recommendation |
 | hype | aaronson-2015-fineprint, hoefler-2023-disentangling, larose-2024-history |
-| investment |  |
+| investment | - |
 | national-programs | raymer-2019-nqi, riedel-2017-flagship, knight-2019-uk |
 | geopolitics | mosca-2018-ready, raymer-2019-nqi |
 | supply-chain | krinner-2019-cryogenic, bravyi-2022-future |
