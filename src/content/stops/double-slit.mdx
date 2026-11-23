@@ -1,0 +1,66 @@
+---
+description: "Single photons land one dot at a time and build stripes. Mark which slit each one takes and the stripes vanish. Try it live."
+answer: "In the double-slit experiment, particles such as photons or electrons fly one at a time at a wall with two slits. Each lands as one dot, yet many dots build stripes, because the amplitudes for the two paths add and cancel; once anything fully records which slit each one took, the stripes vanish."
+myth:
+  claim: "A conscious observer makes the stripes vanish."
+  truth: "A full record of which slit each particle took wipes out the stripes, even a record that nobody ever reads. A partial record fades them."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import DoubleSlit from '../../components/tools/DoubleSlit.astro';
+
+<Depth level="kid">
+
+Drop two pebbles into a still pond, side by side. Their ripples spread and overlap. Where two high parts meet, the water rises higher. Where a high part meets a low part, they cancel and the water stays flat.
+
+Light can do this too. Send it at a wall with two thin slits, one tiny bit of light (a photon) at a time. Each photon makes one dot on a screen. Dot by dot, bright and dark stripes appear. Slits closer together make wider stripes. Labs have done the same with electrons.
+
+Now add a marker that keeps a note of which slit each photon used. Nobody has to read the note. The stripes vanish.
+
+Where the pond picture breaks: a ripple is spread out, but a photon always lands as one whole dot. The wave part sets the odds of where it lands.
+
+</Depth>
+
+<Depth level="student">
+
+Each photon starts at a light source and heads for a wall with two thin slits. It can reach a spot on the screen two ways, through the left slit or the right. Each way has an amplitude, a number that can be negative or even complex. Add the two; the chance of landing there is |sum|².
+
+Say the amplitudes at one spot are 1/2 and −1/2. They add to 0, so no photon ever lands there. Close one slit and the chance there is |1/2|² = 1/4. More ways in, fewer photons.
+
+Let a marker record which slit each photon took. The two ways then end differently, so their chances add instead: 1/4 + 1/4 = 1/2. Nothing cancels, so the stripes vanish, even if no one reads it.
+
+Slits closer together make stripes farther apart. Labs have built these stripes one electron at a time. More on canceling: [interference](/learn/interference/).
+
+</Depth>
+
+<Depth level="engineer">
+
+Far from the slits (the Fraunhofer limit, small angles), the amplitude to reach screen point $y$ through slit 1 or slit 2 is, up to one constant factor,
+
+$$
+\psi_{1,2}(y) = \tfrac{1}{\sqrt{2}}\,\operatorname{sinc}\,\beta\;e^{\mp i\phi/2},
+$$
+
+with $\beta = \pi a y/(\lambda L)$ and $\phi = 2\pi d y/(\lambda L)$, for slit width $a$, spacing $d$, wavelength $\lambda$ and screen distance $L$. With nothing recording the slit, the Born rule gives $P(y) \propto |\psi_1 + \psi_2|^2$, which works out to
+
+$$
+P(y) \propto \operatorname{sinc}^2\beta\,\cos^2(\phi/2),
+$$
+
+the one-slit band times $\cos^2$ fringes. Bright stripes sit at $y = m\lambda L/d$, spaced $\lambda L/d$ apart. Where $\cos(\phi/2) = 0$ the amplitudes cancel exactly, even where one path alone gives a nonzero chance. A stripe goes missing where it meets a zero of the band.
+
+Now let a marker at the slits end in state $|m_1\rangle$ or $|m_2\rangle$. The joint state is $\psi_1|m_1\rangle + \psi_2|m_2\rangle$, so the cross term becomes $2\,\mathrm{Re}(\psi_1^*\psi_2\langle m_1|m_2\rangle)$ and the fringe contrast is $|\langle m_1|m_2\rangle|$. For a real overlap $\gamma = \langle m_1|m_2\rangle$ with $0 \le \gamma \le 1$,
+
+$$
+P(y) \propto \operatorname{sinc}^2\beta\,(1 + \gamma\cos\phi).
+$$
+
+A perfect record, $\gamma = 0$, leaves $|\psi_1|^2 + |\psi_2|^2$, the one-slit band: no stripes, and nobody has to read the marker. A partial record fades them. Losing stripes to a record like this is [decoherence](/learn/decoherence/). A phase on both paths (global phase) changes nothing; the relative phase $\phi$ places the stripes.
+
+The tool uses $\lambda = 500$ nm, $a = 0.020$ mm and $L = 1$ m. At $d = 0.20$ mm the middle band holds 19 bright stripes and order 10 is missing, as in OpenStax Example 4.4. Tonomura's team (1989) built two-path stripes one electron at a time, with an electron biprism in place of slits. Bach et al. (2013) did it with real slits.
+
+</Depth>
+
+<Lab title="Fire photons, then mark the slit" intro="Let the dots build stripes. Then change the slit spacing, or mark which slit each photon takes, and fire again.">
+  <DoubleSlit />
+</Lab>

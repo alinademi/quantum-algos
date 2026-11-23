@@ -1,0 +1,212 @@
+---
+// Double-slit detector: each dot is one simulated photon landing where the Born rule sends it, |psi1 + psi2|^2,
+// or |psi1|^2 + |psi2|^2 once a marker records the slit. Far-field optics with real lengths, so the stripe gap is lambda L / d.
+import { SPACING_UM, LAMBDA, WIDTH, SCREEN, EDGE, describe } from '../../lib/sims/double-slit.ts';
+
+// start: photons fired when the tool first comes into view (the home hero can pass more). Canvas height: set --ds-h.
+interface Props { start?: number }
+const { start = 5000 } = Astro.props;
+const uid = 'ds-' + Math.random().toString(36).slice(2, 8);
+const d0 = SPACING_UM.start / 1000;
+---
+<qce-double-slit class="tool" data-start={start}>
+  <figure>
+    <canvas aria-hidden="true"></canvas>
+    <figcaption>
+      Simulated: green light ({Math.round(LAMBDA * 1e6)} nm), slits {WIDTH.toFixed(3)} mm wide, screen {SCREEN / 1000} m away, shown {Math.round(EDGE)} mm each side of center.
+      Each dot is one photon, landing at random with odds |amplitude|². Height only spreads the dots out.
+      Bars count photons per strip of screen; the line is the Born-rule prediction for that many.
+    </figcaption>
+  </figure>
+
+  <p class="count"><span class="doto" data-n>0</span> photons</p>
+  <div class="tool-controls">
+    <button class="btn btn-line" type="button" data-fire>Fire 1,000 more</button>
+    <label class="switch"><input type="checkbox" role="switch" data-mark /><span class="track" aria-hidden="true"></span>Mark which slit</label>
+  </div>
+  <div class="spacing">
+    <div class="row">
+      <label for={`${uid}-d`}>Slit spacing</label>
+      <output for={`${uid}-d`}>{d0.toFixed(2)} mm</output>
+    </div>
+    <input id={`${uid}-d`} type="range" min={SPACING_UM.min} max={SPACING_UM.max} step={SPACING_UM.step} value={SPACING_UM.start} aria-valuetext={`${d0.toFixed(2)} millimeters`} />
+  </div>
+  <p class="tool-readout" aria-live="polite">{describe(d0, false)}</p>
+</qce-double-slit>
+
+<script>
+  import { EDGE, binOf, binProbs, describe, rate, sampleY, spread } from '../../lib/sims/double-slit.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  const CAP = 30000, BINS = 201, FADE = 520, AXIS = 20;
+
+  class DoubleSlit extends HTMLElement {
+    connectedCallback() {
+      const canvas = this.querySelector('canvas')!, count = this.querySelector('[data-n]')!;
+      const fire = this.querySelector<HTMLButtonElement>('[data-fire]')!, mark = this.querySelector<HTMLInputElement>('[data-mark]')!;
+      const slider = this.querySelector<HTMLInputElement>('input[type="range"]')!, out = this.querySelector('output')!;
+      const readout = this.querySelector('.tool-readout')!;
+      const start = Number(this.dataset.start) || 5000;
+
+      // Every landed photon: where it hit (mm), its height in beam widths, and when it landed (for the fade).
+      const ys = new Float32Array(CAP), vs = new Float32Array(CAP), born = new Float64Array(CAP), bins = new Uint32Array(BINS);
+      const base = document.createElement('canvas'), bctx = base.getContext('2d')!;
+      let ctx = canvas.getContext('2d')!, w = 0, h = 0, pal = palette();
+      let d = Number(slider.value) / 1000, marked = false, probs = binProbs(d, 1, BINS);
+      let n = 0, drawn = 0, queue = 0, acc = 0, raf = 0, last = 0, seen = false, busy = false;
+
+      const histH = () => Math.round(Math.min(96, h * 0.26));
+      const plateH = () => h - histH() - AXIS;
+      const px = (y: number) => ((y + EDGE) / (2 * EDGE)) * w;
+      const at = (i: number) => [px(ys[i]), plateH() / 2 + vs[i] * plateH() * 0.19] as const;
+
+      const land = (now: number) => {
+        const y = sampleY(d, marked ? 0 : 1, Math.random);
+        ys[n] = y; vs[n] = spread(Math.random); born[n] = now; n++;
+        bins[binOf(y, BINS)]++;
+      };
+
+      // Old dots are baked into an offscreen canvas once; only fresh ones are redrawn each frame.
+      const bake = (upto: number) => {
+        bctx.globalAlpha = 0.6;
+        const r = w < 640 ? 0.75 : 0.95;
+        for (; drawn < upto; drawn++) dot(bctx, ...at(drawn), r, pal.ink);
+        bctx.globalAlpha = 1;
+      };
+
+      // Bars and the prediction share one scale, so the bars grow into the line as photons land.
+      const histogram = () => {
+        const top = plateH(), H = histH() - 8, y0 = top + histH(), bw = w / BINS;
+        let m = 1;
+        for (let i = 0; i < BINS; i++) m = Math.max(m, bins[i], probs[i] * n);
+        ctx.strokeStyle = pal.rule; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(0, top + 0.5); ctx.lineTo(w, top + 0.5); ctx.stroke();
+        ctx.fillStyle = pal.ink2; ctx.globalAlpha = 0.7;
+        for (let i = 0; i < BINS; i++) {
+          const bh = (bins[i] / m) * H;
+          if (bh > 0) ctx.fillRect(i * bw, y0 - bh, Math.max(1, bw - 0.5), bh);
+        }
+        ctx.globalAlpha = 1;
+        if (n > 0) {
+          ctx.strokeStyle = pal.signal; ctx.lineWidth = w < 480 ? 1 : 1.5; ctx.lineJoin = 'round'; ctx.beginPath();
+          for (let i = 0; i < BINS; i++) ctx[i ? 'lineTo' : 'moveTo']((i + 0.5) * bw, y0 - ((probs[i] * n) / m) * H);
+          ctx.stroke();
+        }
+      };
+
+      const axis = () => {
+        const y = h - 5;
+        ctx.fillStyle = pal.ink2; ctx.font = `500 11px ${token('--mono')}`;
+        ctx.textAlign = 'left'; ctx.fillText(`−${EDGE} mm`, 4, y);
+        ctx.textAlign = 'center'; ctx.fillText('0', w / 2, y);
+        ctx.textAlign = 'right'; ctx.fillText(`${EDGE} mm`, w - 4, y);
+        ctx.textAlign = 'left';
+      };
+
+      const paint = (now = performance.now()) => {
+        if (!w) return;
+        let k = drawn;
+        while (k < n && now - born[k] > FADE) k++;
+        bake(k);
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(base, 0, 0, w, h);
+        for (let i = drawn; i < n; i++) {
+          const t = (now - born[i]) / FADE;
+          ctx.globalAlpha = 1 - t * 0.5;
+          dot(ctx, ...at(i), 2.4 - t * 1.3, pal.signal);
+        }
+        ctx.globalAlpha = 1;
+        histogram(); axis();
+        count.textContent = n.toLocaleString('en');
+      };
+
+      const controls = () => {
+        const full = n + queue >= CAP;
+        fire.disabled = full;
+        fire.textContent = n >= CAP ? 'The screen is full' : 'Fire 1,000 more';
+      };
+
+      const finish = () => { busy = false; controls(); readout.textContent = describe(d, marked, n); };
+
+      // Photons land at rate(n) per second: one by one at first, then faster. Off screen, wait.
+      // With reduced motion, all queued photons land at once and the end state is drawn.
+      const step = (now: number) => {
+        raf = 0;
+        const dt = last ? Math.min(now - last, 50) : 16;
+        last = now;
+        if (queue > 0) {
+          let k = queue;
+          if (!reduceMotion()) { acc += (rate(n) * dt) / 1000; k = Math.floor(acc); acc -= k; }
+          k = Math.min(k, queue, CAP - n);
+          for (let i = 0; i < k; i++) land(reduceMotion() ? -Infinity : now);
+          queue = n >= CAP ? 0 : queue - k;
+          if (queue === 0 && busy) finish();
+        }
+        paint(now);
+        if (seen && (queue > 0 || drawn < n)) raf = requestAnimationFrame(step); else last = 0;
+      };
+      const kick = () => { if (!raf && seen) raf = requestAnimationFrame(step); };
+
+      // A new setup is a new experiment: clear the screen and fire again.
+      const reset = () => {
+        n = 0; drawn = 0; acc = 0; queue = start; busy = true;
+        bins.fill(0);
+        probs = binProbs(d, marked ? 0 : 1, BINS);
+        bctx.clearRect(0, 0, w, h);
+        controls(); paint(); kick();
+      };
+
+      const size = () => {
+        ({ ctx, w, h } = fit(canvas));
+        if (!w) return;
+        pal = palette();
+        base.width = canvas.width; base.height = canvas.height;
+        bctx.setTransform(canvas.width / w, 0, 0, canvas.height / h, 0, 0);
+        drawn = 0; bctx.clearRect(0, 0, w, h); bake(n);
+        paint(); kick();
+      };
+
+      fire.addEventListener('click', () => {
+        queue += Math.min(1000, CAP - n - queue);
+        busy = true; controls(); kick();
+      });
+      mark.addEventListener('change', () => {
+        marked = mark.checked; reset();
+        readout.textContent = describe(d, marked);
+      });
+      slider.addEventListener('input', () => {
+        d = Number(slider.value) / 1000;
+        out.textContent = `${d.toFixed(2)} mm`;
+        slider.setAttribute('aria-valuetext', `${d.toFixed(2)} millimeters`);
+        reset();
+      });
+      // Say the new setup once the reader lets go, not at every step of a drag.
+      slider.addEventListener('change', () => { readout.textContent = describe(d, marked); });
+
+      onResize(canvas, size);
+      onTheme(size);
+      onSeen(canvas, (v) => { seen = v; if (v) kick(); });
+      reset();
+    }
+  }
+  customElements.define('qce-double-slit', DoubleSlit);
+</script>
+
+<style>
+  figure { display: grid; gap: var(--s2); margin: 0; min-width: 0 }
+  canvas { height: var(--ds-h, clamp(300px, 30vw + 200px, 460px)); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r) }
+  figcaption { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  .count { display: flex; align-items: baseline; gap: .5rem; color: var(--ink-2) }
+  .count .doto { font-size: clamp(2rem, 1.6rem + 2vw, 3rem); line-height: 1; color: var(--ink) }
+
+  .switch { position: relative; display: inline-flex; align-items: center; gap: .7rem; min-height: 2.75rem; cursor: pointer }
+  .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0 }
+  .track { position: relative; flex: none; width: 3rem; height: 1.75rem; border-radius: 1rem; background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--ink-2); transition: background .2s }
+  .track::after { content: ""; position: absolute; top: .25rem; left: .25rem; width: 1.25rem; height: 1.25rem; border-radius: 50%; background: var(--ink-2); transition: transform .2s }
+  .switch input:checked + .track { background: var(--hot); box-shadow: none }
+  .switch input:checked + .track::after { background: var(--paper); transform: translateX(1.25rem) }
+  .switch input:focus-visible + .track { outline: 3px solid var(--signal); outline-offset: 3px }
+
+  .spacing { display: grid; gap: var(--s1); max-width: 28rem }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+</style>
