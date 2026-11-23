@@ -4,13 +4,17 @@
 Usage:
   python3 scripts/check-ref.py 10.1103/RevModPhys.87.307 arXiv:quant-ph/9508027 ...
       Prints one line per id: OK or MISSING, then year, authors, title and venue.
-  python3 scripts/check-ref.py docs/references.md
-      Checks every library row: each DOI and arXiv id must exist, and its title and year
-      must match the row. A real id that points to the wrong paper fails. Exits 1 on problems.
+  python3 scripts/check-ref.py docs/references.md [--links]
+      Checks every Sources row: each DOI and arXiv id must exist, and its title and year
+      must match the row. A real id that points to the wrong paper fails.
+      Checks every Learn more pick: known key, a Part, a link that opens at the topic
+      (no doi.org, no arXiv PDF, no home page), at most 3 per stop.
+      --links also opens every link: the #anchor must exist, and a PDF #page=N must show the Part.
+      Exits 1 on problems.
 
 DOIs are checked with Crossref, arXiv ids with the arXiv API.
 """
-import difflib, html, json, re, sys, time, urllib.request, urllib.parse, xml.etree.ElementTree as ET
+import difflib, gzip, html, json, re, sys, time, urllib.request, urllib.parse, xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 
 UA = {'User-Agent': 'qce-ref-check/1.1'}
@@ -19,7 +23,8 @@ def get(url, tries=5):
     for i in range(tries):
         try:
             with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30) as r:
-                return r.read()
+                body = r.read()
+                return gzip.decompress(body) if body[:2] == b'\x1f\x8b' else body  # some sites gzip even unasked
         except urllib.error.HTTPError as e:
             if e.code != 429 or i == tries - 1: raise
             time.sleep(int(e.headers.get('Retry-After') or 2 ** i))  # rate limited: wait, then retry
@@ -73,8 +78,46 @@ def table(md, name):
     head = [c.lower() for c in cells(rows[0])]
     return [dict(zip(head, cells(r))) for r in rows[1:]]
 
-def check_file(path):
-    rows = table(open(path).read(), 'Library')
+def check_picks(md, keys, open_links):
+    problems, per = [], {}
+    for p in table(md, 'Learn more'):
+        s, link, where = p['stop'], p['link'], f"{p['stop']} > {p['key']}"
+        per[s] = per.get(s, 0) + 1
+        if p['key'] not in keys: problems.append(f'{where}: unknown source key')
+        if p['part'] in ('', '-'): problems.append(f'{where}: no Part (say where to look)')
+        if not link.startswith('https://'): problems.append(f'{where}: link must be https')
+        if re.match(r'https://(dx\.)?doi\.org/|https://arxiv\.org/(pdf|html)/', link): problems.append(f'{where}: use the arXiv abstract page or the exact page, not {link}')
+        if urllib.parse.urlparse(link).path in ('', '/') and '#' not in link: problems.append(f'{where}: a home page is not the topic')
+    problems += [f'{s}: {n} picks, keep at most 3' for s, n in per.items() if n > 3]
+    if open_links: problems += check_links(table(md, 'Learn more'))
+    return problems
+
+def check_links(picks):
+    import subprocess, tempfile
+    pages, problems = {}, []
+    def fetch(url):
+        try: return url, get(url)
+        except Exception as e: return url, e
+    with ThreadPoolExecutor(4) as pool:
+        pages = dict(pool.map(fetch, sorted({p['link'].split('#')[0] for p in picks})))
+    for p in picks:
+        base, _, frag = p['link'].partition('#')
+        body, where = pages[base], f"{p['stop']} > {p['key']}"
+        if isinstance(body, Exception): problems.append(f'{where}: link does not open ({body})'); continue
+        page = re.fullmatch(r'page=(\d+)', frag)
+        if page and body[:4] == b'%PDF':
+            with tempfile.NamedTemporaryFile(suffix='.pdf') as f:
+                f.write(body); f.flush()
+                text = subprocess.run(['pdftotext', '-f', page[1], '-l', page[1], f.name, '-'], capture_output=True, text=True).stdout
+            words = norm(p['part'].split(',', 1)[-1]).split()
+            if words and sum(w in norm(text) for w in words) < 0.6 * len(words): problems.append(f'{where}: page {page[1]} does not show "{p["part"]}"')
+        elif frag and not page and not re.search(rb'(id|name)="' + re.escape(urllib.parse.unquote(frag)).encode() + rb'"', body):
+            problems.append(f'{where}: no #{frag} on the page')
+    return problems
+
+def check_file(path, open_links=False):
+    md = open(path).read()
+    rows = table(md, 'Sources')
     dois = [r['doi'] for r in rows if r['doi'] != '-']
     def safe(d):
         try: return d, doi(d)
@@ -92,14 +135,15 @@ def check_file(path):
             if isinstance(rec, Exception): problems.append(f'{k}: {kind} not found ({rec})'); continue
             want = ax_title[1] if kind == 'arXiv' and ax_title else title
             if rec['title'] and not same_title(rec['title'], want): problems.append(f'{k}: {kind} title is "{rec["title"]}"')
-            if kind == 'DOI' and rec['year'] != r['year']: problems.append(f'{k}: DOI year is {rec["year"]}, row says {r["year"]}')
+            if kind == 'DOI' and rec['year'] not in ('None', r['year']): problems.append(f'{k}: DOI year is {rec["year"]}, row says {r["year"]}')
         if '\ufffd' in ''.join(r.values()): problems.append(f'{k}: broken character (\ufffd), fix the text by hand')
         if r['doi'] == '-' and r['arxiv'] == '-' and r.get('url', '-') == '-': problems.append(f'{k}: no DOI, arXiv id or URL')
-    print(*problems, f'{len(rows)} references, {len(problems)} problems', sep='\n')
+    problems += check_picks(md, {r['key'] for r in rows}, open_links)
+    print(*problems, f'{len(rows)} sources, {len(problems)} problems', sep='\n')
     return not problems
 
-if len(sys.argv) == 2 and sys.argv[1].endswith('.md'):
-    sys.exit(0 if check_file(sys.argv[1]) else 1)
+if len(sys.argv) > 1 and sys.argv[1].endswith('.md'):
+    sys.exit(0 if check_file(sys.argv[1], '--links' in sys.argv) else 1)
 
 for ref in sys.argv[1:]:
     try:
