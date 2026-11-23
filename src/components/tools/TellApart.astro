@@ -1,0 +1,295 @@
+---
+// Sends fresh copies of one of two known qubit states and measures each once. Every chance is the Born rule <ψ|E_k|ψ>
+// of a valid measurement from sims/state-discrimination.ts, checked there against the Helstrom bound and the IDP limit.
+import { GAMMA, STRATEGIES, NAMES, BATCH, rates, oddsText, describe, recipeText, valueText, overlap, num } from '../../lib/sims/state-discrimination.ts';
+const uid = 'ta-' + Math.random().toString(36).slice(2, 8);
+const start = oddsText(rates('best', GAMMA.start));
+const presets = [
+  { deg: 0, said: 'the same state twice' },
+  { deg: 45, said: '|0⟩ and |+⟩' },
+  { deg: 90, said: '|0⟩ and |1⟩, orthogonal' },
+];
+const kinds = [
+  { k: 'right', name: 'Right' },
+  { k: 'wrong', name: 'Wrong' },
+  { k: 'unsure', name: 'Not sure' },
+] as const;
+---
+<qce-tell-apart class="tool">
+  <canvas aria-hidden="true"></canvas>
+
+  <dl class="odds">
+    {kinds.map(({ k, name }) => (
+      <div>
+        <dt><span class={`sw ${k}`} aria-hidden="true"></span>{name}</dt>
+        <dd><b class="doto" data-p={k}>{start[k]}</b><span class="visually-hidden">. </span><span data-n={k}></span></dd>
+      </div>
+    ))}
+  </dl>
+
+  <div class="panel">
+    <div class="angle">
+      <div class="row"><label for={`${uid}-g`}>Angle between the states</label><output for={`${uid}-g`}>{GAMMA.start}°</output></div>
+      <input id={`${uid}-g`} type="range" min={GAMMA.min} max={GAMMA.max} step="1" value={GAMMA.start} aria-valuetext={valueText(GAMMA.start)} />
+      <p class="hint" data-overlap>Overlap |⟨ψ₀|ψ₁⟩| = {num(overlap(GAMMA.start))}</p>
+      <div class="presets" role="group" aria-label="Set the angle">
+        {presets.map(({ deg, said }) => (
+          <button type="button" data-g={deg} aria-pressed={String(deg === GAMMA.start)}>{deg}°<span class="visually-hidden">, {said}</span></button>
+        ))}
+      </div>
+    </div>
+
+    <fieldset>
+      <legend class="label">Measurement</legend>
+      <div class="chips">
+        {STRATEGIES.map((s) => (
+          <label><input type="radio" name={`${uid}-s`} value={s} checked={s === 'best'} />{NAMES[s]}</label>
+        ))}
+      </div>
+      <button class="btn btn-sm" type="button" data-new>New batch of {BATCH}</button>
+    </fieldset>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">{describe('best', GAMMA.start, null)}</p>
+  <p class="note" data-recipe>{recipeText('best', GAMMA.start)}</p>
+  <p class="note">Each dot is one shot: a fresh copy of |ψ₀⟩ or |ψ₁⟩, measured once, its result drawn at random by the Born rule. A batch sends 200 copies of each state, so each is sent half the time. Each dot keeps its own random draw, so moving the slider or changing the measurement moves dots between piles instead of re-rolling them. Rows show the state sent, columns what the measurement said. Filled dots are right, rings are wrong, small dots are “not sure”. The dashed line on each pile marks shots × chance.</p>
+  <p class="note">In the picture, the solid arrows are the two states and the dotted lines are the directions of the measurement's parts. Amplitudes are real: |ψ₀⟩ = |0⟩ points right and |1⟩ points up, so orthogonal states sit 90° apart here (on the Bloch sphere they would be opposite). The tool reaches only real amplitudes, one plane of states. That loses nothing: up to a global phase, any two pure states look like this in a suitable basis, and the best odds, for both best guess and never wrong, depend only on the overlap. Ideal qubits, no noise.</p>
+</qce-tell-apart>
+
+<script>
+  import { BATCH, EACH, table, rates, oddsText, describe, recipeText, valueText, overlap, num, parts, batch, tally, totals, kind, grid, say as pick, type Strategy, type Shot, type Sent, type Said } from '../../lib/sims/state-discrimination.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  const TAU = Math.PI * 2, RAD = Math.PI / 180;
+  /** Time, in ms, for a new batch to land, one dot after another. */
+  const REVEAL = 900;
+  const SAID = ['say ψ₀', 'say ψ₁', 'not sure'];
+  const COLS_TEXT = ['said ψ₀', 'said ψ₁', 'not sure'];
+  type Pal = ReturnType<typeof palette>;
+
+  class TellApart extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const canvas = $<HTMLCanvasElement>('canvas'), readout = $('.tool-readout'), recipe = $('[data-recipe]');
+      const range = $<HTMLInputElement>('input[type="range"]'), out = $('output'), hint = $('[data-overlap]');
+      const presets = [...this.querySelectorAll<HTMLButtonElement>('[data-g]')];
+      const radios = [...this.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+      const again = $<HTMLButtonElement>('[data-new]');
+      const ctx = canvas.getContext('2d')!;
+
+      let gamma = +range.value, strat: Strategy = 'best';
+      let shots: Shot[] = batch(Math.random), shown = 0;
+      let W = 0, Hh = 0, raf = 0, t0 = 0, seen = false, started = false;
+
+      // ---- Words and controls
+
+      const counts = () => tally(shots, table(strat, gamma), shown);
+      /** Speak only on release, a press or the end of a batch: not on every slider step. */
+      const say = () => { readout.textContent = describe(strat, gamma, shown === BATCH ? counts() : null); };
+      const update = () => {
+        range.value = String(gamma);
+        out.textContent = `${gamma}°`;
+        range.setAttribute('aria-valuetext', valueText(gamma));
+        hint.textContent = `Overlap |⟨ψ₀|ψ₁⟩| = ${num(overlap(gamma))}`;
+        presets.forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.g! === gamma)));
+        recipe.textContent = recipeText(strat, gamma);
+        const t = oddsText(rates(strat, gamma)), n = totals(counts());
+        (['right', 'wrong', 'unsure'] as const).forEach((k) => {
+          $(`[data-p="${k}"]`).textContent = t[k];
+          $(`[data-n="${k}"]`).textContent = shown ? `${n[k]} of ${shown} shots` : '';
+        });
+        draw();
+      };
+
+      range.addEventListener('input', () => { gamma = +range.value; update(); });
+      range.addEventListener('change', say);
+      presets.forEach((b) => b.addEventListener('click', () => { gamma = +b.dataset.g!; update(); say(); }));
+      radios.forEach((r) => r.addEventListener('change', () => { if (r.checked) { strat = r.value as Strategy; update(); say(); } }));
+      again.addEventListener('click', () => run());
+
+      // ---- A batch lands, one dot after another
+
+      const step = (now: number) => {
+        raf = 0;
+        shown = Math.min(BATCH, Math.max(shown, Math.ceil(((now - t0) / REVEAL) * BATCH)));
+        update();
+        if (shown < BATCH) { if (seen) raf = requestAnimationFrame(step); }
+        else say();
+      };
+      const kick = () => {
+        if (raf || !seen || shown >= BATCH) return;
+        t0 = performance.now() - (shown / BATCH) * REVEAL;
+        raf = requestAnimationFrame(step);
+      };
+      const run = () => {
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        shots = batch(Math.random);
+        if (reduceMotion()) { shown = BATCH; update(); say(); return; }
+        shown = 0; update(); kick();
+      };
+
+      // ---- Drawing
+
+      const text = (s: string, x: number, y: number, C: Pal, color: string, font: string, align: CanvasTextAlign = 'center') => {
+        ctx.font = font; ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+        ctx.lineWidth = 4; ctx.strokeStyle = C.plate; ctx.strokeText(s, x, y);
+        ctx.fillStyle = color; ctx.fillText(s, x, y);
+      };
+      const ring = (x: number, y: number, r: number, color: string, lw: number) => {
+        ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke();
+      };
+      /** Right: a filled dot. Wrong: a ring. Not sure: a small faint dot. Shape tells them apart, not only color. */
+      const mark = (k: 'right' | 'wrong' | 'unsure', x: number, y: number, r: number, C: Pal) => {
+        if (k === 'right') dot(ctx, x, y, r, C.signal);
+        else if (k === 'wrong') ring(x, y, Math.max(0.6, r - 0.5), C.hot, Math.max(1, Math.min(1.8, r * 0.55)));
+        else dot(ctx, x, y, r * 0.7, C.ink2);
+      };
+
+      const draw = () => {
+        if (!W) return;
+        const C = palette(), mono = token('--mono');
+        ctx.clearRect(0, 0, W, Hh);
+        const side = W >= 1.35 * Hh;
+        const pw = side ? Math.round(W * 0.42) : W, ph = side ? Hh : Math.min(Math.round(W * 0.8), 250);
+        picture(0, 0, pw, ph, C, mono);
+        piles(side ? pw + 12 : 0, side ? 0 : ph + 4, side ? W - pw - 12 : W, side ? Hh : Hh - ph - 4, C, mono);
+      };
+
+      const picture = (bx: number, by: number, bw: number, bh: number, C: Pal, mono: string) => {
+        // Labels for the measurement sit outside the circle on its right half: room to the right, and above and below.
+        const R = Math.max(30, Math.min((bh - 52) / 2, (bw - 84) / 2));
+        const cx = bx + (bw - (2 * R + 70)) / 2 + R, cy = by + bh / 2;
+        const at = (deg: number, r: number): [number, number] => [cx + r * Math.cos(deg * RAD), cy - r * Math.sin(deg * RAD)];
+
+        // The circle of unit vectors and the |0> and |1> axes, as faint dots.
+        const n = Math.max(24, Math.round((TAU * R) / 7));
+        ctx.globalAlpha = 0.6;
+        for (let k = 0; k < n; k++) dot(ctx, cx + R * Math.cos((k / n) * TAU), cy + R * Math.sin((k / n) * TAU), 1, C.ink2);
+        ctx.globalAlpha = 0.3;
+        for (let k = -12; k <= 12; k++) { dot(ctx, cx + (R * k) / 12, cy, 0.9, C.ink2); dot(ctx, cx, cy + (R * k) / 12, 0.9, C.ink2); }
+        ctx.globalAlpha = 1;
+
+        // The measurement's parts: dotted lines through the center (a direction and its opposite are one state).
+        const ps = parts(strat, gamma);
+        for (const p of ps) {
+          const m = Math.max(8, Math.round(R / 5));
+          for (let k = -m; k <= m; k++) { const [x, y] = at(p.deg, (R * k) / m); dot(ctx, x, y, 1.4, C.ink); }
+        }
+
+        // The angle between the states, as an arc of dots.
+        if (gamma > 0) {
+          const ra = R * 0.3, m = Math.max(3, Math.round(gamma / 6));
+          for (let k = 0; k <= m; k++) { const [x, y] = at((gamma * k) / m, ra); dot(ctx, x, y, 1.2, C.ink2); }
+          const [x, y] = at(gamma / 2, ra + 16);
+          text(`${gamma}°`, x, y, C, C.ink, `500 11px ${mono}`);
+        }
+
+        // The two states: solid arrows from the center.
+        const L = R * 0.74;
+        for (const [deg, name, side] of [[0, 'ψ₀', -1], [gamma, 'ψ₁', 1]] as const) {
+          const [x, y] = at(deg, L);
+          ctx.strokeStyle = C.ink; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(x, y); ctx.stroke();
+          dot(ctx, x, y, 4, C.ink);
+          // ψ0's label goes clockwise of its tip, ψ1's counterclockwise, so they never sit on each other.
+          const [lx, ly] = at(deg + side * 13, L + 2);
+          text(name, lx, ly, C, C.ink, `700 14px ${mono}`);
+        }
+
+        // Labels of the parts, at the end of each line on the right half.
+        for (const p of ps) {
+          const [x, y] = at(p.deg, R), dx = Math.cos(p.deg * RAD), dy = -Math.sin(p.deg * RAD);
+          ctx.font = `600 12px ${mono}`;
+          const tw = ctx.measureText(SAID[p.said]).width;
+          text(SAID[p.said], x + dx * (9 + tw / 2), y + dy * 16, C, C.ink, `600 12px ${mono}`);
+        }
+      };
+
+      const piles = (bx: number, by: number, bw: number, bh: number, C: Pal, mono: string) => {
+        const head = 18, left = bw < 360 ? 54 : 62, gap = 8, rowGap = 22, foot = 16;
+        const cw = (bw - left - 2 * gap) / 3, ch = (bh - head - rowGap - foot) / 2;
+        const g = grid(cw, ch - 4, EACH), r = Math.max(0.8, g.pitch * 0.36);
+        const t = table(strat, gamma), n = counts();
+        const placed = [[0, 0, 0], [0, 0, 0]];
+        const cell = (sent: Sent, said: Said) => {
+          const x0 = bx + left + said * (cw + gap), y0 = by + head + sent * (ch + rowGap);
+          return { x0, base: y0 + ch, gx: x0 + (cw - g.cols * g.pitch) / 2 };
+        };
+
+        COLS_TEXT.forEach((s, k) => text(s, bx + left + k * (cw + gap) + cw / 2, by + 8, C, C.ink2, `500 11px ${mono}`));
+        (['sent ψ₀', 'sent ψ₁'] as const).forEach((s, i) => text(s, bx, by + head + i * (ch + rowGap) + ch / 2, C, C.ink2, `500 11px ${mono}`, 'left'));
+
+        for (const sent of [0, 1] as const) for (const said of [0, 1, 2] as const) {
+          const { x0, base, gx } = cell(sent, said);
+          ctx.globalAlpha = 0.5;
+          for (let i = 0; i < g.cols; i++) dot(ctx, gx + (i + 0.5) * g.pitch, base + 2.5, 0.8, C.ink2);
+          ctx.globalAlpha = 1;
+          // Expected count: shots of this state × chance. Drawn only once a batch is landing.
+          if (shown) {
+            const y = base - ((EACH * t[sent][said]) / g.cols) * g.pitch;
+            ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+            ctx.beginPath(); ctx.moveTo(gx - 3, y); ctx.lineTo(gx + g.cols * g.pitch + 3, y); ctx.stroke(); ctx.setLineDash([]);
+          }
+          text(String(n[sent][said]), x0 + cw / 2, base + 11, C, C.ink, `600 11px ${mono}`);
+        }
+
+        // Dots in shot order, so the piles grow together as a batch lands.
+        for (let i = 0; i < shown; i++) {
+          const s = shots[i], said = pick(t[s.sent], s.u);
+          const j = placed[s.sent][said]++, { base, gx } = cell(s.sent, said);
+          mark(kind(s.sent, said), gx + ((j % g.cols) + 0.5) * g.pitch, base - (Math.floor(j / g.cols) + 0.5) * g.pitch, r, C);
+        }
+      };
+
+      const resize = () => { const f = fit(canvas); W = f.w; Hh = f.h; draw(); };
+      onResize(canvas, resize);
+      onTheme(() => draw());
+      onSeen(this, (v) => {
+        seen = v;
+        if (v && !started) { started = true; run(); }
+        else if (v) kick();
+      });
+      update();
+      resize();
+    }
+  }
+  customElements.define('qce-tell-apart', TellApart);
+</script>
+
+<style>
+  canvas { height: 31rem }
+  .odds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); margin: 0 }
+  .odds > div { display: grid; align-content: start; gap: var(--s1); min-width: 0 }
+  .odds dt { display: flex; align-items: center; gap: .4rem; font: 500 .75rem/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2) }
+  .odds dd { display: grid; gap: .1rem; margin: 0 }
+  .odds b { font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2.25rem); line-height: 1.1; color: var(--ink) }
+  .odds [data-n] { min-height: 1.3em; font-size: .8125rem; color: var(--ink-2) }
+  .sw { flex: none; width: .75rem; height: .75rem; border-radius: 50% }
+  .sw.right { background: var(--signal) }
+  .sw.wrong { border: 2px solid var(--hot) }
+  .sw.unsure { width: .5rem; height: .5rem; margin: 0 .125rem; background: var(--ink-2) }
+
+  .panel { display: grid; gap: var(--s4) }
+  .angle { display: grid; gap: var(--s2); min-width: 0 }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .row output { font-size: 1.25rem }
+  input[type="range"] { margin: 0 }
+  .hint { font: 500 .9375rem var(--mono); color: var(--ink-2) }
+  fieldset { display: grid; gap: var(--s3); justify-items: start; margin: 0; padding: 0; border: 0; min-width: 0 }
+  legend { padding: 0; margin-bottom: var(--s3) }
+  .presets, .chips { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .presets button, .chips label {
+    position: relative; display: inline-grid; place-items: center; min-width: 3rem; min-height: 2.75rem; padding: 0 .9rem;
+    border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer;
+  }
+  .chips label { font-family: inherit; font-weight: 600 }
+  .chips input { position: absolute; opacity: 0; width: 1px; height: 1px }
+  .presets button:hover, .chips label:hover { border-color: var(--ink) }
+  .presets button[aria-pressed="true"], .chips label:has(:checked) { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .chips label:has(:focus-visible) { outline: 3px solid var(--signal); outline-offset: 2px }
+  .tool-readout { min-height: 6.4em }
+  .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  @media (min-width: 40rem) {
+    canvas { height: 21rem }
+    .panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--s5) }
+  }
+</style>

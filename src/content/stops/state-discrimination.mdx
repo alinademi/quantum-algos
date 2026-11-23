@@ -1,0 +1,66 @@
+---
+description: "Why overlapping quantum states can't be told apart every time: the best guess (Helstrom), the never-wrong test, and a live tool."
+answer: "Telling states apart, or quantum state discrimination, is naming which of some known states a system is in, from one measurement. Orthogonal states can be told apart every time; overlapping ones cannot, so the best guess, whose success is the Helstrom bound, is sometimes wrong, and a measurement that is never wrong must sometimes say “not sure”."
+myth:
+  claim: "Two different quantum states can always be told apart, if you measure them the right way."
+  truth: "Only orthogonal ones. If two states overlap, every measurement on one copy is sometimes wrong or “not sure”, and no gate can make them orthogonal: gates keep the overlap the same."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import TellApart from '../../components/tools/TellApart.astro';
+
+<Depth level="kid">
+
+Your friend flips a coin and, by the result, hides one of two arrows in a box. You know what both arrows look like. You may ask the box one question, and then the game is over.
+
+If the two arrows point at right angles, there is a question that tells them apart every time.
+
+If they are not at right angles, the box can give the same answer for either arrow. Now you must choose. You can guess, and be right as often as anyone can, but sometimes be wrong. Or you can allow a third answer, “not sure”: then you are never wrong, but sometimes unsure.
+
+Where the picture breaks: a real arrow can be checked again and again. A qubit gives one answer to one question, and quantum theory says you cannot copy it to ask twice.
+
+</Depth>
+
+<Depth level="student">
+
+Orthogonal states, like |0⟩ and |1⟩, are easy: measure 0 or 1, and the result names the state every time.
+
+Now take |0⟩ and |+⟩. A qubit that started as |0⟩ gives 0 every time. One that started as |+⟩ has equal amplitudes for 0 and 1, so a measurement gives either with equal chance. A 0 can come from either state. Gates cannot make them easier to tell apart: they keep the overlap c = |⟨ψ₀|ψ₁⟩| the same. If c is above 0, every measurement has a result both states can give.
+
+Say a fair coin picks the state. The best guess (Helstrom) measures in a basis set evenly around both states. It is right with chance ½(1 + √(1 − c²)): about 85% here, against 75% for measuring 0 or 1.
+
+Or allow a third result, “not sure”, and never be wrong. Then you name the state with chance 1 − c at most: about 29% here.
+
+</Depth>
+
+<Depth level="engineer">
+
+You get $\rho_0$ with prior $p_0$ or $\rho_1$ with prior $p_1 = 1 - p_0$, and must name it. A two-outcome [POVM](/learn/povm/) $\{E_0, E_1\}$ is right with probability $p_0\operatorname{tr}(E_0\rho_0) + p_1\operatorname{tr}(E_1\rho_1)$. The Helstrom bound (Holevo–Helstrom theorem) is the maximum:
+
+$$
+P_{\text{best}} = \tfrac12 + \tfrac12\lVert p_0\rho_0 - p_1\rho_1\rVert_1
+$$
+
+The projector onto the positive eigenspace of $p_0\rho_0 - p_1\rho_1$ reaches it. More outcomes or helper qubits cannot beat it: any rule ending in a guess is itself a two-outcome POVM.
+
+For pure states with overlap $c = |\langle\psi_0|\psi_1\rangle|$,
+
+$$
+P_{\text{best}} = \tfrac12\left(1 + \sqrt{1 - 4p_0p_1c^2}\right)
+$$
+
+so, with both priors above 0, only orthogonal states are told apart every time. For equal priors it is $\tfrac12(1 + D)$, with $D = \sqrt{1 - c^2}$ the [trace distance](/learn/distance-measures/). In a suitable basis, and up to global phase, any pure pair is $|0\rangle$ and $\cos\gamma\,|0\rangle + \sin\gamma\,|1\rangle$, with $0 \le \gamma \le 90^\circ$ and $c = \cos\gamma$. The best basis is $\cos\theta\,|0\rangle + \sin\theta\,|1\rangle$ at $\theta = \gamma/2 - 45^\circ$ (say $\psi_0$) and $\gamma/2 + 45^\circ$ (say $\psi_1$), so $R_Y(90^\circ - \gamma)$, then a standard measurement, gives $\tfrac12(1 + \sin\gamma)$. The gate alone reveals nothing: unitaries keep $c$.
+
+Unambiguous discrimination adds an outcome $E_?$ and forbids errors: $\langle\psi_1|E_0|\psi_1\rangle = \langle\psi_0|E_1|\psi_0\rangle = 0$. On a qubit this forces $E_0 = a_0|\psi_1^\perp\rangle\langle\psi_1^\perp|$ and $E_1 = a_1|\psi_0^\perp\rangle\langle\psi_0^\perp|$, with $E_? = I - E_0 - E_1 \ge 0$. For equal priors the best is $a_0 = a_1 = 1/(1 + c)$:
+
+$$
+P_? = c, \qquad P_{\text{right}} = 1 - c
+$$
+
+This is the Ivanovic–Dieks–Peres limit. With $n$ copies, $c$ becomes $c^n$, so both strategies improve ([hypothesis testing](/learn/hypothesis-testing/)).
+
+</Depth>
+
+<Lab title="Guess which state was sent" intro="Set the angle between the two states, pick a measurement, and see how often it is right, wrong or “not sure”.">
+  <TellApart />
+</Lab>
