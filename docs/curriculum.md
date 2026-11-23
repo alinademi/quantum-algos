@@ -54,7 +54,7 @@ Source of truth for The Map. Regions say what a stop is. Lines say the order to 
 | id | Stop | Needs | Deeper | Level | Kind | Scope | Sources |
 |---|---|---|---|---|---|---|---|
 | probabilistic-bits | Bits and coins | probability, binary | - | Beginner | - | Describe a random bit with a probability vector, the classical picture that a qubit extends. | Watrous U1 Single systems |
-| double-slit | Double slit | - | - | Beginner | - | Watch single particles land one dot at a time and build stripes that vanish when the path is recorded. | FLP III ch. 1; Tonomura et al. 1989 (Am. J. Phys. 57, 117) |
+| double-slit | Double slit | - | - | Beginner | - | Watch single particles land one dot at a time and build stripes that vanish when the path is recorded. | FLP III ch. 1; Tonomura et al. 1989 (Am. J. Phys. 57, 117), an electron biprism; Bach et al. 2013 (New J. Phys. 15, 033018), real slits |
 | qubit | Qubit | - | - | Beginner | - | Meet the qubit as a two-level system with states \|0⟩ and \|1⟩, and compare it with a bit. | N&C 1.2; Watrous U1 Single systems; MS Katas qubit |
 | superposition | Superposition | qubit | - | Beginner | - | Write a state as a\|0⟩ + b\|1⟩ with amplitudes that can be negative or complex, which is not a mix. | N&C 1.2; Qiskit TB 1.3; de Wolf 1.2 |
 | measurement | Measurement | superposition, probability | - | Beginner | - | Get one outcome with odds \|amplitude\|² (Born rule), and see the state jump to that outcome. | N&C 2.2.3; de Wolf 1.2; MS Katas single_qubit_measurements |
