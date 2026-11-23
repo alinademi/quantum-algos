@@ -1,0 +1,297 @@
+---
+// Makes pairs of ideal qubits, entangled or linked only by a shared coin, and measures each pair in one of two tests
+// with Born rule odds, so the reader sees the same linked results in one test and what a coin cannot copy in the other.
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { pairState, pairKet, sourceText, splitText, readout, tally, amp, percent, scoreText, agreeChance, score, UNENTANGLED_MAX } from '../../lib/sims/entanglement.ts';
+const uid = 'lp-' + Math.random().toString(36).slice(2, 8);
+const P0 = 50, p = P0 / 100, s = pairState(p), none = tally([]);
+// Link CNOT like the markdown stop-links plugin: to its stop once written, else to its tile on The Map.
+const cnot = existsSync(join(process.cwd(), 'src/content/stops', 'cnot.mdx')) ? '/learn/cnot/' : '/map/#cnot';
+const presets = [[0, 'Quantum pair |00⟩, or a coin that always picks |00⟩'], [50, 'Bell pair, or a fair coin'], [100, 'Quantum pair |11⟩, or a coin that always picks |11⟩']] as const;
+---
+<qce-linked-pairs class="tool" data-cnot={cnot}>
+  <fieldset class="source">
+    <legend>Make each pair as</legend>
+    <label><input type="radio" name={`${uid}-src`} value="quantum" checked /> <span>A quantum pair: <code>√(1−p)|00⟩ + √p|11⟩</code></span></label>
+    <label><input type="radio" name={`${uid}-src`} value="coin" /> <span>A coin pair: a coin picks <code>|00⟩</code> or <code>|11⟩</code></span></label>
+  </fieldset>
+
+  <div class="control">
+    <div class="row">
+      <label for={`${uid}-p`}>p, the chance of 11 in the 0/1 test</label>
+      <output for={`${uid}-p`} class="doto">{percent(p)}</output>
+    </div>
+    <input id={`${uid}-p`} type="range" min="0" max="100" step="1" value={P0} aria-valuetext={`${percent(p)}. ${sourceText('quantum', p)}`} />
+    <div class="picks" role="group" aria-label="Set p to">
+      {presets.map(([n, said]) => (
+        <button type="button" class="pick" data-p={n} aria-pressed={String(n === P0)}>{n}%<span class="visually-hidden">: {said}</span></button>
+      ))}
+    </div>
+  </div>
+
+  <div class="state">
+    <p><code data-ket>|ψ⟩ = {pairKet(p)}</code></p>
+    <table data-amps>
+      <caption>Amplitudes: A's bit by row, B's bit by column</caption>
+      <thead><tr><td></td><th scope="col">B = 0</th><th scope="col">B = 1</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">A = 0</th><td data-amp="0">{amp(s[0].re)}</td><td data-amp="1">{amp(s[1].re)}</td></tr>
+        <tr><th scope="row">A = 1</th><td data-amp="2">{amp(s[2].re)}</td><td data-amp="3">{amp(s[3].re)}</td></tr>
+      </tbody>
+    </table>
+    <p data-source>{sourceText('quantum', p).split('CNOT').flatMap((t, i) => (i ? [<a href={cnot}>CNOT</a>, t] : [t]))}</p>
+    <p data-split>{splitText('quantum', p)}</p>
+  </div>
+
+  <div class="tool-controls">
+    <button type="button" class="btn btn-sm" data-make="20">Make 20 pairs</button>
+    <button type="button" class="btn btn-sm" data-make="100">Make 100 pairs</button>
+    <button type="button" class="btn btn-sm btn-line" data-clear>Clear</button>
+  </div>
+  <p class="hint">Each new pair goes to one test, taking turns. The 0/1 test measures both qubits. The +/− test puts a Hadamard gate on each qubit first, which turns |+⟩ into |0⟩ and |−⟩ into |1⟩, so it asks each qubit "+ or −?"</p>
+
+  <div class="tests">
+    <figure>
+      <figcaption><b>0/1 test</b> Measure both qubits.</figcaption>
+      <canvas data-test="01" aria-hidden="true"></canvas>
+    </figure>
+    <figure>
+      <figcaption><b>+/− test</b> A Hadamard gate on each qubit, then measure.</figcaption>
+      <canvas data-test="pm" aria-hidden="true"></canvas>
+    </figure>
+  </div>
+  <p class="key">
+    <span class="k0">0, or + in the +/− test</span><span class="k1">1, or −</span><span class="kx">the two disagreed</span>
+    <span class="kt">Each pair is one column of two dots: qubit A on top, qubit B below.</span>
+  </p>
+
+  <dl class="score">
+    <div><dt class="label">0/1 test agreed</dt><dd><b class="doto" data-m="01">–</b><span data-n="01">no pairs yet</span><span data-e="01">Born rule: {percent(agreeChance('quantum', p, '01'))}</span></dd></div>
+    <div><dt class="label">+/− test agreed</dt><dd><b class="doto" data-m="pm">–</b><span data-n="pm">no pairs yet</span><span data-e="pm">Born rule: {percent(agreeChance('quantum', p, 'pm'))}</span></dd></div>
+    <div><dt class="label">Score: the two added</dt><dd><b class="doto" data-m="sum">–</b><span data-e="sum">Born rule: {scoreText(score('quantum', p))}</span><span>No unentangled pair has a Born rule score over {UNENTANGLED_MAX * 100}%. A small batch can go over by luck.</span></dd></div>
+  </dl>
+
+  <p class="tool-readout" aria-live="polite">{readout('quantum', p, none, none)}</p>
+  <p class="note">A simulation of ideal, noise-free qubits. Each result is a Born rule draw from your browser's random numbers. A coin pair first flips a coin to pick |00⟩ or |11⟩, then measures the state it picked. The tool makes only these pairs: quantum pairs √(1−p)|00⟩ + √p|11⟩ with real, non-negative amplitudes, and coin pairs over |00⟩ and |11⟩. Other entangled pairs, like (|01⟩ + |10⟩)/√2, can score 150% or less, so a Born rule score over 150% proves entanglement but a lower one proves nothing. Changing the pair clears both panels.</p>
+</qce-linked-pairs>
+
+<script>
+  import { pairState, pairKet, sourceText, splitText, readout, tally, measured, amp, percent, scoreText, agreeChance, score, shoot, testFor, fromPercent, CAP, type Source, type Test, type Pair } from '../../lib/sims/entanglement.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  /** ms between new pairs; ms a new pair stays enlarged. */
+  const STEP = 20, POP = 260;
+  type Shot = { bits: Pair; t: number };
+  type Panel = { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D | null; w: number; h: number; g: ReturnType<typeof layout> };
+
+  /** Grid layout for a panel width: pairs per line, dot radius, spacing, and the canvas height. */
+  function layout(w: number) {
+    const cols = [25, 20, 10].find((n) => w / n >= 11) ?? 10;
+    const cell = w / cols, r = Math.max(2.5, Math.min(5, cell * 0.28)), v = 2 * r + 3, gap = r + 8, pad = r + 5;
+    const lines = Math.ceil(CAP / cols);
+    return { cols, cell, r, v, gap, pad, h: Math.ceil(2 * pad + lines * 2 * v + (lines - 1) * gap) };
+  }
+
+  class LinkedPairs extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(sel: string) => this.querySelector<T>(sel)!;
+      const slider = $<HTMLInputElement>('input[type="range"]'), out = $<HTMLOutputElement>('output');
+      const picks = [...this.querySelectorAll<HTMLButtonElement>('[data-p]')];
+      const makes = [...this.querySelectorAll<HTMLButtonElement>('[data-make]')];
+      const cells = [...this.querySelectorAll<HTMLElement>('[data-amp]')];
+      const cnotHref = this.dataset.cnot ?? '/map/#cnot';
+      const readoutEl = $('.tool-readout');
+      const panels: Record<Test, Panel> = { '01': panel('01'), pm: panel('pm') };
+
+      let src: Source = 'quantum', p = fromPercent(+slider.value);
+      let shots: Record<Test, Shot[]> = { '01': [], pm: [] };
+      let queue = 0, last = 0, raf = 0, seen = false;
+
+      function panel(t: Test): Panel {
+        return { canvas: $<HTMLCanvasElement>(`canvas[data-test="${t}"]`), ctx: null, w: 0, h: 0, g: layout(0) };
+      }
+      const made = () => shots['01'].length + shots.pm.length;
+
+      function paint(t: Test, now = performance.now()) {
+        const { ctx, w, h, g } = panels[t];
+        if (!ctx) return;
+        const pal = palette(), { cols, cell, r, v, gap, pad } = g, list = shots[t];
+        ctx.clearRect(0, 0, w, h);
+        for (let i = 0; i < CAP; i++) {
+          const x = (i % cols + 0.5) * cell, top = pad + Math.floor(i / cols) * (2 * v + gap), s = list[i];
+          if (!s) { for (let k = 0; k < 2; k++) dot(ctx, x, top + (k + 0.5) * v, Math.max(1, r * 0.3), pal.rule); continue; }
+          const age = now - s.t, rr = r * (age < POP ? 1 + 0.5 * (1 - age / POP) : 1);
+          if (s.bits[0] !== s.bits[1]) {
+            // A box around a pair that disagreed. The two dots also differ in shape, so this is not color alone.
+            ctx.strokeStyle = pal.hot; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.roundRect(x - r - 2.5, top - 1, 2 * r + 5, 2 * v + 2, r); ctx.stroke();
+          }
+          for (let k = 0; k < 2; k++) {
+            const y = top + (k + 0.5) * v;
+            if (s.bits[k] === 0) dot(ctx, x, y, rr, pal.signal);
+            else {
+              dot(ctx, x, y, rr, pal.plate);
+              ctx.strokeStyle = pal.ink2; ctx.lineWidth = Math.max(1.25, rr * 0.3);
+              ctx.beginPath(); ctx.arc(x, y, rr - ctx.lineWidth / 2, 0, Math.PI * 2); ctx.stroke();
+            }
+          }
+        }
+      }
+      const paintAll = (now?: number) => { paint('01', now); paint('pm', now); };
+
+      function size(t: Test) {
+        const P = panels[t];
+        P.g = layout(P.canvas.getBoundingClientRect().width);
+        P.canvas.style.height = `${P.g.h}px`;
+        ({ ctx: P.ctx, w: P.w, h: P.h } = fit(P.canvas));
+        paint(t);
+      }
+
+      /** Tallies, scores and button states. Cheap, so it runs on every new pair. */
+      function count() {
+        const t01 = tally(shots['01'].map((x) => x.bits)), tpm = tally(shots.pm.map((x) => x.bits));
+        for (const [t, x] of [['01', t01], ['pm', tpm]] as const) {
+          $(`[data-m="${t}"]`).textContent = measured(x);
+          $(`[data-n="${t}"]`).textContent = x.pairs ? `${x.agreed} of ${x.pairs} pairs` : 'no pairs yet';
+        }
+        $('[data-m="sum"]').textContent = t01.pairs && tpm.pairs ? `${Math.round(100 * (t01.agreed / t01.pairs + tpm.agreed / tpm.pairs))}%` : '–';
+        const full = made() + queue >= 2 * CAP;
+        makes.forEach((b) => b.setAttribute('aria-disabled', String(full)));
+        return { t01, tpm };
+      }
+      const say = () => { const { t01, tpm } = count(); readoutEl.textContent = readout(src, p, t01, tpm); };
+
+      const add = (now: number) => {
+        const t = testFor(made());
+        shots[t].push({ bits: shoot(src, p, t, Math.random), t: now });
+        queue--; count();
+      };
+      /** Finish every queued pair at once and draw the end state: for reduced motion, and when the tool is off screen. */
+      const flush = () => {
+        while (queue > 0) add(-Infinity);
+        shots['01'].forEach((x) => { x.t = -Infinity; }); shots.pm.forEach((x) => { x.t = -Infinity; });
+        paintAll(); say();
+      };
+      const newest = () => Math.max(shots['01'].at(-1)?.t ?? -Infinity, shots.pm.at(-1)?.t ?? -Infinity);
+
+      function frame(now: number) {
+        raf = 0;
+        if (!seen) { flush(); return; }
+        // One pair per STEP ms, catching up when frames are slow (about 2 s per 100 pairs).
+        if (now - last > 4 * STEP) last = now - STEP;
+        while (queue > 0 && now - last >= STEP) { add(now); last += STEP; }
+        paintAll(now);
+        if (queue > 0 || now < newest() + POP) raf = requestAnimationFrame(frame); else say();
+      }
+      const kick = () => { if (reduceMotion() || !seen) flush(); else if (!raf) raf = requestAnimationFrame(frame); };
+
+      function clear() {
+        shots = { '01': [], pm: [] }; queue = 0;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        paintAll(); count();
+      }
+
+      /** Show the pair the source makes now: its ket, amplitude table, words, split test and Born rule odds.
+       *  speak: also update the live readout. Slider steps do not speak; its release (change) does. */
+      function show(speak: boolean) {
+        const s = pairState(p), coin = src === 'coin';
+        $('[data-ket]').textContent = coin ? '|00⟩ or |11⟩' : `|ψ⟩ = ${pairKet(p)}`;
+        $<HTMLTableElement>('[data-amps]').hidden = coin;
+        cells.forEach((td) => { td.textContent = amp(s[+td.dataset.amp!].re); });
+        // The source line names its gates; CNOT links to its stop.
+        $('[data-source]').replaceChildren(...sourceText(src, p).split('CNOT').flatMap((t, i) => {
+          if (!i) return [t];
+          const a = document.createElement('a'); a.href = cnotHref; a.textContent = 'CNOT';
+          return [a, t];
+        }));
+        $('[data-split]').textContent = splitText(src, p);
+        $('[data-e="01"]').textContent = `Born rule: ${percent(agreeChance(src, p, '01'))}`;
+        $('[data-e="pm"]').textContent = `Born rule: ${percent(agreeChance(src, p, 'pm'))}`;
+        $('[data-e="sum"]').textContent = `Born rule: ${scoreText(score(src, p))}`;
+        out.textContent = percent(p);
+        slider.setAttribute('aria-valuetext', `${percent(p)}. ${sourceText(src, p)}`);
+        picks.forEach((b) => b.setAttribute('aria-pressed', String(fromPercent(+b.dataset.p!) === p)));
+        clear();
+        if (speak) say();
+      }
+
+      slider.addEventListener('input', () => { p = fromPercent(+slider.value); show(false); });
+      slider.addEventListener('change', () => { p = fromPercent(+slider.value); show(true); });
+      picks.forEach((b) => b.addEventListener('click', () => { slider.value = b.dataset.p!; p = fromPercent(+b.dataset.p!); show(true); }));
+      this.querySelectorAll<HTMLInputElement>('input[type="radio"]').forEach((x) => x.addEventListener('change', () => { if (x.checked) { src = x.value as Source; show(true); } }));
+      makes.forEach((b) => b.addEventListener('click', () => {
+        const room = 2 * CAP - made() - queue;
+        if (room <= 0) { say(); return; }
+        queue += Math.min(+b.dataset.make!, room);
+        count(); kick();
+      }));
+      $('[data-clear]').addEventListener('click', () => { clear(); say(); });
+
+      onResize(panels['01'].canvas, () => size('01'));
+      onResize(panels.pm.canvas, () => size('pm'));
+      onTheme(() => paintAll());
+      onSeen(this, (v) => { seen = v; if (!v && queue > 0) flush(); });
+      // Start from the controls as the page shows them: a browser can restore form values on going back.
+      src = (this.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.value ?? 'quantum') as Source;
+      p = fromPercent(+slider.value);
+      show(true);
+    }
+  }
+  customElements.define('qce-linked-pairs', LinkedPairs);
+</script>
+
+<style>
+  .source { display: grid; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  .source legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  .source label { display: flex; align-items: center; gap: var(--s2); min-height: 2.75rem; padding: var(--s2) var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); font-weight: 500; cursor: pointer; overflow-wrap: anywhere }
+  .source label:hover { border-color: var(--ink) }
+  .source label:has(:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink) }
+  .source input { flex: none; width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--signal) }
+
+  .control { display: grid; gap: var(--s3) }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .row output { font: 900 2rem/1 var(--dots) }
+  .control input[type="range"] { margin-inline: 0 }
+  .picks { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .pick { min-width: 3.5rem; min-height: 2.75rem; padding: 0 .6rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer }
+  .pick:hover { border-color: var(--ink) }
+  .pick[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+
+  .state { display: grid; gap: var(--s2); min-width: 0; padding: var(--s3); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); overflow-wrap: anywhere }
+  .state p { max-width: var(--read) }
+  .state code { font-size: 1.0625rem }
+  .state table { width: auto; border-collapse: collapse; font: 500 1rem var(--mono) }
+  .state table[hidden] { display: none }
+  .state caption { text-align: left; padding-bottom: var(--s1); font: 500 .875rem var(--sans); color: var(--ink-2) }
+  .state th, .state td { padding: var(--s1) var(--s2); border: 1px solid var(--rule); text-align: center; white-space: nowrap; overflow-wrap: normal }
+  .state th { font-weight: 500; color: var(--ink-2) }
+  .state thead td { border: 0 }
+
+  .hint, .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  [aria-disabled="true"] { opacity: .45; cursor: not-allowed }
+
+  .tests { display: grid; gap: var(--s4) }
+  figure { display: grid; gap: var(--s2); min-width: 0; margin: 0 }
+  figcaption { font-size: .9375rem; color: var(--ink-2) }
+  figcaption b { display: block; color: var(--ink); font-size: 1.0625rem }
+
+  .key { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); font: 500 .875rem var(--mono); color: var(--ink-2) }
+  .key > span { display: inline-flex; align-items: center; gap: .4rem }
+  .key > span::before { content: ""; flex: none; width: .75rem; height: .75rem; border-radius: 50% }
+  .key > .k0::before { background: var(--signal) }
+  .key > .k1::before { border: 2px solid var(--ink-2) }
+  .key > .kx::before { width: .7rem; height: 1.1rem; border: 1.5px solid var(--hot); border-radius: 4px }
+  .key > .kt { font-family: var(--sans); font-size: .9375rem }
+  .key > .kt::before { display: none }
+
+  .score { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr)); gap: 1px; margin: 0; background: var(--rule); border: 1px solid var(--rule) }
+  .score > div { display: grid; align-content: start; gap: var(--s1); min-width: 0; padding: var(--s3); background: var(--paper) }
+  .score dd { margin: 0; display: grid; gap: var(--s1); color: var(--ink-2); font-size: .9375rem }
+  .score b { font-size: 1.75rem; line-height: 1; color: var(--ink) }
+
+  @media (min-width: 40rem) {
+    .source { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+    .tests { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  }
+</style>

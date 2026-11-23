@@ -1,0 +1,58 @@
+---
+description: "Entangled qubits share one state that cannot be split into one state per qubit. See their linked results, and a second test that coin-picked qubits fail."
+answer: "Two qubits are entangled when their joint state cannot be written as one state for each qubit. Their results are then linked in a way no unentangled pair can match: a Bell pair agrees every time in two different tests."
+myth:
+  claim: "Entangled just means the two results are linked."
+  truth: "A Bell pair agrees every time in two different tests, which no unentangled pair of qubits can do. Answers written in advance could fake these two tests; the Bell test rules them out."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import LinkedPairs from '../../components/tools/LinkedPairs.astro';
+
+<Depth level="kid">
+
+Flip a coin. On heads, put a red sock in each of two boxes; on tails, a blue sock in each. Open the boxes, and the colors always match. The coin set up that link in advance. That is not entanglement.
+
+Now start two qubits as 00 and use two gates to make a Bell pair. Measure both: you get 00 or 11, never 01 or 10. Qubits set to 00 or 11 by a coin flip match too. The difference shows in a second test: put each qubit through a Hadamard gate, then measure. The Bell pair still matches every time. The coin pair matches only half the time.
+
+A Bell pair has one shared state that cannot be split into a state for each qubit. That is entanglement.
+
+The sock picture breaks here: socks have no second test. Could secret notes with answers for both tests fake this? For these two tests, yes. The [Bell test](/learn/bell-test/) catches them.
+
+</Depth>
+
+<Depth level="student">
+
+If qubits A and B each have a state of their own, every amplitude is A's times B's, so (amplitude of 00) × (amplitude of 11) = (amplitude of 01) × (amplitude of 10). A state that fails this test cannot be split into one state per qubit: it is entangled.
+
+Start as 00, apply a Hadamard gate to A, then a [CNOT](/learn/cnot/): you get the Bell pair (|00⟩ + |11⟩)/√2. It fails the test: 0.71 × 0.71 is not 0 × 0. It has equal amplitudes for 00 and 11, so a measurement gives either with equal chance, and A and B always agree.
+
+A coin that picks |00⟩ or |11⟩ agrees too. Now put a Hadamard gate on each qubit, then measure. The coin pair agrees half the time. In the Bell pair the two contributions to the amplitude for 01 cancel, as do those for 10, so it always agrees. The two chances of agreeing add to 200%; with one state per qubit, even picked by a coin, they never top 150%. Answers fixed in advance could reach 200%; the [Bell test](/learn/bell-test/) rules those out.
+
+</Depth>
+
+<Depth level="engineer">
+
+A two-qubit pure state $|\psi\rangle = \sum_{jk} \psi_{jk}|jk\rangle$ is a product if $|\psi\rangle = |a\rangle \otimes |b\rangle$, so $\psi_{jk} = a_j b_k$, and entangled otherwise. The amplitude matrix of a product has rank one, so $|\psi\rangle$ is a product exactly when
+
+$$
+\psi_{00}\psi_{11} - \psi_{01}\psi_{10} = 0.
+$$
+
+The Bell pair $|\Phi^+\rangle = \tfrac{1}{\sqrt2}(|00\rangle + |11\rangle) = \mathrm{CNOT}\,(H \otimes I)|00\rangle$ gives $\tfrac12$; $|{+}\rangle|{+}\rangle$, with four equal amplitudes, gives 0. Gates $U \otimes V$, one on each qubit, multiply this quantity by $\det U \det V$, so they cannot create entanglement.
+
+Correlation alone is not the test. The mixed state $\tfrac12(|00\rangle\langle 00| + |11\rangle\langle 11|)$, plain odds over products, has the same $Z$-basis statistics as $|\Phi^+\rangle$. A mixed state is entangled when it is not such a mix of products (separable). Let $P_Z$ and $P_X$ be the chances that A and B agree when both are measured in the $Z$ or the $X$ basis ($H$ on each, then $Z$). Since $P = \tfrac12(1 + \langle \sigma \otimes \sigma \rangle)$, writing $ZZ = Z \otimes Z$,
+
+$$
+P_Z + P_X = 1 + \tfrac12(\langle ZZ\rangle + \langle XX\rangle).
+$$
+
+For a product, $\langle ZZ\rangle + \langle XX\rangle = z_a z_b + x_a x_b \le |\vec r_a|\,|\vec r_b| \le 1$ by Cauchy-Schwarz on the Bloch vectors, and mixing only averages. So every separable state has a score $P_Z + P_X \le \tfrac32$. As $(H \otimes H)|\Phi^+\rangle = |\Phi^+\rangle$, the Bell pair scores 2. For $\sqrt{1-p}\,|00\rangle + \sqrt{p}\,|11\rangle$, $P_X = \tfrac12 + \sqrt{p(1-p)}$, so every $0 < p < 1$ scores over $\tfrac32$.
+
+This entanglement witness works one way: $\tfrac{1}{\sqrt2}(|01\rangle + |10\rangle)$ is entangled yet scores 1. Nor does it exclude hidden variables: answers agreed in advance reproduce same-basis results. Excluding them takes different settings on each side, as in the [Bell test](/learn/bell-test/).
+
+</Depth>
+
+<Lab title="Tell entanglement from a shared coin" intro="Make quantum pairs and coin pairs, measure each in the 0/1 test or the +/− test, and find the test the coin pair fails.">
+  <LinkedPairs />
+</Lab>
