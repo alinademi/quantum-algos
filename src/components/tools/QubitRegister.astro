@@ -1,0 +1,268 @@
+---
+// A register of 1 to 4 qubits, each set on its own to |0⟩, |1⟩ or |+⟩, shown as its 2^n amplitudes in either bit order,
+// with 100 shots drawn by the Born rule that move (not re-roll) when the order flips, since the same shots get new labels.
+import { rng } from '../../lib/quantum.ts';
+import { MAX_QUBITS, SETTINGS, newDraws, measureAll, landing, counts, readout, orderText, stateText, type Setting } from '../../lib/sims/multi-qubit.ts';
+const uid = 'mq-' + Math.random().toString(36).slice(2, 8);
+// The first batch is seeded, so the page and the script start from the same shots. "New shots" draws fresh ones.
+const SEED = 1, N0 = 3;
+const START: Setting[] = ['1', '0', '+', '0'].slice(0, MAX_QUBITS) as Setting[];
+const active = START.slice(0, N0);
+const first = readout(active, 'left', counts(landing(measureAll(newDraws(rng(SEED)), active), 'left'), N0));
+---
+<qce-qubit-register class="tool" data-seed={SEED}>
+  <div class="set">
+    <fieldset class="seg" data-count>
+      <legend>Number of qubits</legend>
+      <div>
+        {Array.from({ length: MAX_QUBITS }, (_, i) => i + 1).map((n) => (
+          <label><input type="radio" name={`${uid}-n`} value={n} checked={n === N0} />{n}</label>
+        ))}
+      </div>
+    </fieldset>
+    <fieldset class="seg order" data-order-set>
+      <legend>Bit order</legend>
+      <div>
+        <label><input type="radio" name={`${uid}-o`} value="left" checked />Qubit 0 on the left<span class="visually-hidden">, </span><small>this site, Nielsen and Chuang</small></label>
+        <label><input type="radio" name={`${uid}-o`} value="right" />Qubit 0 on the right<span class="visually-hidden">, </span><small>Qiskit</small></label>
+      </div>
+    </fieldset>
+  </div>
+
+  <div class="qubits">
+    {START.map((s, k) => (
+      <fieldset class="seg qubit" data-q={k} hidden={k >= N0}>
+        <legend>Qubit {k}</legend>
+        <div>
+          {SETTINGS.map((x) => (
+            <label>
+              <input type="radio" name={`${uid}-q${k}`} value={x} checked={x === s} />|{x}⟩{x === '+' && <span class="visually-hidden">, started as 0, then a Hadamard gate</span>}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+    ))}
+  </div>
+
+  <dl class="views">
+    <div><dt class="label">Written as</dt><dd><code data-order>{orderText(N0, 'left')}</code></dd></div>
+    <div><dt class="label">State</dt><dd><code data-state>{stateText(active, 'left')}</code></dd></div>
+  </dl>
+
+  <canvas aria-hidden="true"></canvas>
+
+  <div class="tool-controls"><button type="button" class="btn btn-sm btn-line" data-new>New shots</button></div>
+  <p class="tool-readout" aria-live="polite">{first}</p>
+
+  <p class="note">Each row is one entry of the state vector: its number, its bit string, its amplitude, then one dot for each shot that gave that string. A shot is a fresh copy of the register with every qubit measured, drawn by the Born rule. The thin line in each row marks the expected count, |amplitude|² × 100. The small numbers over the strings say which qubit each bit belongs to; the qubit you last set is underlined. |+⟩ means started as 0, then a Hadamard gate. Amplitudes are rounded to two decimals. Here each qubit is set on its own; most states of many qubits cannot be made that way (see <a href="/learn/entanglement/">Entanglement</a>).</p>
+</qce-qubit-register>
+
+<script>
+  import { rng } from '../../lib/quantum.ts';
+  import {
+    SHOTS, MAX_QUBITS, newDraws, measureAll, landing, counts, expected, registerState, writtenOrder, bitString, amp, isZero,
+    readout, orderText, stateText, type Order, type Setting,
+  } from '../../lib/sims/multi-qubit.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  const FONT = 13, SMALL = 11, HDR = 20, MOVE_MS = 450, ARRIVE_MS = 800;
+  const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+
+  class QubitRegister extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const canvas = $<HTMLCanvasElement>('canvas'), out = $('.tool-readout'), orderEl = $('[data-order]'), stateEl = $('[data-state]');
+      const qsets = [...this.querySelectorAll<HTMLFieldSetElement>('[data-q]')];
+
+      // Read the start from the radios, not from data: a browser may restore checked radios on Back.
+      const picked = (sel: string) => this.querySelector<HTMLInputElement>(`${sel} input:checked`)!.value;
+      let n = +picked('[data-count]'), order = picked('[data-order-set]') as Order, hi = 0, seen = false, raf = 0;
+      const settings = qsets.map((f) => f.querySelector<HTMLInputElement>('input:checked')!.value as Setting);
+      qsets.forEach((f, k) => { f.hidden = k >= n; });
+      let us = newDraws(rng(+this.dataset.seed!), SHOTS, MAX_QUBITS);
+      let active: Setting[] = [], land: number[] = [], amps = registerState(['0'], 'left'), exp: number[] = [];
+
+      // Layout of the canvas, in CSS pixels. Recomputed on resize and when n changes.
+      let ctx: CanvasRenderingContext2D, w = 0, h = 0, pal = palette(), mono = '';
+      const g = { cw: 8, xI: 0, xK: 0, xA: 0, x0: 0, L: 4, pitch: 6, rowH: 24, pad: 0 };
+      const xBit = (p: number) => g.xK + g.cw * (1 + p);
+
+      // Dots: where each shot is drawn now, and where it is going.
+      let fx = new Float32Array(SHOTS), fy = new Float32Array(SHOTS);
+      const tx = new Float32Array(SHOTS), ty = new Float32Array(SHOTS), cx = new Float32Array(SHOTS), cy = new Float32Array(SHOTS);
+      let anim: 'move' | 'arrive' | null = null, t0 = 0, shown = SHOTS;
+
+      const measure = () => {
+        const c2 = canvas.getContext('2d')!;
+        mono = token('--mono');
+        c2.font = `500 ${FONT}px ${mono}`; g.cw = c2.measureText('0').width;
+        c2.font = `500 ${SMALL}px ${mono}`;
+        g.xI = c2.measureText('15').width + 2;
+        g.xK = g.xI + 10;
+        g.xA = xBit(n + 1) + 12 + g.cw * 4;
+        g.x0 = g.xA + 12;
+        const room = Math.max(40, canvas.getBoundingClientRect().width - g.x0 - 4);
+        g.L = room >= Math.ceil(SHOTS / 2) * 5 ? 2 : 4;
+        g.pitch = Math.min(7, room / Math.ceil(SHOTS / g.L));
+        g.rowH = Math.max(24, g.L * g.pitch + 8);
+        g.pad = (g.rowH - g.L * g.pitch) / 2;
+        canvas.style.height = `${HDR + 2 ** n * g.rowH + 4}px`;
+        ({ ctx, w, h } = fit(canvas));
+      };
+
+      const targets = () => {
+        const used = new Array<number>(2 ** n).fill(0);
+        land.forEach((i, j) => {
+          const s = used[i]++;
+          tx[j] = g.x0 + (Math.floor(s / g.L) + 0.5) * g.pitch;
+          ty[j] = HDR + i * g.rowH + g.pad + ((s % g.L) + 0.5) * g.pitch;
+        });
+      };
+
+      const draw = () => {
+        const P = pal, rows = 2 ** n, order0 = writtenOrder(n, order), main = `500 ${FONT}px ${mono}`, small = `500 ${SMALL}px ${mono}`;
+        ctx.clearRect(0, 0, w, h);
+        ctx.textBaseline = 'middle';
+
+        // Header: which qubit each character belongs to.
+        ctx.font = small; ctx.textAlign = 'center';
+        order0.forEach((k, p) => {
+          const on = k === hi, x = xBit(p) + g.cw / 2;
+          ctx.fillStyle = on ? P.signal : P.ink2;
+          ctx.fillText(String(k), x, HDR / 2);
+          if (on) ctx.fillRect(x - g.cw / 2, HDR / 2 + 7, g.cw, 1.5);
+        });
+
+        for (let r = 0; r <= rows; r++) {
+          const top = HDR + r * g.rowH;
+          ctx.fillStyle = P.rule;
+          for (let x = 0; x < w; x += 4) ctx.fillRect(x, top - 0.6, 1.2, 1.2);
+          if (r === rows) break;
+          const y = top + g.rowH / 2, zero = isZero(amps[r]), text = zero ? P.ink2 : P.ink, str = bitString(r, n);
+          ctx.font = small; ctx.textAlign = 'right'; ctx.fillStyle = P.ink2;
+          ctx.fillText(String(r), g.xI, y);
+          ctx.font = main; ctx.textAlign = 'left'; ctx.fillStyle = text;
+          ctx.fillText('|', g.xK, y);
+          for (let p = 0; p < n; p++) {
+            const on = order0[p] === hi;
+            ctx.fillStyle = on ? P.signal : text;
+            ctx.fillText(str[p], xBit(p), y);
+            if (on) ctx.fillRect(xBit(p), y + FONT * 0.6, g.cw, 1.5);
+          }
+          ctx.fillStyle = text;
+          ctx.fillText('⟩', xBit(n), y);
+          ctx.textAlign = 'right';
+          ctx.fillText(amp(amps[r].re), g.xA, y);
+          if (exp[r] > 0) {
+            ctx.fillStyle = P.ink;
+            ctx.fillRect(g.x0 + (exp[r] / g.L) * g.pitch - 0.75, top + g.pad - 3, 1.5, g.L * g.pitch + 6);
+          }
+        }
+
+        const rad = g.pitch * 0.36;
+        for (let j = 0; j < shown; j++) dot(ctx, cx[j], cy[j], rad, P.signal);
+      };
+
+      const frame = (now: number) => {
+        raf = 0;
+        const t = !anim || !seen ? 1 : Math.min(1, (now - t0) / (anim === 'move' ? MOVE_MS : ARRIVE_MS));
+        if (anim === 'move') {
+          const e = ease(t);
+          for (let j = 0; j < SHOTS; j++) { cx[j] = fx[j] + (tx[j] - fx[j]) * e; cy[j] = fy[j] + (ty[j] - fy[j]) * e; }
+        } else { cx.set(tx); cy.set(ty); }
+        shown = anim === 'arrive' ? Math.floor(SHOTS * t) : SHOTS;
+        draw();
+        if (t < 1) raf = requestAnimationFrame(frame);
+        else anim = null;
+      };
+
+      /** Move the dots to their new places: 'move' tweens, 'arrive' drops a new batch in, null jumps. */
+      const go = (kind: 'move' | 'arrive' | null) => {
+        if (kind === 'move') { fx = cx.slice(); fy = cy.slice(); }
+        targets();
+        anim = reduceMotion() || !seen ? null : kind;
+        t0 = performance.now();
+        if (raf) cancelAnimationFrame(raf);
+        frame(t0);
+      };
+
+      /** Recompute the physics and every word on screen from the current settings. */
+      const update = () => {
+        active = settings.slice(0, n);
+        amps = registerState(active, order);
+        exp = expected(amps);
+        land = landing(measureAll(us, active), order);
+        // Only touch text that changed, so the live readout is not announced again for nothing.
+        const put = (el: Element, t: string) => { if (el.textContent !== t) el.textContent = t; };
+        put(orderEl, orderText(n, order));
+        put(stateEl, stateText(active, order));
+        put(out, readout(active, order, counts(land, n)));
+      };
+
+      const resize = () => { measure(); targets(); cx.set(tx); cy.set(ty); anim = null; shown = SHOTS; draw(); };
+
+      this.querySelectorAll<HTMLInputElement>('[data-count] input').forEach((r) => r.addEventListener('change', () => {
+        n = +r.value;
+        qsets.forEach((f, k) => { f.hidden = k >= n; });
+        if (hi >= n) hi = 0;
+        update(); resize();
+      }));
+      this.querySelectorAll<HTMLInputElement>('[data-order-set] input').forEach((r) => r.addEventListener('change', () => {
+        order = r.value as Order; update(); go('move');
+      }));
+      qsets.forEach((f, k) => {
+        f.querySelectorAll<HTMLInputElement>('input').forEach((r) => r.addEventListener('change', () => {
+          settings[k] = r.value as Setting; hi = k; update(); go('move');
+        }));
+        f.addEventListener('focusin', () => { if (hi !== k) { hi = k; draw(); } });
+      });
+      $('[data-new]').addEventListener('click', () => { us = newDraws(Math.random, SHOTS, MAX_QUBITS); update(); go('arrive'); });
+
+      update(); resize();
+      onResize(this, resize);
+      onTheme(() => { pal = palette(); draw(); });
+      document.fonts?.ready.then(resize);
+      let arrived = false;
+      onSeen(canvas, (v) => {
+        seen = v;
+        if (v && !arrived) { arrived = true; go('arrive'); }
+        else if (!v && anim) { anim = null; if (raf) cancelAnimationFrame(raf); frame(performance.now()); }
+      });
+    }
+  }
+  customElements.define('qce-qubit-register', QubitRegister);
+</script>
+
+<style>
+  .set { display: grid; gap: var(--s3) }
+  fieldset { margin: 0; padding: 0; border: 0; min-width: 0 }
+  fieldset[hidden] { display: none }
+  legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  .seg > div { display: inline-flex; flex-wrap: wrap; gap: 4px; max-width: 100%; padding: 4px; border: 1px solid var(--rule); border-radius: calc(var(--r) + 4px); background: var(--paper) }
+  .seg label { position: relative; display: inline-grid; place-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: .3rem .5rem; border-radius: var(--r); font: 500 1rem/1.2 var(--mono); text-align: center; cursor: pointer }
+  .seg label:hover { background: var(--plate) }
+  .seg input { position: absolute; opacity: 0; width: 1px; height: 1px }
+  .seg label:has(:checked) { background: var(--ink); color: var(--paper) }
+  .seg label:has(:focus-visible) { outline: 3px solid var(--signal); outline-offset: 2px }
+  .order > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)) }
+  .order label { font: 600 .9375rem/1.25 var(--sans) }
+  .order small { font: 500 .75rem/1.3 var(--mono) }
+
+  .qubits { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr)); gap: var(--s2) var(--s4) }
+  .qubit { display: flex; align-items: center; gap: var(--s2) }
+  .qubit legend { float: left; margin: 0; min-width: 4.25rem }
+  .qubit > div { flex: none; flex-wrap: nowrap }
+
+  .views { display: grid; gap: var(--s3) }
+  .views div { display: grid; gap: var(--s1) }
+  dd { margin: 0; overflow-wrap: anywhere }
+  dd code { font-size: 1rem }
+
+  canvas { max-width: 40rem; height: 12rem }
+  .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  .note a { color: var(--ink) }
+
+  @media (min-width: 40rem) {
+    .set { grid-template-columns: auto 1fr; align-items: start; column-gap: var(--s5) }
+  }
+</style>
