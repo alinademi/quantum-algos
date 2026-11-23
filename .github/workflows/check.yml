@@ -1,0 +1,29 @@
+# Checks on every push and pull request: math tests, site build, and the references rules.
+# Once a week it also opens every Learn more link.
+name: Check
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '17 9 * * 1'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Math and simulation tests
+        run: npm test
+      - name: Build the site
+        run: npx astro build
+      - name: References (ids, titles, years, link rules)
+        run: python3 scripts/check-ref.py docs/references.md
+      - name: Open every Learn more link
+        if: github.event_name == 'schedule'
+        run: sudo apt-get install -y poppler-utils && python3 scripts/check-ref.py docs/references.md --links
