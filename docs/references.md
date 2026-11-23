@@ -247,6 +247,7 @@ Rules:
 | ibm-variational-course | IBM Quantum | - | Variational algorithm design | IBM Quantum Learning | Course | Intro | - | - | https://quantum.cloud.ibm.com/learning/en/courses/variational-algorithm-design | - |
 | illowsky-2023-stats | Illowsky and Dean | 2023 | Introductory Statistics 2e | OpenStax | Textbook (free) | University | - | - | https://openstax.org/details/books/introductory-statistics-2e | - |
 | ismael-2025-qm | Ismael | 2025 | Quantum Mechanics | Stanford Encyclopedia of Philosophy | Encyclopedia | University | - | - | https://plato.stanford.edu/entries/qm/ | - |
+| itano-2006-zeno | Itano | 2006 | Perspectives on the quantum Zeno paradox | arXiv | Review | Graduate | - | arXiv:quant-ph/0612187 | - | - |
 | james-2001-qubits | James et al. | 2001 | Measurement of qubits | Physical Review A | Paper | Research | 10.1103/PhysRevA.64.052312 | arXiv:quant-ph/0103121 | - | - |
 | jaques-2020-grover | Jaques et al. | 2020 | Implementing Grover Oracles for Quantum Key Search on AES and LowMC | Lecture Notes in Computer Science | Paper | Research | 10.1007/978-3-030-45724-2_10 | arXiv:1910.01700 | - | - |
 | jaques-2025-qram | Jaques and Rattew | 2025 | QRAM: A Survey and Critique | Quantum | Review | Graduate | 10.22331/q-2025-12-02-1922 | arXiv:2305.10310 | https://quantum-journal.org/papers/q-2025-12-02-1922/ | - |
@@ -617,6 +618,7 @@ Rules:
 | bomb-tester | aaronson-2018-qclec | Section 4.4, The Elitzur-Vaidman Bomb | https://www.scottaaronson.com/qclec.pdf#page=32 |
 | bomb-tester | elitzur-1993-bomb | Full paper | https://arxiv.org/abs/hep-th/9305002 |
 | quantum-zeno | aaronson-2018-qclec | Section 4.3, Quantum Zeno Effect | https://www.scottaaronson.com/qclec.pdf#page=32 |
+| quantum-zeno | itano-2006-zeno | Section 4, The IHBW Experiment | https://arxiv.org/abs/quant-ph/0612187 |
 | multi-qubit | watrous-2025-understanding | Multiple systems: Quantum states | https://quantum.cloud.ibm.com/learning/en/courses/basics-of-quantum-information/multiple-systems/quantum-information#quantum-states |
 | multi-qubit | watrous-2025-understanding | Multiple systems: Ordering Cartesian product state sets | https://quantum.cloud.ibm.com/learning/en/courses/basics-of-quantum-information/multiple-systems/classical-information#ordering-cartesian-product-state-sets |
 | multi-qubit | aaronson-2018-qclec | Section 5.3, Multi-Qubit States and Operations | https://www.scottaaronson.com/qclec.pdf#page=38 |

@@ -1,0 +1,169 @@
+---
+// Fifty simulated qubits, each started as 0 and turned by a drive that alone would make it 1, are measured n times on the way.
+// Honest physics: every dot is one Born rule measurement on the simulated state, and the theory line is the exact formula.
+import { QUBITS, MIN_CHECKS, MAX_CHECKS, valueText, theory } from '../../lib/sims/quantum-zeno.ts';
+const uid = 'zf-' + Math.random().toString(36).slice(2, 8);
+const N0 = 16;
+const presets = [1, 4, 16, 64];
+---
+<qce-zeno-freeze class="tool">
+  <div class="control">
+    <div class="row">
+      <label for={`${uid}-n`}>Checks per qubit</label>
+      <output for={`${uid}-n`} class="doto">{N0}</output>
+    </div>
+    <input id={`${uid}-n`} type="range" min={MIN_CHECKS} max={MAX_CHECKS} step="1" value={N0} aria-valuetext={valueText(N0)} aria-describedby={`${uid}-hint`} />
+    <p class="hint" id={`${uid}-hint`}>The checks are evenly spaced during the turn. The last one comes at the end.</p>
+    <div class="tool-controls">
+      <div class="picks" role="group" aria-label="Preset numbers of checks">
+        {presets.map((n) => (
+          <button type="button" class="pick" data-n={n} aria-pressed={String(n === N0)}>{n}<span class="visually-hidden"> {n === 1 ? 'check' : 'checks'}</span></button>
+        ))}
+      </div>
+      <button type="button" class="btn btn-sm" data-run>Run {QUBITS} new qubits</button>
+    </div>
+  </div>
+
+  <figure>
+    <canvas aria-hidden="true"></canvas>
+    <figcaption>
+      <span class="key"><span class="k0">read 0</span><span class="k1">read 1</span></span>
+      <span>Each row is one qubit, started as 0. Time runs left to right, from the start of the turn to its end. Each dot is one check, placed at its time.</span>
+    </figcaption>
+  </figure>
+
+  <p class="tool-readout" aria-live="polite">Each run sends {QUBITS} fresh qubits through the turn.</p>
+  <p class="theory" data-theory>{theory(N0)}</p>
+  <p class="note">A simulation of ideal qubits and ideal checks: instant, perfect measurements in the 0 and 1 basis. Each dot is a Born rule draw on the simulated qubit's state, from your browser's random numbers. Left alone, the drive turns every qubit from 0 to 1 by the end: half a turn (180°) on the Bloch sphere.</p>
+</qce-zeno-freeze>
+
+<script>
+  import { QUBITS, batch, tally, theory, summary, valueText, checks, type Bit } from '../../lib/sims/quantum-zeno.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen } from '../../lib/draw.ts';
+
+  /** ms for one sweep from the start of the turn to its end; ms of quiet on the slider before the readout speaks. */
+  const SWEEP = 1400, HUSH = 600, TAU = Math.PI * 2;
+
+  /** Canvas layout for a width: row spacing, side margin, top of the time axis and the canvas height. */
+  function layout(w: number) {
+    const row = w < 360 ? 5 : w < 560 ? 6 : 7, side = 6, top = 4, axis = top + QUBITS * row + 6;
+    return { row, side, top, axis, h: axis + 24 };
+  }
+
+  class ZenoFreeze extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const slider = $<HTMLInputElement>('input[type="range"]'), out = $<HTMLOutputElement>('output');
+      const picks = [...this.querySelectorAll<HTMLButtonElement>('[data-n]')];
+      const canvas = $<HTMLCanvasElement>('canvas'), readout = $('.tool-readout'), theoryLine = $('[data-theory]');
+      // The first batch is drawn whole off screen, then swept in when the reader scrolls to it.
+
+      let n = +slider.value, rows: Bit[][] = batch(n, Math.random), progress = 1, last = 0, raf = 0, timer = 0;
+      let seen = false, swept = false, ctx: CanvasRenderingContext2D | null = null, w = 0, h = 0, g = layout(0);
+
+      /** Draw the qubits' checks up to the current point in the turn: a sweep reveals them in time order. */
+      function paint() {
+        if (!ctx) return;
+        const P = palette(), { row, side, top, axis } = g, x0 = side, x1 = w - side, span = x1 - x0;
+        const gap = span / n, r0 = Math.max(0.75, Math.min(1.5, Math.min(gap, row) * 0.22)), r1 = Math.max(1.5, Math.min(3.2, row * 0.42));
+        const shown = progress >= 1 ? n : Math.floor(progress * n + 1e-9);
+        ctx.clearRect(0, 0, w, h);
+        // Read 0: small grey dots. Read 1: bigger blue dots, drawn on top. One path per kind keeps 5,000 dots fast.
+        for (const [bit, color, r] of [[0, P.ink2, r0], [1, P.signal, r1]] as const) {
+          ctx.fillStyle = color; ctx.beginPath();
+          for (let i = 0; i < rows.length; i++) {
+            const y = top + (i + 0.5) * row;
+            for (let k = 0; k < shown; k++) if (rows[i][k] === bit) { const x = x0 + ((k + 1) / n) * span; ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, TAU); }
+          }
+          ctx.fill();
+        }
+        // Time axis: the turn starts on the left with every qubit at 0 and ends on the right.
+        ctx.strokeStyle = P.ink2; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x0, axis); ctx.lineTo(x1, axis); ctx.moveTo(x0 + 0.5, axis - 4); ctx.lineTo(x0 + 0.5, axis + 4); ctx.moveTo(x1 - 0.5, axis - 4); ctx.lineTo(x1 - 0.5, axis + 4); ctx.stroke();
+        ctx.fillStyle = P.ink2; ctx.font = `500 11px ${token('--mono')}`; ctx.textBaseline = 'top';
+        ctx.textAlign = 'left'; ctx.fillText('start, all 0', x0, axis + 7);
+        ctx.textAlign = 'right'; ctx.fillText('end', x1, axis + 7);
+        if (progress < 1) {
+          const x = x0 + progress * span;
+          ctx.strokeStyle = P.ink; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, axis); ctx.stroke(); ctx.setLineDash([]);
+        }
+      }
+
+      function size() {
+        g = layout(canvas.getBoundingClientRect().width);
+        canvas.style.height = `${g.h}px`;
+        ({ ctx, w, h } = fit(canvas));
+        paint();
+      }
+
+      const say = () => { const t = summary(n, tally(rows)); if (readout.textContent !== t) readout.textContent = t; };
+      const stop = () => { if (raf) cancelAnimationFrame(raf); raf = 0; };
+      /** Jump to the end of the turn: for reduced motion, and when the tool leaves the screen. */
+      const finish = () => { stop(); progress = 1; paint(); say(); };
+
+      function frame(now: number) {
+        raf = 0;
+        progress = Math.min(1, progress + Math.max(0, now - last) / SWEEP); last = now;
+        paint();
+        if (progress < 1) raf = requestAnimationFrame(frame); else say();
+      }
+      function sweep() {
+        if (!seen || reduceMotion()) { finish(); return; }
+        stop(); progress = 0; last = performance.now();
+        raf = requestAnimationFrame(frame);
+      }
+
+      /** Set the number of checks. The slider redraws at once and speaks when it rests; presets and Run sweep a new batch. */
+      function setN(x: number, slide: boolean) {
+        n = x; slider.value = String(n); out.textContent = String(n);
+        slider.setAttribute('aria-valuetext', valueText(n));
+        theoryLine.textContent = theory(n);
+        picks.forEach((p) => p.setAttribute('aria-pressed', String(+p.dataset.n! === n)));
+        if (!slide) { run(); return; }
+        clearTimeout(timer); stop();
+        rows = batch(n, Math.random); progress = 1; paint();
+        timer = window.setTimeout(say, HUSH);
+      }
+      function run() {
+        clearTimeout(timer);
+        rows = batch(n, Math.random);
+        if (seen && !reduceMotion()) readout.textContent = `${checks(n)}: running ${QUBITS} new qubits…`;
+        sweep();
+      }
+
+      slider.addEventListener('input', () => setN(+slider.value, true));
+      picks.forEach((p) => p.addEventListener('click', () => setN(+p.dataset.n!, false)));
+      $('[data-run]').addEventListener('click', run);
+
+      onResize(canvas, size);
+      onTheme(paint);
+      onSeen(this, (v) => {
+        seen = v;
+        if (v && !swept) { swept = true; sweep(); }
+        else if (!v && raf) finish();
+      });
+    }
+  }
+  customElements.define('qce-zeno-freeze', ZenoFreeze);
+</script>
+
+<style>
+  .control { display: grid; gap: var(--s3) }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .row output { font: 900 2rem/1 var(--dots) }
+  .hint, .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  .picks { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .pick { min-width: 3rem; min-height: 2.75rem; padding: 0 .6rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer }
+  .pick:hover { border-color: var(--ink) }
+  .pick[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+
+  figure { display: grid; gap: var(--s2); min-width: 0 }
+  figcaption { display: grid; gap: var(--s2); max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  .key { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s4); font: 500 .875rem var(--mono) }
+  .key > span { display: inline-flex; align-items: center; gap: .4rem }
+  .key > span::before { content: ""; flex: none; border-radius: 50% }
+  .key > .k0::before { width: .375rem; height: .375rem; background: var(--ink-2) }
+  .key > .k1::before { width: .75rem; height: .75rem; background: var(--signal) }
+
+  .theory { max-width: var(--read) }
+</style>

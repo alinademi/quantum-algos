@@ -1,0 +1,55 @@
+---
+description: "Measure a slowly turning qubit often and it barely changes. That is the quantum Zeno effect. Run 50 simulated qubits and count."
+answer: "The quantum Zeno effect is the slowing of a quantum change by frequent measurement. A qubit that slowly turns from 0 to 1, measured often, almost always reads 0, and each such result puts it back at 0, so it stays near where it started."
+myth:
+  claim: "A qubit freezes because someone is watching it."
+  truth: "No eyes or minds are needed: any interaction that records 0 or 1, often enough, does it. Even then, a small chance to change remains."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import ZenoFreeze from '../../components/tools/ZenoFreeze.astro';
+
+<Depth level="kid">
+Picture an arrow that slowly turns from pointing up to pointing down. Up is 0, down is 1. Left alone, it points down by the end.
+
+Now check it again and again. A check can only answer "up" or "down", nothing in between. Between two quick checks the arrow has barely moved, so the answer is almost always "up". And that answer snaps it back to up, so its turning starts over.
+
+Check often enough and it almost never gets to down. This is the quantum Zeno effect: checking a slowly changing qubit often almost always keeps it where it started.
+
+The arrow is only a picture. A real arrow points somewhere in between, and you could see where. A qubit only gives answers, 0 or 1, at random, with odds set by its amplitudes. And no eyes are needed: anything that records the answer does it.
+</Depth>
+
+<Depth level="student">
+A qubit starts as 0. A steady drive turns it on the [Bloch sphere](/learn/bloch/), and by the end of the run it would be 1: a 180° turn.
+
+Now [measure](/learn/measurement/) it at n checks along the way, evenly spaced, the last at the end. Between two checks it turns only 180°/n. A small turn gives a small amplitude of 1, and the chance of reading 1 is |amplitude|², far smaller still. With 100 checks, each turn is 1.8° on the Bloch sphere, and the amplitude of 1 is sin(0.9°), half that angle: about 0.016 and the chance about 0.00025. A check that reads 0 puts the qubit back at 0, so the turn starts over.
+
+The share of qubits that end at 1 is all of them with 1 check (at the end), half with 2, about 20% with 10, and about 2.4% with 100. The checks slow the change a lot, but never stop it fully.
+</Depth>
+
+<Depth level="engineer">
+Start in $|0\rangle$ and drive the qubit with $R_Y(\Omega t)$:
+
+$$
+|\psi(t)\rangle = \cos\tfrac{\Omega t}{2}\,|0\rangle + \sin\tfrac{\Omega t}{2}\,|1\rangle .
+$$
+
+A π pulse, $\Omega T = \pi$, ends in $|1\rangle$. After a short time $\tau$ the chance to still read 0 is $\cos^2(\Omega\tau/2) \approx 1 - (\Omega\tau/2)^2$. It falls quadratically, with no linear term. In general, the chance to stay in the start state is $S(\tau) \approx 1 - (\Delta H)^2\tau^2/\hbar^2$ at short times, where $\Delta H$ is the state's energy spread. That is the root of the effect.
+
+Now make $n$ ideal measurements in the standard basis at $T/n, 2T/n, \dots, T$. Each step turns the state by $\pi/n$ on the Bloch sphere, so each measurement flips the last result with probability $q = \sin^2(\pi/2n)$, from 0 or from 1. Then
+
+$$
+\Pr(\text{all } 0) = \cos^{2n}\tfrac{\pi}{2n} \approx 1 - \tfrac{\pi^2}{4n}, \qquad
+\Pr(\text{end at } 1) = \tfrac12\bigl[1 - \cos^{n}\tfrac{\pi}{n}\bigr] \approx \tfrac{\pi^2}{4n}.
+$$
+
+For the second: averaged over results, each projection wipes the Bloch vector's $x$ and $y$ parts, so its $z$ part shrinks by a factor $\cos(\pi/n)$ per step. This gives $1, \tfrac12, \tfrac38$ for $n = 1, 2, 4$, and about $0.037$ at $n = 64$.
+
+Misra and Sudarshan (1977) showed that in the limit of ever more frequent ideal measurements, a system stays in its initial state. Itano, Heinzen, Bollinger and Wineland (1990) saw $\Pr(\text{end at } 1)$ fall with $n$, close to the formula (closer still once the pulse length is counted), using trapped beryllium ions, an rf π pulse, and $n = 1, 2, 4, \dots, 64$ short laser pulses as the measurements. No detector counted the light from those pulses; what matters is that each acts like a projection.
+
+Aaronson's notes call this freezing the "watched pot effect", and use the Zeno name for its twin: measuring in a basis that turns a little each time drags the qubit along.
+</Depth>
+
+<Lab title="Freeze a turning qubit" intro="Each qubit starts as 0 and turns toward 1. Set how many times each one is measured on the way, then count how many still read 0 at the end.">
+  <ZenoFreeze />
+</Lab>
