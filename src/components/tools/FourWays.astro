@@ -1,0 +1,125 @@
+---
+// One qubit, started as 0 and turned by RY, shown as words, ket, vector and circuit, plus 100 Born-rule measurements on fresh copies.
+import { DOTS, rotated, probZero, words, ket, amp } from '../../lib/sims/superposition.ts';
+const uid = 'fw-' + Math.random().toString(36).slice(2, 8);
+const start = rotated(90), p0 = probZero(start);
+const presets = [['|0⟩', 0], ['|+⟩', 90], ['|1⟩', 180]] as const;
+---
+<qce-four-ways class="tool">
+  <div class="control">
+    <div class="row">
+      <label for={`${uid}-ry`}>Rotate the qubit</label>
+      <output for={`${uid}-ry`}>90°</output>
+    </div>
+    <p class="hint" id={`${uid}-hint`}>This is the gate angle. The vector turns half as far.</p>
+    <input id={`${uid}-ry`} aria-describedby={`${uid}-hint`} type="range" min="0" max="180" step="1" value="90" aria-valuetext={`90 degrees. ${words(p0)}`} />
+    <div class="tool-controls" role="group" aria-label="Preset states">
+      {presets.map(([name, deg]) => (
+        <button type="button" data-deg={deg} aria-pressed={String(deg === 90)}>{name}<span class="visually-hidden">, {deg} degrees</span></button>
+      ))}
+    </div>
+  </div>
+
+  <dl class="views">
+    <div><dt class="label">Words</dt><dd data-words>{words(p0)}</dd></div>
+    <div><dt class="label">Ket</dt><dd><code data-ket>{ket(start)}</code></dd></div>
+    <div><dt class="label">Vector</dt><dd><span class="vec"><span data-a>{amp(start[0].re)}</span><span data-b>{amp(start[1].re)}</span></span></dd></div>
+    <div>
+      <dt class="label">Circuit</dt>
+      <dd>
+        <svg class="circ" viewBox="0 0 220 60" role="img" aria-label="Circuit: start at 0, rotate by RY 90°, then measure">
+          <text x="2" y="35">|0⟩</text>
+          <path d="M30 30h52M146 30h28" />
+          <rect x="82" y="12" width="64" height="36" rx="5" />
+          <text data-gate x="114" y="35" text-anchor="middle">RY 90°</text>
+          <rect x="174" y="12" width="40" height="36" rx="5" />
+          <path d="M182 40a12 12 0 0 1 24 0M194 40l8-14" />
+        </svg>
+      </dd>
+    </div>
+  </dl>
+
+  <div class="shots">
+    <div class="dots" aria-hidden="true">{Array.from({ length: DOTS }, () => <i />)}</div>
+    <p class="tool-readout" hidden><span class="z"><b data-z></b> of {DOTS} gave 0,</span> <span><b data-o></b> gave 1.</span></p>
+    <p class="visually-hidden" aria-live="polite" data-live></p>
+  </div>
+
+  <p class="note">The dots are one simulated batch of {DOTS} measurements, each on a fresh copy of the qubit. The simulator keeps one random number per dot, so moving the slider flips dots instead of re-rolling them. Amplitudes are rounded to two decimals. The slider reaches only states with real, non-negative amplitudes. States like |−⟩ are not on it. You meet the rotation gate (RY) and the Hadamard gate properly on the Circuit builder line.</p>
+</qce-four-ways>
+
+<script>
+  import { DOTS, rotated, probZero, words, ket, amp, gaveZero } from '../../lib/sims/superposition.ts';
+
+  class FourWays extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const ry = $<HTMLInputElement>('input[type="range"]'), out = $<HTMLOutputElement>('output');
+      const presets = [...this.querySelectorAll<HTMLButtonElement>('[data-deg]')];
+      const cells = [...this.querySelectorAll('.dots i')];
+      const svg = $('.circ');
+      // One fixed uniform draw per copy, made once, so the batch stays the same batch.
+      const us = Array.from({ length: DOTS }, () => Math.random());
+
+      const set = (deg: number) => {
+        const st = rotated(deg), p0 = probZero(st), w = words(p0), zero = gaveZero(us, p0);
+        const z = zero.filter(Boolean).length;
+        ry.value = String(deg);
+        ry.setAttribute('aria-valuetext', `${deg} degrees. ${w}`);
+        out.textContent = `${deg}°`;
+        $('[data-words]').textContent = w;
+        $('[data-ket]').textContent = ket(st);
+        $('[data-a]').textContent = amp(st[0].re);
+        $('[data-b]').textContent = amp(st[1].re);
+        $('[data-gate]').textContent = `RY ${deg}°`;
+        svg.setAttribute('aria-label', `Circuit: start at 0, rotate by RY ${deg}°, then measure`);
+        cells.forEach((c, i) => c.classList.toggle('z', zero[i]));
+        $('[data-z]').textContent = String(z);
+        $('[data-o]').textContent = String(DOTS - z);
+        presets.forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.deg! === deg)));
+      };
+
+      // Speak the batch only when the reader lets go of the slider or picks a preset, not on every step.
+      const say = () => { $('[data-live]').textContent = `${$('[data-words]').textContent} In this batch, ${$('[data-z]').textContent} of ${DOTS} gave 0 and ${$('[data-o]').textContent} gave 1.`; };
+      ry.addEventListener('input', () => set(+ry.value));
+      ry.addEventListener('change', say);
+      presets.forEach((b) => b.addEventListener('click', () => { set(+b.dataset.deg!); say(); }));
+      set(+ry.value);
+      // Shown only once the batch exists.
+      $('.tool-readout').removeAttribute('hidden');
+    }
+  }
+  customElements.define('qce-four-ways', FourWays);
+</script>
+
+<style>
+  .control { display: grid; gap: var(--s3) }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .row output { font: 900 2rem/1 var(--dots) }
+  input { margin: 0 }
+  .hint { margin-top: calc(-1 * var(--s2)); font-size: .9375rem; color: var(--ink-2) }
+  button { min-width: 4rem; min-height: 2.75rem; padding: 0 .9rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer }
+  button:hover { border-color: var(--ink) }
+  button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+
+  .views { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule) }
+  .views > div { display: grid; align-content: start; gap: var(--s2); min-width: 0; padding: var(--s3) var(--s4) var(--s4); background: var(--paper) }
+  dd { margin: 0; font-size: 1.0625rem; overflow-wrap: anywhere }
+  .vec { display: inline-grid; gap: .1rem; padding: .2rem .7rem; border-inline: 2px solid var(--ink); border-radius: .5rem; font: 500 1rem var(--mono) }
+  .circ { width: 100%; max-width: 15rem; height: auto; fill: none; stroke: var(--ink); stroke-width: 2 }
+  .circ text { fill: var(--ink); stroke: none; font: 500 12px var(--mono) }
+  .circ rect { fill: var(--paper) }
+
+  .shots { display: grid; gap: var(--s3) }
+  .dots { display: grid; grid-template-columns: repeat(20, 1fr); gap: 4px; max-width: 26rem }
+  .dots i { aspect-ratio: 1; border-radius: 50%; border: 1.5px solid var(--ink-2); transition: background .25s, border-color .25s }
+  .dots i.z { background: var(--signal); border-color: var(--signal) }
+  .tool-readout { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); color: var(--ink-2) }
+  .tool-readout[hidden] { display: none }
+  .tool-readout span { display: inline-flex; align-items: center; gap: .4rem }
+  .tool-readout span::before { content: ""; flex: none; width: .75rem; height: .75rem; border-radius: 50%; border: 1.5px solid var(--ink-2) }
+  .tool-readout .z::before { background: var(--signal); border-color: var(--signal) }
+  .tool-readout b { color: var(--ink) }
+  .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  @media (min-width: 40rem) { .views { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+</style>

@@ -1,0 +1,123 @@
+---
+// Guess how many of 1,000 shots give 0 for a qubit started as 0, then a Hadamard gate; each dot is one Born-rule shot on a fresh copy.
+import { GUESSES, SHOTS } from '../../lib/sims/superposition.ts';
+const uid = 'gr-' + Math.random().toString(36).slice(2, 8);
+const n = (x: number) => x.toLocaleString('en');
+---
+<qce-guess-run class="tool">
+  <fieldset>
+    <legend>This qubit started as 0, then went through a Hadamard gate. Out of {n(SHOTS)} runs, how many give 0?</legend>
+    <div class="opts">
+      {GUESSES.map((g) => <label><input type="radio" name={uid} value={g} />About {n(g)}</label>)}
+    </div>
+  </fieldset>
+  <div class="tool-controls"><button class="btn" type="button" disabled>Run {n(SHOTS)} shots</button></div>
+  <div class="cols">
+    <figure><canvas aria-hidden="true"></canvas><figcaption><span>Result 0</span> <span class="doto" data-n="0">0</span></figcaption></figure>
+    <figure><canvas aria-hidden="true"></canvas><figcaption><span>Result 1</span> <span class="doto" data-n="1">0</span></figcaption></figure>
+  </div>
+  <p class="tool-readout" aria-live="polite">Pick a guess, then run.</p>
+</qce-guess-run>
+
+<script>
+  import { SHOTS, hadamardOdds, runShots, verdict } from '../../lib/sims/superposition.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  // Dot slots per column. A 50/50 run puts about 500 shots in each; more than 600 almost never happens.
+  const CAP = 600;
+
+  class GuessRun extends HTMLElement {
+    connectedCallback() {
+      const run = this.querySelector('button')!, set = this.querySelector('fieldset')!, readout = this.querySelector('.tool-readout')!;
+      const counts = [...this.querySelectorAll('[data-n]')];
+      const cols = [...this.querySelectorAll('canvas')].map((canvas) => ({ canvas, ctx: canvas.getContext('2d')!, w: 0, h: 0 }));
+      let guess: number | null = null, shots: number[] = [], done = 0, zeros = 0, busy = false, seen = false, raf = 0;
+
+      // Dots fill a column from the bottom, row by row, so its height counts the shots.
+      const column = (o: (typeof cols)[number], count: number, color: string, mark: number | null) => {
+        const { ctx, w, h } = o, pal = palette(), C = w < 240 ? 20 : 30, R = CAP / C;
+        const px = w / C, py = (h - 6) / R, r = Math.min(px, py) * 0.34;
+        const at = (k: number) => [(k % C + 0.5) * px, h - 3 - (Math.floor(k / C) + 0.5) * py] as const;
+        ctx.clearRect(0, 0, w, h);
+        for (let k = Math.min(count, CAP); k < CAP; k++) dot(ctx, ...at(k), r * 0.55, pal.rule);
+        for (let k = 0; k < Math.min(count, CAP); k++) dot(ctx, ...at(k), r, color);
+        if (mark === null) return;
+        const y = Math.max(14, h - 3 - (mark / C) * py);
+        ctx.strokeStyle = pal.hot; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = pal.hot; ctx.font = `500 11px ${token('--mono')}`;
+        const long = `your guess: ${mark.toLocaleString('en')} ↑`, short = `guess ${mark.toLocaleString('en')} ↑`;
+        ctx.fillText(mark <= CAP ? 'your guess' : ctx.measureText(long).width < w - 8 ? long : short, 4, y - 5);
+      };
+      const render = () => {
+        const pal = palette();
+        column(cols[0], zeros, pal.signal, guess);
+        column(cols[1], done - zeros, pal.ink2, null);
+        counts[0].textContent = String(zeros);
+        counts[1].textContent = String(done - zeros);
+      };
+
+      const finish = () => {
+        busy = false; set.disabled = false; run.removeAttribute('aria-disabled'); run.textContent = 'Run again';
+        readout.textContent = verdict(guess!, zeros);
+      };
+      // Reveal the shots a few per frame. Off screen, wait; with reduced motion, show them all at once.
+      const tick = () => {
+        raf = 0;
+        if (!seen) return;
+        const end = Math.min(SHOTS, done + 14);
+        for (; done < end; done++) if (shots[done] === 0) zeros++;
+        render();
+        if (done < SHOTS) raf = requestAnimationFrame(tick); else finish();
+      };
+
+      set.addEventListener('change', (e) => {
+        guess = +(e.target as HTMLInputElement).value;
+        run.disabled = false; readout.textContent = '';
+        render();
+      });
+      run.addEventListener('click', () => {
+        if (busy || guess === null) return;
+        busy = true; set.disabled = true; run.setAttribute('aria-disabled', 'true'); readout.textContent = '';
+        shots = runShots(hadamardOdds(), SHOTS, Math.random); done = 0; zeros = 0;
+        if (reduceMotion()) {
+          for (; done < SHOTS; done++) if (shots[done] === 0) zeros++;
+          render(); finish();
+        } else if (!raf) raf = requestAnimationFrame(tick);
+      });
+
+      onResize(cols[0].canvas, () => {
+        for (const o of cols) Object.assign(o, fit(o.canvas));
+        render();
+      });
+      onTheme(render);
+      onSeen(this, (v) => { seen = v; if (v && busy && !raf) raf = requestAnimationFrame(tick); });
+    }
+  }
+  customElements.define('qce-guess-run', GuessRun);
+</script>
+
+<style>
+  fieldset { display: grid; gap: var(--s3); margin: 0; padding: 0; border: 0; min-width: 0 }
+  legend { padding: 0; margin-bottom: var(--s3); max-width: 34rem; font-size: 1.25rem; font-weight: 600; letter-spacing: -.01em }
+  .opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2) }
+  label { position: relative; display: flex; align-items: center; justify-content: center; min-height: 3rem; padding: 0 .5rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); text-align: center; cursor: pointer }
+  label:hover { border-color: var(--ink) }
+  input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0 }
+  label:has(:checked) { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  label:has(:focus-visible) { outline: 3px solid var(--signal); outline-offset: 2px }
+  fieldset:disabled label { opacity: .55; cursor: default }
+  .btn[aria-disabled="true"] { opacity: .45; cursor: progress }
+  .cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s4) }
+  figure { display: grid; gap: var(--s2); min-width: 0 }
+  canvas { height: 190px; border-bottom: 2px solid var(--ink) }
+  figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0 var(--s2); font: 500 .9375rem var(--mono); color: var(--ink-2) }
+  figcaption span { white-space: nowrap }
+  figcaption .doto { font-size: 1.75rem; color: var(--ink) }
+  .tool-readout { font-size: 1.125rem; font-weight: 600 }
+  @media (min-width: 40rem) {
+    .opts { grid-template-columns: repeat(4, minmax(0, 1fr)) }
+    canvas { height: 220px }
+    figcaption .doto { font-size: 2rem }
+  }
+</style>
