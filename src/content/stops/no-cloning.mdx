@@ -1,0 +1,57 @@
+---
+description: "No machine can copy an unknown qubit state. See why with a little algebra, then run a copier that works for 0 and 1 but fails for |+⟩."
+answer: "The no-cloning theorem says that in quantum theory no machine can copy an unknown qubit state: take one qubit and give back two qubits in its state. A machine can copy 0 and 1, but none can copy every state."
+myth:
+  claim: "No-cloning means two qubits can never be in the same state."
+  truth: "They can. If you know how a state was made, make it twice. What no machine can do is copy a state it is handed without knowing what it is."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import CopyMachine from '../../components/tools/CopyMachine.astro';
+
+<Depth level="kid">
+
+A photocopier copies any page. In quantum theory, no machine can copy every qubit state.
+
+A machine that copies 0 and 1 is easy to build. Now give it a qubit that started as 0, then went through a Hadamard gate. It has equal amplitudes for 0 and 1, so a measurement gives either with equal chance. The machine fails on it: out come two linked qubits. Read both and you get 00 or 11, never 01 or 10. Two true copies would not be linked: each lands on 0 or 1 by itself, so 01 and 10 show up too.
+
+Why not read the qubit and copy what you see? Here the photocopier picture breaks. Reading a page leaves it as it was. Reading a qubit gives one answer, 0 or 1, not its amplitudes.
+
+If you know how a qubit was made, just make another. The ban is on copying one you do not know.
+
+</Depth>
+
+<Depth level="student">
+
+A qubit copy machine would take a qubit in any state, plus a blank qubit set to 0, and return two qubits in that state. The no-cloning theorem says none exists.
+
+A CNOT gate flips the blank when the input is 1, so it copies 0 and 1: $|0\rangle|0\rangle$ becomes $|00\rangle$ and $|1\rangle|0\rangle$ becomes $|11\rangle$. Gates act on each part of a superposition and add the results. Take an input that started as 0, then a Hadamard gate: $|{+}\rangle$, with amplitude $1/\sqrt{2} \approx 0.707$ for 0 and for 1. The CNOT gives $0.707|00\rangle + 0.707|11\rangle$. Two copies of $|{+}\rangle$ would be $0.5|00\rangle + 0.5|01\rangle + 0.5|10\rangle + 0.5|11\rangle$.
+
+Every machine fails somewhere. Copies need products of amplitudes, like $\tfrac{1}{\sqrt{2}} \times \tfrac{1}{\sqrt{2}} = 0.5$, but each output amplitude of a gate is a sum of input amplitudes times fixed numbers.
+
+So you cannot copy an unknown qubit many times to measure its amplitudes, and a spy cannot keep perfect copies of [BB84](/learn/bb84/) key qubits. A state you know is no problem: make it again.
+
+</Depth>
+
+<Depth level="engineer">
+
+Fix a blank state $|s\rangle$ and a unitary $U$. A cloner would satisfy $U(|\psi\rangle|s\rangle) = |\psi\rangle|\psi\rangle$ for every state $|\psi\rangle$.
+
+*Linearity.* If $U$ clones $|0\rangle$ and $|1\rangle$ (a CNOT does, with $|s\rangle = |0\rangle$), then for $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$ it gives $\alpha|00\rangle + \beta|11\rangle$. But $|\psi\rangle|\psi\rangle$ has amplitudes $\alpha^2, \alpha\beta, \alpha\beta, \beta^2$ for $|00\rangle, |01\rangle, |10\rangle, |11\rangle$, so the two agree only if $\alpha\beta = 0$.
+
+*Inner products.* Suppose $U$ clones $|\phi\rangle$ and $|\psi\rangle$, each up to a global phase. A unitary keeps inner products, so $x = \langle\phi|\psi\rangle$ obeys $|x| = |x|^2$, since $\langle\phi\phi|\psi\psi\rangle = x^2$: $|x| = 0$ or $1$. Workspace qubits that start in a fixed state and end in states $|g_\psi\rangle$ do not help: then $|x| = |x|^2\,|\langle g_\phi|g_\psi\rangle| \le |x|^2$, with the same result. So one machine can copy a set of different states only if they are pairwise orthogonal, like the states of one known basis. Classical data copies fine. Approximate copies are possible; perfect ones are not.
+
+What this rules out:
+
+- Learning an unknown state from one copy: if you could, you could prepare as many copies as you like.
+- Telling two non-orthogonal states apart perfectly: measuring, then preparing two of the result, would clone them.
+- One route to faster-than-light messages. With a cloner, Bob could copy his half of an entangled pair many times and learn which basis Alice measured her half in ([no-signaling](/learn/no-signaling/)).
+- A spy keeping perfect copies of [BB84](/learn/bb84/) key qubits, and forged [quantum money](/learn/quantum-money/).
+
+In the tool, the 0/1 copier (a CNOT) on $\cos\tfrac{\theta}{2}|0\rangle + \sin\tfrac{\theta}{2}|1\rangle = a|0\rangle + b|1\rangle$ reaches $|\langle\psi\psi|\text{out}\rangle|^2 = (a^3 + b^3)^2$: $1/2$ for $|{+}\rangle$, $0$ for $|{-}\rangle$.
+
+</Depth>
+
+<Lab title="Try to copy a qubit" intro="Run the 0/1 copier on |0⟩, then on |+⟩, and check whether each pile of dots ends at its dashed line, where two true copies would put it.">
+  <CopyMachine />
+</Lab>

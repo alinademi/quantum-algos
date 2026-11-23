@@ -1,0 +1,250 @@
+---
+// Runs two real copy machines (gate circuits) on an input you set, then reads both outputs with Born rule odds, beside the counts two true copies would give, so each machine's failure shows up in measured shots.
+import { PRESETS, OUTCOMES, predict, amp, degrees, inputText, idleText } from '../../lib/sims/no-cloning.ts';
+import { pct } from '../../lib/draw.ts';
+
+const START = 90; // turned 90°: |+⟩
+const p = predict(START, 'z', 'read');
+const uid = `cm-${Math.random().toString(36).slice(2, 8)}`;
+const said: Record<string, string> = { '|0⟩': 'zero', '|+⟩': 'plus', '|−⟩': 'minus', '|1⟩': 'one' };
+---
+<qce-copy-machine class="tool">
+  <div class="knob">
+    <div class="row"><label for={`${uid}-deg`}>Turn the input</label><output for={`${uid}-deg`} class="doto">{degrees(START)}</output></div>
+    <input id={`${uid}-deg`} type="range" min="-180" max="180" step="1" value={START} aria-valuetext={`${degrees(START)}: input ${inputText(START)}`} />
+    <p class="hint">The input starts as 0 and is turned by this angle with an RY gate. The machine is not told the angle.</p>
+    <div class="picks" role="group" aria-label="Preset inputs">
+      {PRESETS.map((x) => <button type="button" data-deg={x.deg} aria-pressed={String(x.deg === START)}>{x.name}<span class="visually-hidden">, {said[x.name]}, turned {degrees(x.deg)}</span></button>)}
+    </div>
+  </div>
+
+  <div class="choose">
+    <fieldset>
+      <legend>Copy machine</legend>
+      <label>
+        <input type="radio" name={`${uid}-m`} value="z" checked />
+        <span><b>0/1 copier</b><span class="sub">A CNOT gate: it flips the blank when the input is 1.</span></span>
+        <svg viewBox="0 0 124 50" aria-hidden="true">
+          <text x="0" y="18">ψ</text><text x="0" y="41">0</text>
+          <path d="M14 14H122M14 37H122M68 14V45" /><circle class="fill" cx="68" cy="14" r="3.5" /><circle cx="68" cy="37" r="8" /><path d="M60 37H76" />
+        </svg>
+      </label>
+      <label>
+        <input type="radio" name={`${uid}-m`} value="x" />
+        <span><b>+/− copier</b><span class="sub">A Hadamard gate on the input, a CNOT, then a Hadamard on each qubit.</span></span>
+        <svg viewBox="0 0 124 50" aria-hidden="true">
+          <text x="0" y="18">ψ</text><text x="0" y="41">0</text>
+          <path d="M14 14H122M14 37H122M68 14V45" /><circle class="fill" cx="68" cy="14" r="3.5" /><circle cx="68" cy="37" r="8" /><path d="M60 37H76" />
+          <rect x="29" y="5" width="18" height="18" rx="3" /><rect x="89" y="5" width="18" height="18" rx="3" /><rect x="89" y="28" width="18" height="18" rx="3" />
+          <text class="g" x="38" y="18">H</text><text class="g" x="98" y="18">H</text><text class="g" x="98" y="41">H</text>
+        </svg>
+      </label>
+    </fieldset>
+    <fieldset>
+      <legend>Check the two outputs</legend>
+      <label>
+        <input type="radio" name={`${uid}-c`} value="read" checked />
+        <span><b>Read both</b><span class="sub">Measure each output: 0 or 1.</span></span>
+      </label>
+      <label>
+        <input type="radio" name={`${uid}-c`} value="undo" />
+        <span><b>Undo, then read</b><span class="sub">Turn each output back by the input's angle, then measure. Two true copies give 00 every time.</span></span>
+      </label>
+    </fieldset>
+  </div>
+
+  <div class="state">
+    <p>Input: <code data-in>{inputText(START)}</code></p>
+    <table>
+      <caption>Out of the machine, before the check</caption>
+      <thead><tr><th scope="col">Outcome</th><th scope="col">Machine gives</th><th scope="col">Two true copies</th></tr></thead>
+      <tbody>
+        {OUTCOMES.map((o, i) => <tr><th scope="row">|{o}⟩</th><td data-o={i}>{amp(p.out[i].re)}</td><td data-t={i}>{amp(p.two[i].re)}</td></tr>)}
+      </tbody>
+    </table>
+    <p class="match">Match with two true copies <b class="doto" data-match>{pct(p.match)}</b></p>
+    <p class="hint">Each number is an amplitude. Match is |⟨ψψ|out⟩|², which is also the chance that “Undo, then read” gives 00.</p>
+  </div>
+
+  <div class="tool-controls">
+    <button type="button" class="btn btn-sm" data-run="1">Run once</button>
+    <button type="button" class="btn btn-sm" data-run="100">Run 100</button>
+    <button type="button" class="btn btn-sm btn-line" data-clear>Clear</button>
+  </div>
+
+  <figure>
+    <canvas aria-hidden="true"></canvas>
+    <div class="piles">
+      {OUTCOMES.map((o, i) => <p><span>{o}</span><b class="doto" data-n={i}>0</b></p>)}
+    </div>
+    <figcaption>Each dot is one run: a fresh input, copied, checked and read. The ringed dot is the last one. The dashed line in each pile is what two true copies would give over the same number of runs. Left digit: the input qubit. Right digit: the blank.</figcaption>
+  </figure>
+
+  <p class="tool-readout" aria-live="polite">{idleText(START, 'z')}</p>
+  <p class="note">A simulation of ideal, noise-free qubits. Each result is drawn from your browser's random numbers with Born rule odds. Inputs here have real amplitudes only: one great circle of the Bloch sphere. The check knows how the input was made; the machine does not. Only two machines are here, but the proof on this page covers every machine.</p>
+</qce-copy-machine>
+
+<script>
+  import { CAP, predict, shot, expected, amp, degrees, inputText, idleText, reportText, pileGrid, slot, fillHeight, type Machine, type Check, type Prediction } from '../../lib/sims/no-cloning.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot, pct } from '../../lib/draw.ts';
+
+  class CopyMachine extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector(s) as T;
+      const all = <T extends Element>(s: string) => [...this.querySelectorAll<T>(s)];
+      const slider = $<HTMLInputElement>('input[type="range"]'), out = $<HTMLOutputElement>('output'), canvas = $<HTMLCanvasElement>('canvas');
+      const readout = $<HTMLElement>('.tool-readout'), picks = all<HTMLButtonElement>('[data-deg]'), goes = all<HTMLButtonElement>('[data-run]');
+      const machines = all<HTMLInputElement>('input[value="z"], input[value="x"]'), checks = all<HTMLInputElement>('input[value="read"], input[value="undo"]');
+      const text = (s: string, t: string) => { $<HTMLElement>(s).textContent = t; };
+
+      let deg = +slider.value;
+      let m: Machine = (machines.find((x) => x.checked)?.value ?? 'z') as Machine;
+      let check: Check = (checks.find((x) => x.checked)?.value ?? 'read') as Check;
+      let P: Prediction = predict(deg, m, check);
+      let n = [0, 0, 0, 0], last = -1, queue = 0, raf = 0, seen = false, box = fit(canvas);
+      const total = () => n[0] + n[1] + n[2] + n[3];
+
+      function paint() {
+        const { ctx, w, h } = box, c = palette(), pw = w / 4, base = h - 3;
+        const g = pileGrid(pw - 12, base - 6), r = g.pitch * 0.34, N = total(), e = expected(P.pTwo, N);
+        ctx.clearRect(0, 0, w, h);
+        for (let i = 0; i < 4; i++) {
+          const x0 = i * pw + (pw - g.cols * g.pitch) / 2, at = (k: number) => { const [x, y] = slot(k, g.cols, g.pitch); return [x0 + x, base - y]; };
+          for (let k = n[i]; k < CAP; k++) { const [x, y] = at(k); dot(ctx, x, y, Math.max(0.6, r * 0.4), c.rule); }
+          for (let k = 0; k < n[i]; k++) { const [x, y] = at(k); dot(ctx, x, y, r, c.signal); }
+          ctx.fillStyle = c.ink; ctx.fillRect(x0, base, g.cols * g.pitch, 2);
+          if (last === i && n[i]) {
+            const [x, y] = at(n[i] - 1), rr = Math.max(4, g.pitch * 0.9);
+            ring(ctx, x, y, rr, c.paper, 4); ring(ctx, x, y, rr, c.ink, 1.5);
+          }
+          if (N) {
+            const y = base - fillHeight(e[i], g.cols, g.pitch), x1 = x0 - 4, x2 = x0 + g.cols * g.pitch + 4;
+            rule(ctx, x1, x2, y, c.paper, 4, []); rule(ctx, x1, x2, y, c.hot, 2, [5, 4]);
+          }
+        }
+        n.forEach((k, i) => text(`[data-n="${i}"]`, k.toLocaleString('en')));
+      }
+
+      function ring(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, lw: number) {
+        ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+      }
+
+      function rule(ctx: CanvasRenderingContext2D, x1: number, x2: number, y: number, color: string, lw: number, dash: number[]) {
+        ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke(); ctx.setLineDash([]);
+      }
+
+      /** The live sentence: spoken on release of the slider, on choices and on button presses only. */
+      function say(full = false) {
+        const N = total();
+        let s = N ? reportText(deg, m, check, n) : idleText(deg, m);
+        if (full || N >= CAP) s += ' The piles are full. Press Clear to run again.';
+        readout.textContent = s;
+      }
+
+      /** The state panel: input, the two outputs' amplitudes and the match. Silent: not a live region. */
+      function show() {
+        P = predict(deg, m, check);
+        out.textContent = degrees(deg);
+        slider.setAttribute('aria-valuetext', `${degrees(deg)}: input ${inputText(deg)}`);
+        text('[data-in]', inputText(deg));
+        for (let i = 0; i < 4; i++) { text(`[data-o="${i}"]`, amp(P.out[i].re)); text(`[data-t="${i}"]`, amp(P.two[i].re)); }
+        text('[data-match]', pct(P.match));
+        picks.forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.deg! === deg)));
+      }
+
+      function setFull() { goes.forEach((b) => b.setAttribute('aria-disabled', String(total() + queue >= CAP))); }
+
+      function run(k: number) { for (let i = 0; i < k; i++) { last = shot(P.pOut, Math.random); n[last]++; } queue -= k; }
+
+      function done() { paint(); setFull(); say(); }
+
+      function step() {
+        raf = 0;
+        if (!seen) return; // paused off screen; resumes when seen again
+        run(Math.min(queue, Math.max(2, Math.ceil(queue / 25))));
+        paint();
+        if (queue > 0) raf = requestAnimationFrame(step); else done();
+      }
+
+      function reset() {
+        if (raf) cancelAnimationFrame(raf);
+        raf = 0; queue = 0; n = [0, 0, 0, 0]; last = -1;
+        show(); paint(); setFull();
+      }
+
+      goes.forEach((b) => b.addEventListener('click', () => {
+        const k = Math.min(+b.dataset.run!, CAP - total() - queue);
+        if (k <= 0) { say(true); return; }
+        queue += k;
+        if (reduceMotion() || !seen || (k === 1 && queue === 1)) { run(queue); done(); }
+        else if (!raf) raf = requestAnimationFrame(step);
+        setFull();
+      }));
+      $<HTMLButtonElement>('[data-clear]').addEventListener('click', () => { reset(); say(); });
+      // Moving the slider redraws at once but stays quiet; the sentence is spoken when the slider is released.
+      slider.addEventListener('input', () => { deg = +slider.value; reset(); });
+      slider.addEventListener('change', () => say());
+      picks.forEach((b) => b.addEventListener('click', () => { deg = +b.dataset.deg!; slider.value = String(deg); reset(); say(); }));
+      machines.forEach((x) => x.addEventListener('change', () => { if (x.checked) { m = x.value as Machine; reset(); say(); } }));
+      checks.forEach((x) => x.addEventListener('change', () => { if (x.checked) { check = x.value as Check; reset(); say(); } }));
+
+      onResize(canvas, () => { box = fit(canvas); paint(); });
+      onTheme(paint);
+      onSeen(this, (s) => { seen = s; if (s && queue > 0 && !raf) raf = requestAnimationFrame(step); });
+      // Start from the controls as the page shows them: a browser can restore form values on going back.
+      show(); paint();
+      const first = idleText(deg, m);
+      if (readout.textContent !== first) readout.textContent = first;
+    }
+  }
+  customElements.define('qce-copy-machine', CopyMachine);
+</script>
+
+<style>
+  .knob { display: grid; gap: var(--s2) }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .row output { font: 900 1.75rem/1 var(--dots) }
+  .hint, .note, figcaption { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  .picks { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .picks button { min-width: 3rem; min-height: 2.75rem; padding: 0 .6rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer }
+  .picks button:hover { border-color: var(--ink) }
+  .picks button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+
+  .choose { display: grid; gap: var(--s4) }
+  fieldset { display: grid; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  fieldset label { display: grid; grid-template-columns: auto 1fr; align-items: start; gap: var(--s1) var(--s2); padding: var(--s2) var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); font-weight: 400; cursor: pointer }
+  fieldset label:hover { border-color: var(--ink) }
+  fieldset label:has(:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink) }
+  fieldset input { width: 1.25rem; height: 1.25rem; margin: .2rem 0 0; accent-color: var(--signal) }
+  fieldset b { display: block; font-weight: 600 }
+  .sub { display: block; font-size: .9375rem; color: var(--ink-2) }
+  svg { grid-column: 2; width: 7.75rem; height: auto; color: var(--ink) }
+  svg path, svg circle, svg rect { fill: none; stroke: currentColor; stroke-width: 1.5 }
+  svg rect { fill: var(--paper) }
+  svg .fill { fill: currentColor; stroke: none }
+  svg text { fill: currentColor; font: 500 13px var(--mono); dominant-baseline: auto }
+  svg .g { font-size: 11px; text-anchor: middle }
+
+  .state { display: grid; gap: var(--s2); padding: var(--s3); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); min-width: 0 }
+  .state code { overflow-wrap: anywhere }
+  table { width: 100%; max-width: 30rem; border-collapse: collapse; font-size: .9375rem }
+  caption { padding-bottom: var(--s1); text-align: left; font: 500 .75rem/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2) }
+  th, td { padding: .3rem .4rem; border-bottom: 1px solid var(--rule); text-align: right; font: 500 .9375rem var(--mono) }
+  thead th { font: 600 .8125rem var(--sans); color: var(--ink-2); vertical-align: bottom }
+  th:first-child { text-align: left; padding-left: 0 }
+  .match { max-width: 30rem; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s2); font-weight: 600 }
+  .match b { font-size: 1.75rem; line-height: 1 }
+
+  .btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; background: var(--ink); color: var(--paper) }
+
+  figure { display: grid; gap: var(--s2); min-width: 0 }
+  canvas { height: 12rem }
+  .piles { display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; font: 500 .9375rem var(--mono); color: var(--ink-2) }
+  .piles b { display: block; font-size: 1.5rem; line-height: 1.1; color: var(--ink) }
+
+  @media (min-width: 40rem) {
+    .choose { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+    canvas { height: 14rem }
+  }
+</style>
