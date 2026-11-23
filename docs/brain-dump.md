@@ -67,13 +67,13 @@ Every claim, formula and widget gets fact-checked before it ships. Rules learned
 
 ## Stack
 
-- Astro + MDX. Content collections: `lessons`, `posts`.
-- Concept graph from lesson frontmatter: `prereqs`, `track`.
-- Widgets: React islands, only where needed.
-- Simulator: own tiny TS state-vector sim.
-- Bloch sphere: three.js via react-three-fiber.
-- Math: KaTeX.
-- Metro map, charts: plain SVG, stations placed by hand.
+- Astro + MDX. Content collections: `stops` (one MDX per stop), `posts`.
+- Graph, Map, Words, Learn more: read from `docs/curriculum.md` and `docs/references.md` by `src/lib/curriculum.ts` only.
+- Live tools: one custom element per tool in `src/components/tools/`, no framework. Shared helpers in `src/lib/draw.ts`.
+- Simulator: own tiny TS state-vector sim, `src/lib/quantum.ts`. Each stop's math in `src/lib/sims/<id>.ts` with tests (`npm test`).
+- Page kit: `src/components/stop/` (myth, depth dial, lab, where it sits, learn more). Tokens only in `src/styles/tokens.css`.
+- Math: KaTeX to MathML.
+- Map, charts: plain SVG and canvas.
 - Progress: localStorage. No backend, no accounts.
 - Deploy: GitHub Actions to Cloudflare Pages. Never direct.
 
