@@ -1,0 +1,51 @@
+---
+description: "The four rules of quantum mechanics: states are unit vectors, change is unitary, measurement follows the Born rule, systems join by tensor product."
+answer: "The postulates are the basic rules of quantum mechanics. A state is a unit vector of amplitudes, a closed system changes by unitary steps, a measurement gives each result with chance |amplitude|² (the Born rule), and systems join by the tensor product."
+myth:
+  claim: "In quantum mechanics, anything can happen."
+  truth: "Four exact rules say what can happen. Between measurements, a closed system's state changes in a fully predictable way (by a unitary step); only a measurement's result is random, with odds fixed by the Born rule."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import FourRules from '../../components/tools/FourRules.astro';
+
+<Depth level="kid">
+A board game has a short rule book, and every game follows it. Quantum mechanics has a rule book too. Its basic rules are called postulates. Here are the four main ones.
+
+1. **State.** A qubit's state is a list of numbers called amplitudes, one for each result. Take each amplitude's size, times itself: these add up to 1.
+2. **Change.** Between measurements, a well-isolated qubit changes only by steps that can always be undone, like gates.
+3. **Measurement.** You get one result. Its chance is the size of its amplitude, times itself. After that, the state is just that result.
+4. **Joining.** Two qubits together have one amplitude for each pair of results: 00, 01, 10 and 11.
+
+The picture breaks here: you can look at a game board any time. You never see a qubit's amplitudes, only results.
+</Depth>
+
+<Depth level="student">
+Standard quantum mechanics rests on four rules, called postulates. Books group them a little differently.
+
+1. **State.** A state is a list of amplitudes, one per result, whose |amplitude|² values add up to 1. Example: 0.6|0⟩ + 0.8|1⟩, since 0.36 + 0.64 = 1.
+2. **Change.** Between measurements, a closed system changes by a unitary step, like a gate: it keeps the total at 1 for every state, and it can be undone.
+3. **Measurement.** You get one result, with chance |amplitude|² (the Born rule). Then the state is just that result.
+4. **Joining.** Two systems together have one amplitude per pair of results. For qubits made separately, amplitudes multiply: 0.6|0⟩ + 0.8|1⟩, then |0⟩, make 0.6|00⟩ + 0.8|10⟩. Most joint states cannot be split like this; they are [entangled](/learn/entanglement/).
+
+The rules fit: unitary steps keep the total at 1, so measurement chances always add up to 100%.
+</Depth>
+
+<Depth level="engineer">
+Following Nielsen and Chuang (§2.2), with rule 3 in its projective form, for a closed system:
+
+1. **State.** A unit vector $|\psi\rangle$ in the system's state space $V$, a complex vector space with an inner product: $\langle\psi|\psi\rangle = 1$. Vectors that differ by a global phase $e^{i\theta}$ give the same predictions.
+2. **Change.** Between measurements, $|\psi\rangle \mapsto U|\psi\rangle$ with $U^\dagger U = I$. In continuous time $U$ comes from the Schrödinger equation ([Time evolution](/learn/time-evolution/)).
+3. **Measurement.** A projective measurement is a set of projectors $P_m$ with $\sum_m P_m = I$. Outcome $m$ has probability $p(m) = \langle\psi|P_m|\psi\rangle$ and leaves the state $P_m|\psi\rangle/\sqrt{p(m)}$. With $P_j = |j\rangle\langle j|$ this is the Born rule, $|\langle j|\psi\rangle|^2$.
+4. **Joining.** Systems $A$ and $B$ join in $V_A \otimes V_B$. Prepared separately, they are in $|a\rangle \otimes |b\rangle$, with $\langle xy|(|a\rangle \otimes |b\rangle) = \langle x|a\rangle\langle y|b\rangle$.
+
+The rules fit. $\sum_m P_m = I$ gives $\sum_m p(m) = 1$; $\lVert U\psi\rVert = \lVert\psi\rVert$ keeps that true; $\lVert a \otimes b\rVert = \lVert a\rVert\,\lVert b\rVert$ makes a product of states a state. A linear map that is not unitary fails: $|0\rangle, |1\rangle \mapsto |0\rangle$ sends $|+\rangle$ to $\sqrt{2}\,|0\rangle$ and $|-\rangle$ to $0$.
+
+Most joint states are not products. A two-qubit state $\sum_{xy} \alpha_{xy}|xy\rangle$ factors exactly when $\alpha_{00}\alpha_{11} = \alpha_{01}\alpha_{10}$. CNOT takes $|+\rangle|0\rangle$ to $(|00\rangle + |11\rangle)/\sqrt{2}$, which fails this test: it is [entangled](/learn/entanglement/).
+
+Nielsen and Chuang state rule 3 with general measurement operators; any of those can be done by adding an extra system in a fixed start state, applying a unitary to both, then making a projective measurement (N&C §2.2.8). [Observables](/learn/observables/) pack a projective measurement into one Hermitian matrix. Rule 3 does not say which processes count as measurements: that is the [measurement problem](/learn/measurement-problem/).
+</Depth>
+
+<Lab title="Run the four rules" intro="Set two qubits, pick a change for the pair, then measure. Check that the |amplitude|² total stays at 100%, and find the one change that breaks it.">
+  <FourRules />
+</Lab>

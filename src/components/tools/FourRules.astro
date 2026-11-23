@@ -1,0 +1,260 @@
+---
+// Two simulated qubits run through the four rules: each one a unit vector, joined by the tensor product, changed by a 4x4
+// matrix, then measured. Every number comes from postulates.ts and each dot is one copy measured with Born rule odds.
+// One change on offer is linear but not unitary, to show what the rules forbid: the |amplitude|² total stops being 100%.
+import { qubit, join, change, born, amp, ket, describe, STRINGS, type Change } from '../../lib/sims/postulates.ts';
+import { pct } from '../../lib/draw.ts';
+const uid = 'fr-' + Math.random().toString(36).slice(2, 8);
+const S2 = Math.SQRT1_2;
+const A0 = S2, B0 = 0, K0: Change = 'cnot';
+const joined = join(qubit(A0), qubit(B0)), out = change(K0, joined), p = born(out);
+const presets = [['|0⟩', 0, 'amplitude of 1 is 0'], ['|+⟩', S2, 'amplitude of 1 is 0.707'], ['|−⟩', -S2, 'amplitude of 1 is minus 0.707'], ['|1⟩', 1, 'amplitude of 1 is 1']] as const;
+const qubits = [['A', A0], ['B', B0]] as const;
+const changes = [['none', 'No change'], ['h', 'Hadamard gate on A'], ['cnot', 'CNOT: A controls, B is the target'], ['merge', "Not unitary: A's 0 and 1 both go to 0"]] as const;
+---
+<qce-four-rules class="tool" data-a={A0} data-b={B0}>
+  <div class="qubits">
+    {qubits.map(([q, b], i) => (
+      <fieldset class="qubit" data-q={i}>
+        <legend>Qubit {q}</legend>
+        <div class="row">
+          <label for={`${uid}-${q}`}>Amplitude of 1</label>
+          <output for={`${uid}-${q}`}>{amp(b)}</output>
+        </div>
+        <input id={`${uid}-${q}`} type="range" min="-1" max="1" step="0.01" value={Math.round(b * 100) / 100} aria-valuetext={`${amp(b)}. Qubit ${q} is ${ket(qubit(b))}.`} />
+        <div class="picks" role="group" aria-label={`Preset states for qubit ${q}`}>
+          {presets.map(([n, v, said]) => (
+            <button type="button" class="pick" data-b={v} aria-pressed={String(v === b)}>{n}<span class="visually-hidden">, {said}</span></button>
+          ))}
+        </div>
+        <p><code data-ket>{q} = {ket(qubit(b))}</code></p>
+      </fieldset>
+    ))}
+  </div>
+  <p class="hint">State rule: the amplitude of 0 is set for you, √(1 − b²), so each qubit's |amplitude|² values add up to 1.</p>
+
+  <fieldset class="change">
+    <legend>Change the joined pair</legend>
+    <div class="opts">
+      {changes.map(([v, t]) => <label><input type="radio" name={`${uid}-k`} value={v} checked={v === K0} />{t}</label>)}
+    </div>
+  </fieldset>
+
+  <table>
+    <caption>Amplitude of each string, A's bit first</caption>
+    <thead><tr><th scope="col">AB</th><th scope="col">Joined</th><th scope="col">After change</th><th scope="col">Chance</th></tr></thead>
+    <tbody>
+      {STRINGS.map((s, i) => (
+        <tr><th scope="row">{s}</th><td data-j>{amp(joined[i].re)}</td><td data-o>{amp(out[i].re)}</td><td data-p>{pct(p[i])}</td></tr>
+      ))}
+    </tbody>
+    <tfoot><tr><th scope="row">Total</th><td data-tj>100%</td><td data-to>100%</td><td data-tp>100%</td></tr></tfoot>
+  </table>
+  <p class="hint">Total adds up |amplitude|² down each column. Chance is |amplitude|² after the change: the Born rule.</p>
+
+  <figure>
+    <canvas aria-hidden="true"></canvas>
+    <figcaption class="key"><span class="k-dot">one measured copy</span><span class="k-line">expected count</span></figcaption>
+  </figure>
+
+  <div class="tool-controls">
+    <button type="button" class="btn btn-sm" data-fire>Measure 100 copies</button>
+    <button type="button" class="btn btn-sm btn-line" data-clear>Clear</button>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">{describe(A0, B0, K0)}</p>
+  <p class="note">A simulation of ideal, noise-free qubits. Strings read A's bit, then B's. Each dot is one fresh copy of the pair: each qubit set, the two joined, the change made, then both qubits measured, with the string drawn by the Born rule. After its measurement, that copy's state is just the string it gave. The dashed line in each column marks the expected count, chance × copies. Changing anything clears the plot. Amplitudes here are real, so the tool reaches only real states; the rules allow complex amplitudes too. The last change is not unitary: it is here to show what the rules forbid, not a real process. Real devices reset a qubit in other ways, for example by measuring it and then flipping it if it gave 1. That works because it uses a measurement, or a larger system, so it is not a change of a closed system.</p>
+</qce-four-rules>
+
+<script>
+  import { qubit, join, change, born, total, isState, allowed, shot, counts, expected, amp, ket, totalText, describe, shotsText,
+    STRINGS, CAP, BATCH, type Change } from '../../lib/sims/postulates.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot, token, pct } from '../../lib/draw.ts';
+
+  /** ms a new dot stays enlarged; frames a batch takes to land. */
+  const POP = 260, FRAMES = 36;
+  type Shot = { i: number; t: number };
+
+  /** Plot layout for a canvas width: four columns of dots, CAP dots fit in any one column. */
+  function layout(w: number) {
+    const gap = 10, colW = Math.max(1, (w - 3 * gap) / 4), pitch = Math.max(4.5, Math.min(8, colW / 10));
+    const per = Math.max(1, Math.floor(colW / pitch)), rows = Math.ceil(CAP / per), top = 8, lab = 36;
+    return { gap, colW, pitch, per, rows, top, base: top + rows * pitch, h: Math.ceil(top + rows * pitch + lab) };
+  }
+
+  class FourRules extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const sets = [...this.querySelectorAll<HTMLFieldSetElement>('.qubit')];
+      const sliders = sets.map((f) => f.querySelector<HTMLInputElement>('input[type="range"]')!);
+      const outs = sets.map((f) => f.querySelector<HTMLOutputElement>('output')!);
+      const kets = sets.map((f) => f.querySelector<HTMLElement>('[data-ket]')!);
+      const picks = sets.map((f) => [...f.querySelectorAll<HTMLButtonElement>('[data-b]')]);
+      const radios = [...this.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+      const cells = { j: [...this.querySelectorAll('[data-j]')], o: [...this.querySelectorAll('[data-o]')], p: [...this.querySelectorAll('[data-p]')] };
+      const fire = $<HTMLButtonElement>('[data-fire]'), canvas = $<HTMLCanvasElement>('canvas'), readout = $('.tool-readout');
+      const NAMES = ['A', 'B'];
+
+      // Exact starting amplitudes (|+⟩ is 0.7071..., the slider can only hold 0.71).
+      const bs = [+this.dataset.a!, +this.dataset.b!];
+      sliders.forEach((s, q) => { if (Math.abs(+s.value - bs[q]) > 0.005) bs[q] = +s.value; });
+      let k: Change = (radios.find((r) => r.checked)?.value ?? 'cnot') as Change;
+      let shots: Shot[] = [], queue = 0, raf = 0, seen = false;
+      let g = layout(0), ctx: CanvasRenderingContext2D | null = null, w = 0, h = 0, P = palette(), mono = token('--mono');
+
+      const after = () => change(k, join(qubit(bs[0]), qubit(bs[1])));
+      const canMeasure = () => allowed(k) && isState(after());
+
+      function paint(now = performance.now()) {
+        if (!ctx) return;
+        const { gap, colW, pitch, per, base } = g, n = shots.length, r = pitch * 0.36, live = canMeasure();
+        const e = live ? expected(after(), n) : [0, 0, 0, 0], seenAt = [0, 0, 0, 0];
+        ctx.clearRect(0, 0, w, h);
+        ctx.font = `500 13px ${mono}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (let c = 0; c < 4; c++) {
+          const x0 = c * (colW + gap);
+          ctx.fillStyle = P.rule; ctx.fillRect(x0, base + 2, colW, 1.5);
+          ctx.fillStyle = P.ink; ctx.fillText(STRINGS[c], x0 + colW / 2, base + 8);
+        }
+        for (const s of shots) {
+          const m = seenAt[s.i]++, x0 = s.i * (colW + gap);
+          const x = x0 + ((m % per) + 0.5) * (colW / per), y = base - (Math.floor(m / per) + 0.5) * pitch;
+          const age = now - s.t, rr = r * (age < POP ? 1 + 0.6 * (1 - age / POP) : 1);
+          dot(ctx, x, y, rr, P.signal);
+        }
+        if (n > 0) {
+          ctx.strokeStyle = P.ink2; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+          for (let c = 0; c < 4; c++) {
+            const x0 = c * (colW + gap), y = base - (e[c] / per) * pitch;
+            ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + colW, y); ctx.stroke();
+          }
+          ctx.setLineDash([]);
+          ctx.fillStyle = P.ink2;
+          for (let c = 0; c < 4; c++) ctx.fillText(String(seenAt[c]), c * (colW + gap) + colW / 2, base + 22);
+        }
+      }
+
+      function size() {
+        g = layout(canvas.getBoundingClientRect().width);
+        canvas.style.height = `${g.h}px`;
+        ({ ctx, w, h } = fit(canvas));
+        paint();
+      }
+
+      const say = () => { readout.textContent = shots.length ? shotsText(bs[0], bs[1], k, shots.map((s) => s.i)) : describe(bs[0], bs[1], k); };
+
+      function table() {
+        const j = join(qubit(bs[0]), qubit(bs[1])), o = change(k, j), t = total(o), ok = canMeasure(), p = born(o);
+        cells.j.forEach((c, i) => { c.textContent = amp(j[i].re); });
+        cells.o.forEach((c, i) => { c.textContent = amp(o[i].re); });
+        cells.p.forEach((c, i) => { c.textContent = ok ? pct(p[i]) : ''; });
+        const to = $('[data-to]');
+        to.textContent = totalText(t);
+        to.toggleAttribute('data-bad', !isState(o));
+        $('[data-tp]').textContent = ok ? '100%' : 'no odds';
+        fire.setAttribute('aria-disabled', String(!ok || shots.length + queue >= CAP));
+      }
+
+      function clear() {
+        shots = []; queue = 0;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        table(); paint();
+      }
+
+      function setB(q: number, b: number, fromSlider = false) {
+        bs[q] = b;
+        if (!fromSlider) sliders[q].value = String(Math.round(b * 100) / 100);
+        const s = qubit(b);
+        outs[q].textContent = amp(b);
+        sliders[q].setAttribute('aria-valuetext', `${amp(b)}. Qubit ${NAMES[q]} is ${ket(s)}.`);
+        kets[q].textContent = `${NAMES[q]} = ${ket(s)}`;
+        picks[q].forEach((p) => p.setAttribute('aria-pressed', String(Math.abs(+p.dataset.b! - b) < 1e-9)));
+        clear();
+      }
+
+      const add = (t: number) => { shots.push({ i: shot(born(after()), Math.random), t }); queue--; };
+      /** Land every queued copy at once and draw the end state: for reduced motion, and when the tool is off screen. */
+      const flush = () => { while (queue > 0) add(-Infinity); shots.forEach((s) => { s.t = -Infinity; }); table(); paint(); say(); };
+
+      function frame(now: number) {
+        raf = 0;
+        if (!seen) { flush(); return; }
+        for (let i = Math.ceil(BATCH / FRAMES); i > 0 && queue > 0; i--) add(now);
+        paint(now);
+        const last = shots[shots.length - 1];
+        if (queue > 0 || (last && now < last.t + POP)) raf = requestAnimationFrame(frame);
+        else { table(); say(); }
+      }
+      const kick = () => { if (reduceMotion() || !seen) flush(); else if (!raf) raf = requestAnimationFrame(frame); };
+
+      sliders.forEach((s, q) => {
+        s.addEventListener('input', () => setB(q, +s.value, true));
+        // Speak once the reader lets go, not on every step.
+        s.addEventListener('change', say);
+      });
+      picks.forEach((ps, q) => ps.forEach((p) => p.addEventListener('click', () => { setB(q, +p.dataset.b!); say(); })));
+      radios.forEach((r) => r.addEventListener('change', () => { if (r.checked) { k = r.value as Change; clear(); say(); } }));
+      fire.addEventListener('click', () => {
+        const room = CAP - shots.length - queue;
+        if (!canMeasure() || room <= 0) { say(); return; }
+        queue += Math.min(BATCH, room);
+        fire.setAttribute('aria-disabled', String(shots.length + queue >= CAP));
+        kick();
+      });
+      $('[data-clear]').addEventListener('click', () => { clear(); say(); });
+
+      onResize(canvas, size);
+      onTheme(() => { P = palette(); paint(); });
+      onSeen(this, (v) => { seen = v; if (!v && queue > 0) flush(); });
+      // Start from the controls as the page shows them: a browser can restore form values on going back.
+      bs.forEach((b, q) => setB(q, b, true));
+      say();
+    }
+  }
+  customElements.define('qce-four-rules', FourRules);
+</script>
+
+<style>
+  .qubits { display: grid; gap: var(--s3) }
+  .qubit { display: grid; gap: var(--s2); min-width: 0; margin: 0; padding: var(--s3); border: 1px solid var(--rule); border-radius: var(--r); background: var(--paper) }
+  .qubit legend { padding: 0 var(--s1); font-weight: 600 }
+  .qubit p { overflow-wrap: anywhere }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .row output { font: 500 1.125rem/1 var(--mono) }
+  .picks { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .pick { min-width: 3rem; min-height: 2.75rem; padding: 0 .6rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer }
+  .pick:hover { border-color: var(--ink) }
+  .pick[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .hint, .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+
+  .change { min-width: 0; margin: 0; padding: 0; border: 0 }
+  .change legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  .opts { display: grid; gap: var(--s2) }
+  .opts label { display: flex; align-items: center; gap: var(--s2); min-height: 2.75rem; padding: var(--s1) var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); font-weight: 500; cursor: pointer }
+  .opts label:hover { border-color: var(--ink) }
+  .opts label:has(:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink) }
+  .opts input { flex: none; width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--signal) }
+
+  table { width: 100%; max-width: 36rem; border-collapse: collapse; background: var(--paper); font: 500 .8125rem var(--mono); font-variant-numeric: tabular-nums }
+  caption { padding-bottom: var(--s2); text-align: left; font: 600 1rem var(--sans); color: var(--ink) }
+  th, td { padding: var(--s1); border-bottom: 1px solid var(--rule); text-align: right }
+  th:first-child { text-align: left }
+  thead th { font: 500 .75rem/1.3 var(--mono); color: var(--ink-2); vertical-align: bottom }
+  tfoot th, tfoot td { border-bottom: 0; border-top: 1.5px solid var(--ink); font-weight: 700 }
+  [data-bad] { color: var(--hot) }
+
+  figure { display: grid; gap: var(--s2); min-width: 0 }
+  .key { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); font: 500 .875rem var(--mono); color: var(--ink-2) }
+  .key > span { display: inline-flex; align-items: center; gap: .4rem }
+  .key > span::before { content: ""; flex: none }
+  .key > .k-dot::before { width: .6rem; height: .6rem; border-radius: 50%; background: var(--signal) }
+  .key > .k-line::before { width: 1.25rem; border-top: 1.5px dashed var(--ink-2) }
+
+  [aria-disabled="true"] { opacity: .45; cursor: not-allowed }
+
+  @media (min-width: 40rem) {
+    .qubits, .opts { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+    table { font-size: .875rem }
+    th, td { padding: var(--s1) var(--s2) }
+  }
+</style>
