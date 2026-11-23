@@ -302,7 +302,7 @@ Rules:
 | farhi-2008-nand | Farhi, Goldstone and Gutmann | 2008 | A Quantum Algorithm for the Hamiltonian NAND Tree | Theory of Computing | Paper | Research | Yes | 10.4086/toc.2008.v004a008 | arXiv:quant-ph/0702144 | - | - |
 | farhi-2014-qaoa | Farhi, Goldstone and Gutmann | 2014 | A Quantum Approximate Optimization Algorithm | arXiv | Paper | Research | Yes | - | arXiv:1411.4028 | - | - |
 | farhi-2018-qnn | Farhi and Neven | 2018 | Classification with Quantum Neural Networks on Near Term Processors | arXiv | Paper | Research | Yes | - | arXiv:1802.06002 | - | - |
-| feynman-1965-flp3 | Feynman, Leighton and Sands | 1965 | The Feynman Lectures on Physics, Vol. III: Quantum Mechanics | Free online edition, Caltech | Textbook | University | Yes | - | - | https://www.feynmanlectures.caltech.edu/ | URL not checked |
+| feynman-1965-flp3 | Feynman, Leighton and Sands | 1965 | The Feynman Lectures on Physics, Vol. III: Quantum Mechanics | Caltech | Textbook | University | Yes | - | - | https://www.feynmanlectures.caltech.edu/ | URL not checked |
 | feynman-1982-simulating | Feynman | 1982 | Simulating physics with computers | International Journal of Theoretical Physics | Paper | University | No | 10.1007/BF02650179 | - | - | - |
 | fitzsimons-2017-blind | Fitzsimons and Kashefi | 2017 | Unconditionally verifiable blind quantum computation | Physical Review A | Paper | Research | Yes | 10.1103/PhysRevA.96.012303 | arXiv:1203.5217 | - | - |
 | fitzsimons-2017-private | Fitzsimons | 2017 | Private quantum computation: an introduction to blind quantum computing and related protocols | npj Quantum Information | Review | Graduate | Yes | 10.1038/s41534-017-0025-3 | arXiv:1611.10107 | - | - |
@@ -546,7 +546,7 @@ Rules:
 | lydersen-2010-hacking | Lydersen et al. | 2010 | Hacking commercial quantum cryptography systems by tailored bright illumination | Nature Photonics | Paper | Research | Yes | 10.1038/nphoton.2010.214 | arXiv:1008.4593 | - | - |
 | ma-2016-qrng | Ma et al. | 2016 | Quantum random number generation | npj Quantum Information | Review | University | Yes | 10.1038/npjqi.2016.21 | arXiv:1510.08957 | - | - |
 | maassen-1988-uncertainty | Maassen and Uffink | 1988 | Generalized entropic uncertainty relations | Physical Review Letters | Paper | Research | No | 10.1103/PhysRevLett.60.1103 | - | - | - |
-| mackay-2003-itila | MacKay | 2003 | Information Theory, Inference, and Learning Algorithms | Cambridge University Press, free PDF from the author | Textbook | University | Yes | - | - | http://www.inference.org.uk/mackay/itila/ | URL not checked |
+| mackay-2003-itila | MacKay | 2003 | Information Theory, Inference, and Learning Algorithms | Cambridge University Press | Textbook | University | Yes | - | - | http://www.inference.org.uk/mackay/itila/ | URL not checked |
 | madsen-2022-borealis | Madsen et al. | 2022 | Quantum computational advantage with a programmable photonic processor | Nature | Paper | Research | Yes | 10.1038/s41586-022-04725-x | - | - | - |
 | magesan-2011-rb | Magesan, Gambetta and Emerson | 2011 | Scalable and Robust Randomized Benchmarking of Quantum Processes | Physical Review Letters | Paper | Research | Yes | 10.1103/PhysRevLett.106.180504 | arXiv:1009.3639 | - | - |
 | magniez-2007-triangle | Magniez, Santha and Szegedy | 2007 | Quantum Algorithms for the Triangle Problem | SIAM Journal on Computing | Paper | Research | Yes | 10.1137/050643684 | arXiv:quant-ph/0310134 | - | - |
