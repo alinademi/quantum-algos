@@ -17,10 +17,10 @@ test('mid-circuit feed-forward and deferred measurement preserve correct joint s
  assert.ok(q.abs(steps[2].state![0])>.7&&q.abs(steps[2].state![3])>.7);
 });
 test('parity measurement preserves coherence inside parity subspaces, including sign',()=>{
- const s=run('parity-measurement',{a:'−',b:'+'});close(s[2].distribution!.p[0],.5);close(s[2].distribution!.p[1],.5);
+ const s=run('parity-measurement',{a:'−',b:'+'});close(s[3].distribution!.p[0],.5);close(s[3].distribution!.p[1],.5);
  const even=q.basis(3,0).map((x,i)=>q.c(i===0?Math.SQRT1_2:i===6?-Math.SQRT1_2:0));
  const odd=q.basis(3,0).map((x,i)=>q.c(i===3?Math.SQRT1_2:i===5?-Math.SQRT1_2:0));
- state(s[3].state!,even);state(s[4].state!,odd);
+ state(s[4].state!,even);state(s[5].state!,odd);
 });
 test('Hadamard test real and imaginary sign and SWAP test distinguish overlaps',()=>{
  for(const [part,p] of [['Real',.5],['Imaginary',1]] as const)close(last('hadamard-test',{state:'1',unitary:'P',angle:'90',part}).distribution!.p[0],p);
