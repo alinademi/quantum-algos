@@ -18,13 +18,13 @@ Imagine a notebook containing two yes-or-no answers. If you write only whether b
 
 <Depth level="student">
 
-AND and other [classical gates](/learn/classical-gates/) can lose information when only their output is kept. [Toffoli](/learn/toffoli/) XORs the AND into a target, leaving the two controls intact. It is its own inverse; Fredkin can also build reversible computations with suitable helper bits. Bennett showed how ordinary computations can be run reversibly by keeping enough history, copying the answer and undoing the work. Landauer's principle says erasing an independent unbiased bit in an isothermal reset releases at least kBT ln 2 of heat, about 3 × 10⁻²¹ joules at room temperature. It is not a minimum heat cost for every logic gate.
+AND and other [classical gates](/learn/classical-gates/) can lose information when only their output is kept. [Toffoli](/learn/toffoli/) XORs the AND into a target, leaving the two controls intact. It is its own inverse. Set target to 1 to compute NAND. Fredkin with inputs a,b,0 writes AND into the third bit; with a,0,1 it writes NOT a there. NAND alone, or AND and NOT, builds any classical Boolean calculation. Bennett showed how ordinary computations can be run reversibly by keeping enough history, copying the answer and undoing the work. Landauer's principle says erasing an independent unbiased bit in an isothermal reset releases at least kBT ln 2 of heat, about 3 × 10⁻²¹ joules at room temperature. It is not a minimum heat cost for every logic gate.
 
 </Depth>
 
 <Depth level="engineer">
 
-Reversible classical gates are bijections and therefore extend to unitary permutation matrices. Toffoli maps $(a,b,t)\mapsto(a,b,t\oplus ab)$ and is functionally complete with appropriate constant inputs and workspace; so is Fredkin. Bennett's reversible simulation stores intermediate history, copies the classical answer and runs the computation backward to recover workspace. This does not imply zero energy dissipation in hardware. For one independent equiprobable bit erased isothermally, the minimum heat to the environment is $k_BT\ln2$ (Landauer 1961); at 300 K this is about $2.87\times10^{-21}$ J. Correlations and nonuniform inputs change the entropy cost, and a real reset may dissipate more.
+Reversible classical gates are bijections and therefore extend to unitary permutation matrices. Toffoli maps $(a,b,t)\mapsto(a,b,t\oplus ab)$ and with target 1 writes NAND. Fredkin maps $(a,b,0)$ to $(a,(1-a)b,ab)$ and $(a,0,1)$ to $(a,a,1-a)$, supplying AND, NOT and copying of classical bits. With appropriate constants and workspace these are functionally complete. Bennett's reversible simulation stores intermediate history, copies the classical answer and runs the computation backward to recover workspace. This does not imply zero energy dissipation in hardware. For one independent equiprobable bit erased isothermally, the minimum heat to the environment is $k_BT\ln2$ (Landauer 1961); at 300 K this is about $2.87\times10^{-21}$ J. Correlations and nonuniform inputs change the entropy cost, and a real reset may dissipate more.
 
 </Depth>
 
