@@ -38,6 +38,8 @@ export const SAME: Dials = { a: [0, 0], b: [0, 0] };
 
 /** Best win chance of any classical strategy: 3/4. */
 export const CLASSICAL_MAX = 3 / 4;
+/** The tool's classical limit, as words. It names the local scope: a small batch of rounds can pass 75% by luck. */
+export const LIMIT_NOTE = 'No local plan fixed in advance can beat 75% on average (S = 2); a small batch of rounds can go over by luck.';
 /** Best win chance of any quantum strategy (Tsirelson): cos^2(22.5) = (2 + sqrt2)/4, about 0.854. */
 export const TSIRELSON = (2 + Math.SQRT2) / 4;
 /** The CHSH value S matching each limit: 2 and 2 sqrt2. */

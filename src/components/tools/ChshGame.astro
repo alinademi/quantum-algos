@@ -1,7 +1,7 @@
 ---
 // Plays the CHSH game one round at a time: the entangled pair answers with Born rule odds computed on its state
 // vector, the hidden plan answers from a random arrow and its own dial only, so it can never beat 75%.
-import { BEST, winChance, chsh, percent } from '../../lib/sims/bell-test.ts';
+import { BEST, winChance, chsh, percent, LIMIT_NOTE } from '../../lib/sims/bell-test.ts';
 const uid = 'chsh-' + Math.random().toString(36).slice(2, 8);
 const deg = (t: number) => `${t < 0 ? '−' : ''}${Math.abs(t)}°`;
 const said = (t: number) => `${t < 0 ? 'minus ' : ''}${Math.abs(t)} degrees`;
@@ -38,12 +38,12 @@ const p0 = percent(winChance('quantum', BEST)), s0 = +chsh('quantum', BEST).toFi
     </div>
     <button type="button" class="btn btn-sm play">Play 250 rounds</button>
   </div>
-  <p class="tool-readout" aria-live="polite">Entangled pair: both qubits started as 0, then a Hadamard gate and a CNOT made (|00⟩ + |11⟩)/√2. Dials: Alice 0° if asked 0 and 45° if asked 1; Bob 22.5° if asked 0 and −22.5° if asked 1. Predicted win chance: {p0} (S = {s0}). No plan fixed in advance can beat 75% (S = 2). Press Play to run rounds.</p>
+  <p class="tool-readout" aria-live="polite">Entangled pair: both qubits started as 0, then a Hadamard gate and a CNOT made (|00⟩ + |11⟩)/√2. Dials: Alice 0° if asked 0 and 45° if asked 1; Bob 22.5° if asked 0 and −22.5° if asked 1. Predicted win chance: {p0} (S = {s0}). {LIMIT_NOTE} Press Play to run rounds.</p>
 </qce-chsh-game>
 
 <script>
   import {
-    BEST, SAME, PAIRS, TSIRELSON, CLASSICAL_MAX, between, pairWin, winChance, chsh, player, emptyTally, record,
+    BEST, SAME, PAIRS, TSIRELSON, CLASSICAL_MAX, LIMIT_NOTE, between, pairWin, winChance, chsh, player, emptyTally, record,
     percent, pileGrid, pileRoom, type Dials, type Model, type Round, type Tally,
   } from '../../lib/sims/bell-test.ts';
   import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
@@ -176,7 +176,7 @@ const p0 = percent(winChance('quantum', BEST)), s0 = +chsh('quantum', BEST).toFi
           ? 'Entangled pair: both qubits started as 0, then a Hadamard gate and a CNOT made (|00⟩ + |11⟩)/√2.'
           : 'Hidden plan: each pair carries a hidden arrow, and each side answers 0 if its dial is within 45° of it, else 1.';
         const dials = `Dials: Alice ${deg(d.a[0])} if asked 0 and ${deg(d.a[1])} if asked 1; Bob ${deg(d.b[0])} if asked 0 and ${deg(d.b[1])} if asked 1.`;
-        const limit = 'No plan fixed in advance can beat 75% (S = 2).';
+        const limit = LIMIT_NOTE;
         const pred = model === 'quantum'
           ? `Born rule prediction: ${percent(p)} (S = ${s})${Math.abs(p - TSIRELSON) < 1e-9 ? ', the most any quantum strategy can reach' : p > CLASSICAL_MAX + 1e-9 ? ', above the classical limit' : ', not above the classical limit. Try the best angles'}.`
           : `This model's exact chance: ${percent(p)} (S = ${s}).`;

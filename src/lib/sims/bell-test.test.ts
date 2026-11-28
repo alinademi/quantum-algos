@@ -45,6 +45,13 @@ test('a shared random choice of plans averages them, so it never beats 3/4', () 
   }
 });
 
+test('the classical limit note names the local scope, 75%, and luck in small batches', () => {
+  assert.match(bt.LIMIT_NOTE, /local plan/);
+  assert.match(bt.LIMIT_NOTE, /75%/);
+  assert.match(bt.LIMIT_NOTE, /luck/);
+  assert.equal(bt.CLASSICAL_MAX, 0.75);
+});
+
 test('the pair is (|00> + |11>)/sqrt2, made from |00> by H then CNOT', () => {
   const s = bt.bellPair();
   closeAll(s.map((a) => a.re), [S2, 0, 0, S2]);
@@ -282,4 +289,13 @@ test('pileGrid fits n dots in the box; pileRoom covers a pair share of the round
     if (g.pitch > 1 + 1e-9) assert.ok(g.cols * g.rows >= n, `${w}x${h} n=${n}`);
   }
   for (const n of [250, 1000, 2000]) assert.ok(bt.pileRoom(n) > n / 4 + 4 * Math.sqrt((3 * n) / 16));
+});
+
+test('a local plan wins 3/4 on average, yet a 250-round batch tops 75% about half the time by luck', () => {
+  close(bt.winChance('hidden', bt.BEST), 0.75);
+  // Exact binomial tail P(wins >= 188 of 250) at p = 3/4, built term by term.
+  const n = 250, p = 0.75;
+  let pmf = (1 - p) ** n, tail = 0;
+  for (let k = 0; k <= n; k++) { if (k >= 188) tail += pmf; pmf *= ((n - k) / (k + 1)) * (p / (1 - p)); }
+  assert.ok(tail > 0.4 && tail < 0.6, `tail ${tail}`);
 });
