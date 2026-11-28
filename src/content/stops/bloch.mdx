@@ -1,9 +1,9 @@
 ---
 description: "Draw any one-qubit state as a point on a sphere with two angles. Turn the sphere and see how the height sets the odds of 0 and 1."
-answer: "The Bloch sphere draws each one-qubit state a|0⟩ + b|1⟩ as a point on the surface of a ball. Two angles place it: θ, down from |0⟩ at the top, sets the odds of 0 and 1, and φ, around the side, is the relative phase."
+answer: "The Bloch sphere draws each pure one-qubit state a|0⟩ + b|1⟩ as a point on the surface of a ball. Two angles place it: θ, down from |0⟩ at the top, sets the odds of 0 and 1, and φ, around the side, is the relative phase."
 myth:
   claim: "A qubit can store endless information, because it can be any point on a sphere."
-  truth: "Measuring it gives one bit, 0 or 1, and the state jumps to match, so the angles are lost. You also can't copy an unknown qubit to measure it again."
+  truth: "A standard measurement gives one bit, 0 or 1, and the state jumps to match, so the angles are lost. And no one machine can exactly copy every unknown qubit state, so you can't make copies to measure again."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -23,14 +23,14 @@ Where the picture breaks: the globe is a map of the qubit's state, not a place i
 
 <Depth level="student">
 
-A qubit's state is a|0⟩ + b|1⟩, with two complex amplitudes. Two angles place it on a sphere:
+A qubit in a pure state is a|0⟩ + b|1⟩, with two complex amplitudes. Two angles place it on a sphere:
 
 - θ (theta) goes from 0° at the top, |0⟩, to 180° at the bottom, |1⟩.
 - φ (phi) goes from 0° to 360° around. It is the relative phase: how far b is turned from a in the complex plane.
 
 Why only two? The odds must add up to 1, and turning both amplitudes by the same angle (a global phase) changes nothing you can measure.
 
-The height of the point sets the odds: the chance of 0 is (1 + height)/2. Started as 0, then a Hadamard gate, the qubit is |+⟩, on the equator at height 0: a 50% chance of 0. φ leaves these odds alone, but it changes results in [other bases](/learn/bases/). Opposite points, like |0⟩ and |1⟩, are orthogonal: a measurement along the line through them tells them apart every time. For |0⟩ and |1⟩ that is the usual 0/1 measurement.
+The height of the point sets the odds: the chance of 0 is (1 + height)/2. Started as 0, then a Hadamard gate, the qubit is |+⟩, on the equator at height 0: a 50% chance of 0. φ leaves these odds alone, but it changes results in [other bases](/learn/bases/). Opposite points, like |0⟩ and |1⟩, are orthogonal: a measurement along the line through them tells them apart every time. For |0⟩ and |1⟩ that is the usual 0/1 measurement. Points inside the ball are mixed states, like a noisy qubit.
 
 </Depth>
 
@@ -58,7 +58,7 @@ $$
 
 so orthogonal states sit at opposite points: $|0\rangle, |1\rangle$ on $\pm z$, $|{\pm}\rangle$ on $\pm x$, $|{\pm i}\rangle$ on $\pm y$. At the poles $\varphi$ has no meaning: at $\theta = 0$ the $|1\rangle$ term is gone, and at $\theta = \pi$, $e^{i\varphi}|1\rangle$ is $|1\rangle$ up to a global phase.
 
-Mixed states fill the inside of the ball ([density matrices](/learn/density-matrix/)), and every one-qubit unitary turns the sphere as a rotation ([rotation gates](/learn/rotations/)). The sphere is not a store of endless bits: by [Holevo's bound](/learn/holevo-bound/), one qubit, with no entanglement shared beforehand, gives at most one classical bit, however it is measured.
+The surface holds pure states only. A mixed state is $\rho = \tfrac12(I + \vec r\cdot\vec\sigma)$ with $|\vec r| < 1$, inside the ball ([density matrices](/learn/density-matrix/)). Every one-qubit unitary turns the sphere as a rotation ([rotation gates](/learn/rotations/)). The sphere is not a store of endless bits: a standard measurement has two outcomes, a [POVM](/learn/povm/) can have more, yet by [Holevo's bound](/learn/holevo-bound/) one qubit, with no entanglement shared beforehand, gives at most one classical bit about its preparation.
 
 </Depth>
 
