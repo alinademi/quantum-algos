@@ -1,9 +1,9 @@
 ---
 description: "Measuring a qubit gives 0 or 1 at random, with chance |amplitude|² (the Born rule). Then its state jumps to that result. Try it live."
-answer: "Measuring a qubit gives one result, 0 or 1, at random. The chance of each result is |amplitude|² (the Born rule), and afterwards the qubit's state is just the result it gave."
+answer: "An ideal standard measurement of a qubit gives one result, 0 or 1, at random. For a pure state the chance of each result is |amplitude|² (the Born rule), and afterwards the qubit's state is just the result it gave."
 myth:
   claim: "Measuring a qubit shows you its amplitudes."
-  truth: "It shows one result, 0 or 1. The state then jumps to that result, so measuring the same qubit again right away gives the same answer and tells you nothing new about the old amplitudes."
+  truth: "An ideal standard measurement shows one result, 0 or 1. The state then jumps to that result, so measuring the same qubit again right away gives the same answer and tells you nothing new about the old amplitudes."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -14,27 +14,27 @@ Slap your hand on a spinning coin and it shows heads or tails. Measuring a qubit
 
 The qubit's amplitudes set the odds. A qubit that started as 0 and then went through a Hadamard gate gives 0 half the time and 1 half the time. You can know the odds, but not which answer you will get.
 
-Then the qubit keeps its answer. Measure it again right away and you get the same answer every time.
+Then the qubit keeps its answer. On an ideal qubit, measure it again right away and you get the same answer every time.
 
 The coin is only a picture. A coin's odds are plain chances. A qubit's odds come from amplitudes, which can add up or cancel out before you measure. Coins never do that.
 </Depth>
 
 <Depth level="student">
-A qubit's state is a|0⟩ + b|1⟩, with an amplitude for each result. Measuring it gives one result, 0 or 1. The chance of each is |amplitude|², the amplitude's size times itself. This is the Born rule.
+A qubit's state is a|0⟩ + b|1⟩, with an amplitude for each result. Measuring it the standard way gives one result, 0 or 1. The chance of each is |amplitude|², the amplitude's size times itself. This is the Born rule.
 
 Take a qubit in the state 0.6|0⟩ + 0.8|1⟩. It gives 0 with chance 0.6 × 0.6 = 0.36 and 1 with chance 0.8 × 0.8 = 0.64: 36% and 64%, which add up to 100%. A minus sign does not change the odds: −0.8 also gives 64%. It still matters elsewhere, for example when you [measure in other bases](/learn/bases/).
 
-After the measurement, the state jumps to the result. Get 1, and the state is now |1⟩. Measure again right away and you get 1 every time. The old amplitudes are gone, so one measurement gives you just one bit. To estimate the odds, measure many copies made the same way and count.
+After an ideal measurement like this, the state jumps to the result. Get 1, and the state is now |1⟩. Measure again right away and you get 1 every time. The old amplitudes are gone, so one measurement gives you just one bit. To estimate the odds, measure many copies made the same way and count.
 </Depth>
 
 <Depth level="engineer">
-A qubit state is $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$ with $|\alpha|^2 + |\beta|^2 = 1$. Measuring in the standard basis gives outcome $j$ with probability
+A pure qubit state is $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$ with $|\alpha|^2 + |\beta|^2 = 1$. An ideal measurement in the standard basis (repeatable, projective, two outcomes) gives outcome $j$ with probability
 
 $$
 \Pr(j) = |\langle j|\psi\rangle|^2, \qquad \Pr(0) = |\alpha|^2, \quad \Pr(1) = |\beta|^2.
 $$
 
-This is the Born rule. For $\tfrac{1+2i}{3}|0\rangle - \tfrac{2}{3}|1\rangle$ it gives $5/9$ and $4/9$.
+This is the Born rule. For $\tfrac{1+2i}{3}|0\rangle - \tfrac{2}{3}|1\rangle$ it gives $5/9$ and $4/9$. For a mixed state $\rho$ it is $\Pr(j) = \langle j|\rho|j\rangle$. A general measurement ([POVM](/learn/povm/)) can have more than two outcomes, leave a different state, or not repeat.
 
 After outcome $j$ the state is
 
@@ -46,7 +46,7 @@ which is $|j\rangle$ up to a global phase. Since $P_j^2 = P_j$, measuring again 
 
 The odds depend only on $|\alpha|$ and $|\beta|$. A global phase, $e^{i\theta}|\psi\rangle$, changes no odds in any measurement. A relative phase does not show here either: $|+\rangle$ and $|-\rangle$ both give 50/50, yet a measurement in another basis tells them apart ([Measuring in other bases](/learn/bases/)).
 
-To estimate $p = |\beta|^2$, prepare $n$ copies and count the ones. The count $k$ is binomial with mean $np$ and standard deviation $\sqrt{np(1-p)}$, so the estimate $k/n$ has standard deviation $\sqrt{p(1-p)/n}$: the error falls like $1/\sqrt{n}$. Two fresh copies agree with probability $p^2 + (1-p)^2$, which is $1/2$ at $p = 1/2$. The same qubit measured twice agrees with probability 1.
+To estimate $p = |\beta|^2$, prepare $n$ identical, independent copies and count the ones. The count $k$ is binomial with mean $np$ and standard deviation $\sqrt{np(1-p)}$, so the estimate $k/n$ has standard deviation $\sqrt{p(1-p)/n}$: the error falls like $1/\sqrt{n}$. Two fresh copies agree with probability $p^2 + (1-p)^2$, which is $1/2$ at $p = 1/2$. The same qubit measured twice by this ideal measurement agrees with probability 1.
 </Depth>
 
 <Lab title="Measure, then measure again" intro="Set the amplitude of 1 and run. Check the first results against the Born rule odds, then see if the repeats match the first result.">
