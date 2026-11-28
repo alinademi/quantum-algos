@@ -356,6 +356,23 @@ test('drop left out: the survivors are pushed toward 0, like damping given a res
   close(z, (1 - 0.5) / (1 + 0.5)); // K0|+> = (1, √0.5)/√2: z = (1 − 0.5)/(1 + 0.5)
 });
 
+test('drop left out is one kept branch: completely positive, trace-nonincreasing, and dividing by the trace is not linear', () => {
+  const v = 50, r0 = outer(startKet(0)), r1 = outer(startKet(180));
+  // Not a channel: the trace of E(M) is below tr M for M = |1><1|, and the pair test shows a state-like result with trace below 1.
+  close(trace(applyMap('drop', v, r1)), 0.5); close(trace(applyMap('drop', v, r0)), 1);
+  const pv = pairVerdict('drop', v);
+  assert.ok(pv.state && !pv.keeps); close(pv.sum, 0.75);
+  // The branches of the full damping channel add up to the channel: kept branch + the dropped branch = damping.
+  const jump = S([[0, Math.sqrt(0.5)], [0, 0]]);
+  closeM(madd(applyMap('drop', v, r1), conjBy(jump, r1)), applyMap('damp', v, r1));
+  // Dividing by the trace: the half-half mix of |0> and |1> gives z = 1/3, but the mix of the two divided results gives z = 0.
+  const mix = mscale(madd(r0, r1), 0.5), whole = pointOf(applyMap('drop', v, mix))!;
+  close(whole[1], 1 / 3);
+  const avg = (pointOf(applyMap('drop', v, r0))![1] + pointOf(applyMap('drop', v, r1))![1]) / 2;
+  close(avg, 0);
+  assert.match(CHANNELS.drop.what, /not a channel/);
+});
+
 // ---- Half of an entangled pair: complete positivity
 
 test('the identity on half of the pair leaves the Bell state: eigenvalues 1, 0, 0, 0', () => {
@@ -519,10 +536,13 @@ test('every readout names the start state and says whether the pair test passes'
 
 test('readouts: a channel says the chances add to 1, a non-channel says it is not I, flip-through-center names the negative chance', () => {
   assert.match(describe('flip', 25, 0), /chances of the operators add to 1/);
-  assert.match(describe('drop', 50, 90), /not I, so shots can be lost/);
+  assert.match(describe('drop', 50, 90), /not I, so this is not a channel: it is one kept branch, and shots can be lost/);
+  assert.match(describe('drop', 50, 90), /rescaled to trace 1/);
+  assert.match(describe('drop', 50, 90), /completely positive, but they add to .* not 1/);
+  assert.doesNotMatch(describe('flip', 25, 0), /kept branch|not a channel/);
   assert.match(describe('drop', 50, 90), /share 0\.\d\d of the shots survive/);
   const bad = describe('shrink', -100, 90);
-  assert.match(bad, /No set of operators/); assert.match(bad, /negative chance/);
+  assert.match(bad, /No set of operators/); assert.match(bad, /not completely positive/); assert.match(bad, /negative chance/);
   assert.doesNotMatch(describe('shrink', 0, 90), /negative chance/);
   assert.match(describe('flip', 25, 0, tally(jumps('flip', 25, 0), [0, 0, 1])), /3 shots: 3 fired an operator\. Average of the dots/);
 });

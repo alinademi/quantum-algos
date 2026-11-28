@@ -11,6 +11,9 @@
 // - A channel here is a list of Kraus operators K_k, all real or Pauli. Its action on any 2x2 matrix M is sum_k K_k M K_k^dagger.
 //   Door k "fires" with chance p_k = <psi|K_k^dagger K_k|psi> and leaves the state K_k|psi> / sqrt(p_k). The channel only fixes
 //   the average of these jumps; a different Kraus set for the same channel gives different jumps with the same average.
+//   So a Kraus label is not one physical event. A channel (nothing picked out) is CPTP: sum K†K = I.
+//   The "drop left out" map is one kept branch: completely positive, trace-nonincreasing, not a channel. The state shown for it
+//   is that branch divided by its trace, which is not linear in the input; nothing is shown when the trace is 0.
 // - The pair test: (E tensor id) applied to (|00> + |11>)/sqrt2, E on qubit 0, qubit 1 untouched. Index 2a + b.
 //   The result is a valid state only when E is completely positive. Its trace is 1 only when E preserves trace.
 import { c, add, mul, scale, conj, norm2, normalize, matMul, matVec, dagger, fromBloch, I, X, Y, Z, RY, type C, type Matrix, type State } from '../quantum.ts';
@@ -33,7 +36,7 @@ export const CHANNELS: Record<Kind, { name: string; slider: string; min: number;
   flip: { name: 'Bit flip', slider: 'Chance p of a flip', min: 0, max: 100, step: 1, start: 25, what: 'Two operators: do nothing, or swap 0 and 1 (an X gate). The chances are 1 − p and p.' },
   damp: { name: 'Amplitude damping', slider: 'Chance γ that a 1 drops to 0', min: 0, max: 100, step: 1, start: 50, what: 'Two operators: no drop, and drop. A 1 can fall to 0, but a 0 never rises.' },
   shrink: { name: 'Shrink the ball', slider: 'Scale factor λ', min: -100, max: 100, step: 1, start: 50, what: 'Every arrow from the center is scaled by λ. At 1 nothing changes, at 0 every state becomes the center, below 0 the arrow also flips.' },
-  drop: { name: 'Damping, drop left out', slider: 'Chance γ that a 1 drops to 0', min: 0, max: 100, step: 1, start: 50, what: 'The damping operators with the drop operator removed. Only "no drop" is kept.' },
+  drop: { name: 'Damping, drop left out', slider: 'Chance γ that a 1 drops to 0', min: 0, max: 100, step: 1, start: 50, what: 'The damping operators with the drop operator removed. Only "no drop" is kept: one result of a measurement. For γ above 0 the chances can add to less than 1, so this is not a channel.' },
 };
 
 const DEG = Math.PI / 180;
@@ -254,23 +257,23 @@ export function describe(kind: Kind, v: number, theta: number, sample?: ReturnTy
   const parts: string[] = [`${startText(theta)}. ${CHANNELS[kind].name}, ${symbol(kind)} = ${valueShort(kind, v)}.`];
 
   if (!ops) {
-    parts.push(`No set of operators gives this map: the weight on "do nothing" would be ${num(shrinkWeights(v / 100).identity, 3)}, below 0.`);
+    parts.push(`No set of operators gives this map, because it is not completely positive: the weight on "do nothing" would be ${num(shrinkWeights(v / 100).identity, 3)}, below 0.`);
   } else {
     parts.push(`${ops.length === 1 ? 'One operator' : `${ops.length} operators`}: ${ops.map((o) => `${o.name} = ${o.text}`).join(', ')}.`);
     const tot = completeness(ops);
     parts.push(keepsTrace(ops)
       ? 'The sum of K†K is I, so the chances of the operators add to 1 for every start state.'
-      : `The sum of K†K is diag(${num(tot[0][0].re)}, ${num(tot[1][1].re)}), not I, so shots can be lost.`);
+      : `The sum of K†K is diag(${num(tot[0][0].re)}, ${num(tot[1][1].re)}), not I, so this is not a channel: it is one kept branch, and shots can be lost.`);
   }
 
   if (!out.point) parts.push('Nothing survives this map for this start state.');
-  else if (ops && !keepsTrace(ops)) parts.push(`A share ${num(out.trace)} of the shots survive, and the survivors sit at (x, z) = ${pointText(out.point)}.`);
+  else if (ops && !keepsTrace(ops)) parts.push(`A share ${num(out.trace)} of the shots survive, and the survivors, rescaled to trace 1, sit at (x, z) = ${pointText(out.point)}.`);
   else parts.push(`Out comes the point (x, z) = ${pointText(out.point)}, at distance ${num(Math.hypot(...out.point))} from the center${Math.hypot(...out.point) > 1 - 1e-9 ? ': still a pure state' : ''}.`);
 
   const eig = pairEigenvalues(kind, v);
   parts.push(`Half of the pair (|00⟩ + |11⟩)/√2 through the same map gives eigenvalues ${eig.map((x) => num(x, 3)).join(', ')}.`);
   parts.push(verdict.state
-    ? (verdict.keeps ? 'None is negative: a state.' : `None is negative, but they add to ${num(verdict.sum)}, not 1: the trace is not kept.`)
+    ? (verdict.keeps ? 'None is negative: a state.' : `None is negative, so the map is completely positive, but they add to ${num(verdict.sum)}, not 1: the trace is not kept.`)
     : `The lowest is negative, so the pair would predict a negative chance. No physical process does this, even though one qubit alone comes out as a state.`);
 
   if (sample && ops) {

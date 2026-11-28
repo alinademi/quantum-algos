@@ -47,7 +47,7 @@ const ops0 = krausOps(K0, V0)!, js0 = jumps(K0, V0, T0), ve0 = pairVerdict(K0, V
       <p class="pair-line" data-pair>Lowest eigenvalue: <code>{num(ve0.low, 3)}</code>. {ve0.state ? 'A state.' : 'Not a state.'}</p>
     </div>
 
-    <p class="key">Left: the Bloch ball cut through its middle. The ring is the start state. The small dots are shots: each is the state left by the operator that acted, so places that repeat look darker. The large dot is the exact output, which is the average of the shots, and the line runs from the center to it. The faint dots outline where the map sends every state on the circle. A different set of operators can give the same map, with other shots and the same average, so the shots are one way to read the map, not the map itself. You can start only from real amplitudes: one circle through |0⟩, |+⟩, |1⟩ and |−⟩, in steps of 5 degrees. Every map here sends that plane into itself, so this one picture shows what happens to these start states. Right: the pair test. The same map acts on one qubit of the entangled pair (|00⟩ + |11⟩)/√2 while the other qubit is left alone. Each bar is one eigenvalue of the result, largest first. A real state has no bar below the zero line. Numbers are rounded.</p>
+    <p class="key">Left: the Bloch ball cut through its middle. The ring is the start state. The small dots are shots: each is the state left by the operator that acted, so places that repeat look darker. The large dot is the exact output, which is the average of the shots, and the line runs from the center to it. The faint dots outline where the map sends every state on the circle. A different set of operators can give the same map, with other shots and the same average, so the shots are one way to read the map, not the map itself, and a label K₀, K₁ need not be one physical event. A map that loses shots is not a channel: lost shots have no dot, and the state shown is rescaled to trace 1. You can start only from real amplitudes: one circle through |0⟩, |+⟩, |1⟩ and |−⟩, in steps of 5 degrees. Every map here sends that plane into itself, so this one picture shows what happens to these start states. Right: the pair test. The same map acts on one qubit of the entangled pair (|00⟩ + |11⟩)/√2 while the other qubit is left alone. Each bar is one eigenvalue of the result, largest first. A real state has no bar below the zero line. Numbers are rounded.</p>
   </div>
 
   <p class="tool-readout" aria-live="polite">{describe(K0, V0, T0)}</p>
@@ -153,7 +153,7 @@ const ops0 = krausOps(K0, V0)!, js0 = jumps(K0, V0, T0), ve0 = pairVerdict(K0, V
           li.append(code, span); opsEl.append(li);
         });
         const tot = completeness(ops);
-        sumEl.textContent = keepsTrace(ops) ? 'Sum of K†K = I: the chances add to 1.' : `Sum of K†K = diag(${num(tot[0][0].re)}, ${num(tot[1][1].re)}), not I.`;
+        sumEl.textContent = keepsTrace(ops) ? 'Sum of K†K = I: the chances add to 1.' : `Sum of K†K = diag(${num(tot[0][0].re)}, ${num(tot[1][1].re)}), not I: not a channel, one kept branch.`;
       };
 
       // New settings: recompute the picture and the numbers. The spoken readout is left to say().
@@ -168,7 +168,7 @@ const ops0 = krausOps(K0, V0)!, js0 = jumps(K0, V0, T0), ve0 = pairVerdict(K0, V
         tIn.value = String(theta); tOut.textContent = `${theta}°`; tIn.setAttribute('aria-valuetext', `${theta} degrees`);
         renderOps(ops);
         again.disabled = !ops;
-        pairEl.textContent = `Lowest eigenvalue: ${num(ve.low, 3)}. ${!ve.state ? 'Not a state.' : ve.keeps ? 'A state.' : 'Not a state with trace 1: the total is ' + num(ve.sum) + '.'}`;
+        pairEl.textContent = `Lowest eigenvalue: ${num(ve.low, 3)}. ${!ve.state ? 'Not a state.' : ve.keeps ? 'A state.' : 'Not a state with trace 1: the total is ' + num(ve.sum) + '. No negative bar, so the map is completely positive, but not a channel.'}`;
         ran = false;
         draw();
       };
