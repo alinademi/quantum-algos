@@ -14,7 +14,7 @@ import { lab } from '../../lib/sims/classical-gates.ts';
 
 Picture two switches and a lamp. One rule lights the lamp only when both switches are on. Another lights it when at least one is on. A third lights it when the two switches disagree. You can also make a rule that flips a single switch's answer, and one that lights the lamp unless both switches are on.
 
-The last rule is special. Give it the same switch twice and it flips the answer. Combine several copies and you can build all the other rules, and any finite rule about bits. The picture breaks because real circuits work with voltages rather than little switches and lamps.
+The last rule is special. Give it the same switch twice and it flips the answer. Combine several copies and you can build all the other rules, and any finite rule about bits. The picture breaks because the same bit may be fed into more than one gate without needing two physical switches. Real circuits use signals to carry those bits.
 
 </Depth>
 
