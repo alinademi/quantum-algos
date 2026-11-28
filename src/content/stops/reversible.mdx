@@ -1,5 +1,5 @@
 ---
-description: "Build a reversible AND with Toffoli and explore the minimum heat cost of erasing a bit."
+description: "Build a reversible AND with Toffoli or Fredkin and explore the minimum heat cost of erasing a bit."
 answer: "Reversible computation preserves enough information to recover its input. Quantum gates require reversible linear evolution."
 myth:
   claim: "Every classical gate must dissipate at least kBT ln 2 of heat."
@@ -28,6 +28,6 @@ Reversible classical gates are bijections and therefore extend to unitary permut
 
 </Depth>
 
-<Lab title="Keep the information" intro="Change the temperature and three input bits, then run and reverse Toffoli.">
+<Lab title="Keep the information" intro="Change the temperature and three input bits, then run and reverse either gate. Set target to 0 to compute AND.">
   <GateLab id="reversible" lab={lab} />
 </Lab>
