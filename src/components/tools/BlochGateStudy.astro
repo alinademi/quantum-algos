@@ -1,0 +1,73 @@
+---
+import { kets } from '../../lib/sims/gate-lab.ts';
+const { pauli = false } = Astro.props;
+---
+<qce-bloch-gate-study class="tool" data-pauli={String(pauli)}>
+  <div class="tool-controls controls">
+    <label>Start state <select data-state>{kets.map(k=><option value={k}>|{k}⟩</option>)}</select></label>
+    <label>Axis <select data-axis><option>X</option><option>Y</option><option>Z</option></select></label>
+    {!pauli && <label>Angle (degrees) <input data-angle type="range" min="-720" max="720" step="1" value="90" /><output data-degrees>90°</output></label>}
+    <button class="btn" type="button" data-run>Measure 100 fresh copies after the turn</button>
+  </div>
+  <canvas aria-hidden="true"></canvas>
+  <p class="tool-readout" aria-live="polite"></p>
+  <p class="note">The spheres are diagrams of the starting and resulting Bloch vectors, not measurements. The dots below the result are one measurement each, grouped by the outcome. Global phase is not visible on a Bloch sphere.</p>
+</qce-bloch-gate-study>
+<script>
+  import { lab as pauli } from '../../lib/sims/pauli.ts';
+  import { lab as rotations } from '../../lib/sims/rotations.ts';
+  import { bloch, probs, sample } from '../../lib/quantum.ts';
+  import { fit, palette, dot, onResize, onTheme, onSeen, pct } from '../../lib/draw.ts';
+  import { camera, project, spherePoints, type Vec } from '../../lib/sims/bloch.ts';
+
+  const sphere=spherePoints(360),cam=camera(32,20);
+  class BlochGateStudy extends HTMLElement {
+    connectedCallback(){
+      const $=<T extends Element>(s:string)=>this.querySelector<T>(s)!;
+      const canvas=$<HTMLCanvasElement>('canvas'),axis=$<HTMLSelectElement>('[data-axis]'),start=$<HTMLSelectElement>('[data-state]');
+      const angle=this.querySelector<HTMLInputElement>('[data-angle]'),lab=this.dataset.pauli==='true'?pauli:rotations;
+      const data=()=>lab.run({start:start.value,axis:axis.value,angle:angle?.value??'180'});
+      let steps=data(),counts=sample(probs(steps[1].state!),100,Math.random),seen=true;
+      const draw=()=>{
+        if(!seen)return;const {ctx,w,h}=fit(canvas),p=palette();ctx.clearRect(0,0,w,h);
+        const half=w/2,r=Math.min(half/2-14,(h-126)/2),cy=r+34;
+        if(r<=0)return;
+        for(const [i,step] of steps.slice(0,2).entries()){
+          const cx=(i+.5)*half;
+          const xy=(v:Vec)=>{const s=project(v,cam);return [cx+r*s.x,cy-r*s.y] as const;};
+          const point=(v:Vec,size:number,color:string)=>{const [x,y]=xy(v);dot(ctx,x,y,size,color);};
+          for(const v of sphere)point(v,.65,p.rule);
+          for(let a=0;a<3;a++){
+            const active='XYZ'[a]===axis.value;
+            for(let j=-20;j<=20;j++){const v:Vec=[0,0,0];v[a]=j/20;point(v,active?1.25:.65,active?p.hot:p.ink2);}
+            const v:Vec=[0,0,0];v[a]=1.14;const [x,y]=xy(v);ctx.fillStyle=p.ink;ctx.font='12px monospace';ctx.textAlign='center';ctx.fillText('xyz'[a],x,y);
+          }
+          const v=bloch(step.state!) as Vec;
+          for(let j=0;j<=20;j++)point(v.map(x=>x*j/20) as Vec,1.35,p.signal);
+          point(v,4,p.signal);
+          ctx.fillStyle=p.ink;ctx.font='12px monospace';ctx.textAlign='center';ctx.fillText(i?'After turn':'Start',cx,14);
+        }
+        const base=h-20,pitch=Math.min(6,(half-14)/10),cols=10;
+        counts.forEach((n,i)=>{for(let j=0;j<n;j++)dot(ctx,half*i+(half-cols*pitch)/2+(j%cols+.5)*pitch,base-(Math.floor(j/cols)+.5)*pitch,pitch*.35,i?p.signal:p.ink2);ctx.fillStyle=p.ink;ctx.textAlign='center';ctx.fillText(i+': '+n,half*(i+.5),h-4);});
+      };
+      const update=(announce:boolean)=>{
+        steps=data();counts=sample(probs(steps[1].state!),100,Math.random);if(angle)this.querySelector('[data-degrees]')!.textContent=angle.value+'°';
+        if(announce){const [x,y,z]=bloch(steps[1].state!).map(n=>Math.abs(n)<1e-10?'0':n.toFixed(3));const odds=probs(steps[1].state!);$('.tool-readout').textContent='Started as |'+start.value+'⟩, after '+axis.value+' '+(angle?.value??'180')+'°: Bloch ('+x+', '+y+', '+z+'). Exact odds of 1: '+pct(odds[1])+'. 100 shots: '+counts[0]+' zeros, '+counts[1]+' ones.';}
+        draw();
+      };
+      for(const el of [start,axis,angle])el?.addEventListener('change',()=>update(true));
+      angle?.addEventListener('input',()=>{this.querySelector('[data-degrees]')!.textContent=angle.value+'°';});
+      $('[data-run]').addEventListener('click',()=>update(true));
+      onResize(this,draw);onTheme(draw);onSeen(this,v=>{seen=v;if(v)draw();});update(true);
+    }
+  }
+  customElements.define('qce-bloch-gate-study',BlochGateStudy);
+</script>
+<style>
+  qce-bloch-gate-study{display:grid;gap:var(--s3);min-width:0}
+  .controls{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:end}
+  label{display:grid;flex:1 1 7rem;min-width:0;gap:var(--s1)}
+  select,input{min-height:2.75rem;font:inherit;color:var(--ink);background:var(--paper)}
+  canvas{width:100%;height:18rem}
+  .note{font-size:.875rem;color:var(--ink-2)}
+</style>
