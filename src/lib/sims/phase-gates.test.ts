@@ -8,3 +8,5 @@ test('phase gates produce sin squared half-angle interference',()=>{
  for(const phi of g.angles)close(q.probs(last('phase-gates',{gate:'P',phi,start:'+'}).state!)[1],Math.sin(g.deg(phi)/2)**2);
 });
 test('Z, S and T preserve computational probabilities',()=>{for(const k of ['Z','S','T'])for(const start of g.kets){const steps=run('phase-gates',{gate:k,start});q.probs(steps[1].state!).forEach((x,i)=>close(x,q.probs(g.ket(start))[i]));}});
+
+test('P preserves both Z probabilities for arbitrary selected starts and angles',()=>{for(const start of g.kets)for(const phi of g.angles){const steps=run('phase-gates',{start,gate:'P',phi});q.probs(steps[1].state!).forEach((p,i)=>close(p,q.probs(steps[0].state!)[i]));}});
