@@ -1,0 +1,276 @@
+---
+// Makes a two-qubit pair, shows its 4 by 4 density matrix and the partial trace over B, then measures only A on fresh pairs
+// with Born rule draws from the whole pair: the piles match the odds that A's 2 by 2 matrix gives, as the theory says.
+import { report, sumsText, pair, density, degrees, fromPercent, BATCH, CAP } from '../../lib/sims/partial-trace.ts';
+import { pct } from '../../lib/draw.ts';
+const uid = 'hp-' + Math.random().toString(36).slice(2, 8);
+const P0 = 50, p0 = fromPercent(P0);
+const valueText = (p: number) => `${pct(p)} chance of 1 on A in the 0/1 test: RY(${degrees(p)})`;
+---
+<qce-half-pair class="tool">
+  <div class="setup">
+    <div class="control">
+      <div class="row">
+        <label for={`${uid}-p`}>p, the chance A reads 1 in the 0/1 test</label>
+        <span class="doto" data-value>{pct(p0)}</span>
+      </div>
+      <input id={`${uid}-p`} type="range" min="0" max="100" step="1" value={P0} aria-valuetext={valueText(p0)} />
+      <p class="hint">p sets the gate on A: RY(<span data-angle>{degrees(p0)}</span>). At 50% it does to 0 what a Hadamard gate does.</p>
+    </div>
+    <fieldset>
+      <legend>Last step</legend>
+      <label><input type="radio" name={`${uid}-l`} value="linked" checked /> A CNOT from A to B</label>
+      <label><input type="radio" name={`${uid}-l`} value="free" /> No CNOT</label>
+    </fieldset>
+  </div>
+
+  <figure>
+    <canvas data-matrix aria-hidden="true"></canvas>
+    <figcaption>
+      <span>The trace cuts the pair's matrix into four 2 by 2 blocks and adds each block's two diagonal entries: that sum is one entry of A's matrix. A filled dot is an entry the trace adds. A ring is an entry it skips: B's bit differs between the row and the column. Dot area follows the entry's size. Here each entry is the amplitude of the row's ket times that of the column's ket.</span>
+      <span data-sums>{sumsText(density(pair(p0, true)))}</span>
+    </figcaption>
+  </figure>
+
+  <div class="tool-controls">
+    <button type="button" class="btn btn-sm" data-test="z">0/1 test, {BATCH} pairs</button>
+    <button type="button" class="btn btn-sm" data-test="x">+/− test, {BATCH} pairs</button>
+    <button type="button" class="btn btn-sm" data-test="y">+i/−i test, {BATCH} pairs</button>
+    <button type="button" class="btn btn-sm btn-line" data-clear>Clear</button>
+  </div>
+  <p class="hint">Each pair is fresh. A is measured and B is left alone. The dots are results: a solid dot is the first result of the test, a ring is the second. The two percents above each test are the Born rule odds from A's 2 by 2 matrix. Most pairs a test holds: {CAP}.</p>
+
+  <canvas data-piles aria-hidden="true"></canvas>
+
+  <p class="tool-readout" aria-live="polite">{report(p0, true, [])}</p>
+  <p class="note">A simulation of ideal qubits. The tool reaches one family of pairs: started as 00, a gate RY on A, then a CNOT or not. All amplitudes are real, and A's state stays in the x-z plane or on its z axis. Every result is drawn with the Born rule odds for the whole pair. Changing the pair clears the piles.</p>
+</qce-half-pair>
+
+<script>
+  import {
+    pair, density, traceB, kept, oddsPair, result, fromPercent, degrees, num, tidy, report, sumsText,
+    pileGrid, TESTS, NAMES, TEST_NAMES, BATCH, CAP, type Test, type Bit,
+  } from '../../lib/sims/partial-trace.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot, pct } from '../../lib/draw.ts';
+
+  /** Pairs per ms while measuring; ms a new dot stays enlarged. */
+  const RATE = 0.06, POP = 300;
+  const LABELS = ['00', '01', '10', '11'];
+  type Dot = { bit: Bit; t: number };
+
+  class HalfPair extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const matrix = $<HTMLCanvasElement>('canvas[data-matrix]'), piles = $<HTMLCanvasElement>('canvas[data-piles]');
+      const slider = $<HTMLInputElement>('input[type="range"]'), readout = $('.tool-readout');
+      const valueEl = $('[data-value]'), angleEl = $('[data-angle]'), sumsEl = $('[data-sums]');
+      const radios = [...this.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+      const buttons = [...this.querySelectorAll<HTMLButtonElement>('[data-test]')];
+
+      let p = fromPercent(+slider.value), linked = true;
+      let groups: Record<Test, Dot[]> = { z: [], x: [], y: [] };
+      let shots: { test: Test; u: number }[] = [], pending: Test[] = [];
+      let mc: CanvasRenderingContext2D | null = null, mw = 0, mh = 0, pc: CanvasRenderingContext2D | null = null, pw = 0, ph = 0;
+      let raf = 0, last = 0, credit = 0, seen = false;
+
+      const queued = (t: Test) => pending.filter((x) => x === t).length;
+      const room = (t: Test) => CAP - groups[t].length - queued(t);
+
+      // ---- The matrices
+      const mgeom = (w: number) => {
+        const lm = 22, g = 48, top = 36, c = Math.min(46, Math.max(24, (w - lm - g) / 6));
+        return { lm, g, top, c, x0: lm, x1: lm + 4 * c + g, h: Math.ceil(top + 4 * c + 8) };
+      };
+
+      function paintMatrix() {
+        if (!mc) return;
+        const ctx = mc, col = palette(), mono = token('--mono'), { lm, top, c, x0, x1, g } = mgeom(mw);
+        const rho = density(pair(p, linked)), rA = traceB(rho);
+        ctx.clearRect(0, 0, mw, mh);
+        ctx.font = `500 11px ${mono}`; ctx.textBaseline = 'middle';
+
+        ctx.fillStyle = col.ink; ctx.textAlign = 'left';
+        ctx.fillText('pair, 4 by 4', x0, 8); ctx.fillText('A alone', x1, 8);
+        ctx.fillStyle = col.ink2; ctx.textAlign = 'center';
+        LABELS.forEach((l, j) => ctx.fillText(l, x0 + (j + 0.5) * c, top - 9));
+        [0, 1].forEach((j) => ctx.fillText(String(j), x1 + (j + 0.5) * c, top - 9));
+        ctx.textAlign = 'right';
+        LABELS.forEach((l, i) => ctx.fillText(l, x0 - 5, top + (i + 0.5) * c));
+        [0, 1].forEach((i) => ctx.fillText(String(i), x1 - 5, top + (i + 0.5) * c));
+
+        // Grid: thin rules between cells, heavier lines around each 2 by 2 block.
+        const grid = (x: number, n: number, step: number, heavy: number) => {
+          for (let k = 0; k <= n; k++) {
+            const strong = k % heavy === 0;
+            ctx.strokeStyle = strong ? col.ink : col.rule; ctx.lineWidth = strong ? 1.5 : 1;
+            ctx.beginPath(); ctx.moveTo(x + k * step, top); ctx.lineTo(x + k * step, top + n * step); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, top + k * step); ctx.lineTo(x + n * step, top + k * step); ctx.stroke();
+          }
+        };
+        grid(x0, 4, c, 2); grid(x1, 2, c, 1);
+
+        const cell = (cx: number, cy: number, v: number, filled: boolean, strong: boolean) => {
+          const r = v > 0 ? Math.max(2.5, Math.sqrt(v) * 0.47 * c) : 0;
+          if (r > 0 && filled) { ctx.globalAlpha = 0.3; dot(ctx, cx, cy, r, col.signal); ctx.globalAlpha = 1; }
+          else if (r > 0) { ctx.strokeStyle = col.ink2; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke(); }
+          ctx.fillStyle = filled ? col.ink : col.ink2; ctx.textAlign = 'center';
+          ctx.font = `${strong ? 700 : 500} ${c < 32 ? 9 : 11}px ${mono}`;
+          ctx.fillText(num(v), cx, cy);
+        };
+        for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) cell(x0 + (j + 0.5) * c, top + (i + 0.5) * c, rho[i][j].re, kept(i, j), false);
+        for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) cell(x1 + (b + 0.5) * c, top + (a + 0.5) * c, rA[a][b].re, true, true);
+
+        // Arrow from the pair to A's matrix.
+        const ay = top + 2 * c, ax = x0 + 4 * c + 5, bx = x1 - 18;
+        ctx.strokeStyle = col.ink; ctx.lineWidth = 1.5; ctx.fillStyle = col.ink;
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, ay); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(bx, ay); ctx.lineTo(bx - 5, ay - 4); ctx.lineTo(bx - 5, ay + 4); ctx.closePath(); ctx.fill();
+        ctx.textAlign = 'left'; ctx.font = `500 11px ${mono}`;
+        ctx.fillText('tr_B', x0 + 4 * c + 4, ay - 12);
+      }
+
+      // ---- The piles
+      const players = () => {
+        const gw = pw / 3, gap = Math.max(4, gw * 0.08), w1 = Math.min((gw - 3 * gap) / 2, 84), top = 44, base = ph - 34;
+        return { gw, w1, top, base, xs: TESTS.map((_, g) => [-1, 1].map((s) => g * gw + gw / 2 + s * (w1 / 2 + gap / 2))) };
+      };
+
+      function paintPiles(now = performance.now()) {
+        if (!pc) return;
+        const ctx = pc, col = palette(), mono = token('--mono'), L = players(), s = pair(p, linked);
+        ctx.clearRect(0, 0, pw, ph);
+        ctx.font = `500 11px ${mono}`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+        for (let k = 1; k < 3; k++) for (let y = 4; y < ph - 4; y += 7) dot(ctx, k * L.gw, y, 1, col.rule);
+        const grid = pileGrid(L.w1, L.base - L.top, CAP), r = grid.pitch * 0.38, ring = Math.max(1, grid.pitch * 0.2);
+        TESTS.forEach((t, gi) => {
+          const cx = gi * L.gw + L.gw / 2, odds = oddsPair(s, t);
+          ctx.fillStyle = col.ink; ctx.fillText(TEST_NAMES[t], cx, 14);
+          ctx.fillStyle = col.ink2; ctx.fillText(`${pct(tidy(odds[0]))} / ${pct(tidy(odds[1]))}`, cx, 28);
+          [0, 1].forEach((b) => {
+            const px = L.xs[gi][b], x0 = px - (grid.cols * grid.pitch) / 2;
+            const ds = groups[t].filter((d) => d.bit === b);
+            ds.forEach((d, k) => {
+              const x = x0 + ((k % grid.cols) + 0.5) * grid.pitch, y = L.base - (Math.floor(k / grid.cols) + 0.5) * grid.pitch;
+              const age = now - d.t, rr = age < POP ? r * (1 + 0.6 * (1 - age / POP)) : r;
+              // First result: solid dot. Second result: ring. Shape tells them apart, not color alone.
+              if (b === 0) dot(ctx, x, y, rr * 1.05, col.signal);
+              else { ctx.strokeStyle = col.hot; ctx.lineWidth = ring; ctx.beginPath(); ctx.arc(x, y, Math.max(0.5, rr * 1.2 - ring / 2), 0, Math.PI * 2); ctx.stroke(); }
+            });
+            ctx.fillStyle = col.rule; ctx.fillRect(px - L.w1 / 2, L.base + 2, L.w1, 1);
+            ctx.fillStyle = col.ink2; ctx.fillText(NAMES[t][b], px, L.base + 16);
+            ctx.fillStyle = col.ink; ctx.fillText(String(ds.length), px, ph - 4);
+          });
+        });
+      }
+
+      // ---- Words and controls
+      function setButtons() {
+        buttons.forEach((b) => {
+          const t = b.dataset.test as Test, full = room(t) <= 0;
+          b.setAttribute('aria-disabled', String(full));
+          b.textContent = full ? `${TEST_NAMES[t]} test full` : `${TEST_NAMES[t]} test, ${BATCH} pairs`;
+        });
+      }
+      const say = () => { readout.textContent = report(p, linked, shots); readout.setAttribute('aria-busy', 'false'); };
+      function showPair() {
+        valueEl.textContent = pct(p); angleEl.textContent = degrees(p);
+        slider.setAttribute('aria-valuetext', `${pct(p)} chance of 1 on A in the 0/1 test: RY(${degrees(p)})`);
+        sumsEl.textContent = sumsText(density(pair(p, linked)));
+        paintMatrix();
+      }
+
+      // ---- Measuring
+      const add = (t: Test, now: number) => {
+        const u = Math.random();
+        shots.push({ test: t, u });
+        groups[t].push({ bit: result(oddsPair(pair(p, linked), t), u), t: now });
+      };
+      /** Finish every queued pair at once and draw the end state: for reduced motion. */
+      const flush = () => { for (const t of pending) add(t, -Infinity); pending = []; credit = 0; paintPiles(); say(); setButtons(); };
+      const newest = () => Math.max(-Infinity, ...TESTS.map((t) => groups[t].at(-1)?.t ?? -Infinity));
+
+      function frame(now: number) {
+        raf = 0;
+        const dt = Math.max(0, Math.min(48, now - last)); last = now;
+        credit += dt * RATE;
+        const k = Math.min(pending.length, Math.floor(credit));
+        credit -= k;
+        for (const t of pending.splice(0, k)) add(t, now);
+        if (!pending.length) credit = 0;
+        paintPiles(now);
+        if (pending.length || now < newest() + POP) {
+          if (seen) raf = requestAnimationFrame(frame);
+          else if (!pending.length) { say(); setButtons(); }
+        } else { say(); setButtons(); }
+      }
+      const kick = () => { if (!raf && seen && pending.length) { last = performance.now(); raf = requestAnimationFrame(frame); } };
+
+      function measure(t: Test) {
+        const n = Math.min(BATCH, room(t));
+        if (n <= 0) { say(); return; }
+        for (let i = 0; i < n; i++) pending.push(t);
+        setButtons();
+        if (reduceMotion()) { flush(); return; }
+        readout.setAttribute('aria-busy', 'true');
+        readout.textContent = 'Measuring A on fresh pairs…';
+        kick();
+      }
+
+      function clear() {
+        groups = { z: [], x: [], y: [] }; shots = []; pending = []; credit = 0;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        paintPiles(); setButtons();
+      }
+
+      const size = () => {
+        const g = mgeom(matrix.getBoundingClientRect().width);
+        matrix.style.height = `${g.h}px`;
+        ({ ctx: mc, w: mw, h: mh } = fit(matrix)); ({ ctx: pc, w: pw, h: ph } = fit(piles));
+        paintMatrix(); paintPiles();
+      };
+
+      // The slider and the radios change the pair: look at once on input, clear and speak on release.
+      slider.addEventListener('input', () => { p = fromPercent(+slider.value); showPair(); });
+      slider.addEventListener('change', () => { p = fromPercent(+slider.value); showPair(); clear(); say(); });
+      radios.forEach((r) => r.addEventListener('change', () => {
+        if (!r.checked) return;
+        linked = r.value === 'linked'; showPair(); clear(); say();
+      }));
+      buttons.forEach((b) => b.addEventListener('click', () => { if (b.getAttribute('aria-disabled') !== 'true') measure(b.dataset.test as Test); }));
+      $('[data-clear]').addEventListener('click', () => { clear(); say(); });
+
+      onResize(matrix, size);
+      onTheme(() => { paintMatrix(); paintPiles(); });
+      onSeen(this, (v) => { seen = v; if (v) kick(); });
+      setButtons(); size();
+    }
+  }
+  customElements.define('qce-half-pair', HalfPair);
+</script>
+
+<style>
+  .setup { display: grid; gap: var(--s4) }
+  .control { display: grid; gap: var(--s1); min-width: 0 }
+  .row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s1) var(--s3) }
+  .doto { font: 500 1rem var(--mono) }
+  .hint, .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  fieldset { display: grid; align-content: start; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  fieldset label { display: flex; align-items: center; gap: var(--s2); min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); font-weight: 500; cursor: pointer }
+  fieldset label:hover { border-color: var(--ink) }
+  fieldset label:has(:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink) }
+  fieldset input { flex: none; width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--signal) }
+  [aria-disabled="true"] { opacity: .45; cursor: not-allowed }
+
+  figure { display: grid; gap: var(--s2); min-width: 0 }
+  figcaption { display: grid; gap: var(--s2); max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  canvas[data-matrix] { height: 14rem }
+  canvas[data-piles] { height: 14rem }
+  .tool-readout { min-height: 9em }
+
+  @media (min-width: 40rem) {
+    .setup { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); column-gap: var(--s5) }
+    canvas[data-piles] { height: 18rem }
+    .tool-readout { min-height: 7em }
+  }
+</style>
