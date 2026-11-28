@@ -1,5 +1,5 @@
 ---
-description: "An ideal quantum gate is a unitary transformation of quantum amplitudes. It preserves total probability and can be reversed."
+description: "Send a qubit through a gate and its inverse, and compare the amplitudes and total probability at each step."
 answer: "An ideal quantum gate is a unitary transformation of quantum amplitudes. It preserves total probability and can be reversed."
 myth:
   claim: "Quantum gates directly change measurement probabilities like classical random switches."
@@ -12,13 +12,17 @@ import { lab } from '../../lib/sims/gates.ts';
 
 <Depth level="kid">
 
-Think of two waves that can add or cancel. A gate changes how the waves fit together without losing their total strength. Another gate can undo the first.
+Imagine two waves on a pond. They can meet and make a bigger wave, or cancel each other. Now imagine a device that changes their shapes according to a fixed rule. It does not throw away their combined strength: if you know the rule, you can reverse it and get the original waves back.
+
+A qubit also carries numbers called amplitudes. A quantum gate changes those numbers without losing information. Try a gate, then run its exact reverse, and you get the original qubit back. The picture breaks because qubit amplitudes are complex numbers, not physical ripples of water; the strength here means total probability.
 
 </Depth>
 
 <Depth level="student">
 
-A one-qubit gate multiplies the two amplitudes by a 2 by 2 complex matrix. X exchanges the amplitudes, H mixes them, and Z changes one sign. Apply a gate and then its inverse in the lab: both amplitudes return. Measurement is a different operation.
+An ideal [qubit](/learn/qubit/) has two amplitudes. A one-qubit gate multiplies that pair by a two-by-two matrix. X exchanges the amplitudes, H gives their sum and difference over √2, and Z changes the sign of the amplitude for 1. Every ideal gate preserves the sum of the squared sizes of the amplitudes, which is always 1.
+
+A gate has an inverse: use the inverse after the gate and the entire state returns, not just its 0/1 odds. In the lab pick a [superposition](/learn/superposition/) and compare the amplitudes, then undo the gate. Measurement is different: it can leave a record and change the state.
 
 </Depth>
 
