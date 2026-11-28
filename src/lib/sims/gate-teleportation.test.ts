@@ -11,3 +11,5 @@ test('magic-state injection and one-way measurement: corrected branches attain t
  assert.ok(Number(last('mbqc',{input:'0',correct:'No',angle:'0'}).rows![0].value)> .99); // X|+> = |+>
  assert.ok(Number(last('mbqc',{input:'+',correct:'No',angle:'0'}).rows![0].value)<.01);
 });
+
+test('uncorrected branches equal T and T dagger up to their known global phases',async()=>{const q=await import('../quantum.ts');const g=await import('./gate-lab.ts');for(const input of ['0','1','+','−','+i']){const s=run('gate-teleportation',{input,correct:'No'});const a=g.ket(input);state(s.at(-2)!.state!,q.matVec(q.T,a));state(s.at(-1)!.state!,q.matVec(q.dagger(q.T),a).map(z=>q.mul(q.expi(Math.PI/4),z)));}});
