@@ -2,18 +2,16 @@
 description: "Try X, Y and Z on six qubit states and see how each rotates the Bloch arrow by half a turn."
 answer: "The Pauli X, Y and Z gates are three basic one-qubit gates. Each corresponds to a half turn around a Bloch sphere axis, up to global phase."
 myth:
-  claim: "Y is just another name for X."
-  truth: "Y exchanges amplitudes with factors of i and −i. Relative phase matters."
+  claim: "Z does nothing because the 0/1 odds stay the same."
+  truth: "From |+⟩, Z then H gives 1 with certainty, while H alone gives 0."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
 import BlochGateStudy from '../../components/tools/BlochGateStudy.astro';
-import GateLab from '../../components/tools/GateLab.astro';
-import { lab } from '../../lib/sims/pauli.ts';
 
 <Depth level="kid">
 
-Picture an arrow fixed at the center of a ball. Spin the ball halfway around a line through its center and the arrow changes direction. There are three special lines: one left to right, one front to back, and one top to bottom. A half turn around each line is a different operation. The turn around the left-to-right line flips an arrow pointing up to one pointing down, and vice versa.
+Picture an arrow fixed at the center of a ball. Spin the ball halfway around a line through its center and the arrow changes direction unless it lies along that line. There are three special lines: one left to right, one front to back, and one top to bottom. A half turn around each line is a different operation. The turn around the left-to-right line flips an arrow pointing up to one pointing down, and vice versa.
 
 Repeat any one of the turns and the arrow returns. The picture breaks because the arrow is a way of drawing an ideal qubit's amplitudes; there is no little spinning object inside the qubit.
 
@@ -23,7 +21,7 @@ Repeat any one of the turns and the arrow returns. The picture breaks because th
 
 The Pauli gates X, Y and Z are half turns of the [Bloch sphere](/learn/bloch/) around its x, y and z axes. X is the quantum NOT: it exchanges the 0 and 1 amplitudes. Z leaves the 0 amplitude unchanged and changes the sign of the 1 amplitude. Y exchanges them, multiplying the new 0 amplitude by −i and the new 1 amplitude by i.
 
-For an ideal qubit, all three gates undo themselves: applying X, Y or Z twice gives exactly the original amplitudes. Start in |0⟩ and X gives |1⟩. Start in |+⟩ and Z gives |−⟩. The 0/1 odds need not change.
+For an ideal qubit, all three gates undo themselves: applying X, Y or Z twice gives exactly the original amplitudes. Start in |0⟩ and X gives |1⟩. Start in |+⟩ and Z gives |−⟩. Z never changes the 0/1 odds; X and Y swap them.
 
 </Depth>
 
@@ -35,7 +33,6 @@ With $R_P(\theta)=e^{-i\theta P/2}$, we have $R_P(\pi)=-iP$. The factor is globa
 
 </Depth>
 
-<Lab title="Try the Pauli axes" intro="Choose an input and compare the Bloch coordinates and amplitudes before and after two copies of a Pauli.">
+<Lab title="Try the Pauli axes" intro="Choose the input and axis, then repeat the gate or follow it with H to reveal a relative phase.">
   <BlochGateStudy pauli={true} />
-  <GateLab id="pauli" lab={lab} />
 </Lab>

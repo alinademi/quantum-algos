@@ -7,15 +7,18 @@ const { pauli = false } = Astro.props;
     <label>Start state <select data-state>{kets.map(k=><option value={k}>|{k}⟩</option>)}</select></label>
     <label>Axis <select data-axis><option>X</option><option>Y</option><option>Z</option></select></label>
     {!pauli && <label>Angle (degrees) <input data-angle type="range" min="-720" max="720" step="1" value="90" /><output data-degrees>90°</output></label>}
-    <button class="btn" type="button" data-run>Measure 100 fresh copies after the turn</button>
+    {pauli && <label>Second operation <select data-follow><option>Repeat Pauli</option><option>Hadamard</option></select></label>}
+    <label>Show state <select data-step><option value="1">After first gate</option><option value="2">{pauli?'After second gate':'After inverse rotation'}</option></select></label>
+    <button class="btn" type="button" data-run>Measure 100 fresh copies of the selected state</button>
   </div>
   <canvas aria-hidden="true"></canvas>
   <p class="tool-readout" aria-live="polite"></p>
-  <p class="note">The spheres are diagrams of the starting and resulting Bloch vectors, not measurements. The dots below the result are one measurement each, grouped by the outcome. Global phase is not visible on a Bloch sphere.</p>
+  <p class="note">The spheres are diagrams of the starting and selected Bloch vectors, not measurements. The dots below the result are one measurement each, grouped by the outcome. Global phase is not visible on a Bloch sphere.</p>
 </qce-bloch-gate-study>
 <script>
   import { lab as pauli } from '../../lib/sims/pauli.ts';
   import { lab as rotations } from '../../lib/sims/rotations.ts';
+  import { complex } from '../../lib/sims/gate-lab.ts';
   import { bloch, probs, sample } from '../../lib/quantum.ts';
   import { fit, palette, dot, onResize, onTheme, onSeen, pct } from '../../lib/draw.ts';
   import { camera, project, spherePoints, type Vec } from '../../lib/sims/bloch.ts';
@@ -25,14 +28,14 @@ const { pauli = false } = Astro.props;
     connectedCallback(){
       const $=<T extends Element>(s:string)=>this.querySelector<T>(s)!;
       const canvas=$<HTMLCanvasElement>('canvas'),axis=$<HTMLSelectElement>('[data-axis]'),start=$<HTMLSelectElement>('[data-state]');
-      const angle=this.querySelector<HTMLInputElement>('[data-angle]'),lab=this.dataset.pauli==='true'?pauli:rotations;
-      const data=()=>lab.run({start:start.value,axis:axis.value,angle:angle?.value??'180'});
-      let steps=data(),counts=sample(probs(steps[1].state!),100,Math.random),seen=true;
+      const angle=this.querySelector<HTMLInputElement>('[data-angle]'),isPauli=this.dataset.pauli==='true',lab=isPauli?pauli:rotations,follow=this.querySelector<HTMLSelectElement>('[data-follow]'),step=$<HTMLSelectElement>('[data-step]');
+      const data=()=>lab.run({start:start.value,axis:axis.value,angle:angle?.value??'180',follow:follow?.value??'Repeat Pauli'});
+      let steps=data(),counts=sample(probs(steps[+step.value].state!),100,Math.random),seen=true;
       const draw=()=>{
         if(!seen)return;const {ctx,w,h}=fit(canvas),p=palette();ctx.clearRect(0,0,w,h);
         const half=w/2,r=Math.min(half/2-14,(h-126)/2),cy=r+34;
         if(r<=0)return;
-        for(const [i,step] of steps.slice(0,2).entries()){
+        for(const [i,step] of [steps[0],steps[+step.value]].entries()){
           const cx=(i+.5)*half;
           const xy=(v:Vec)=>{const s=project(v,cam);return [cx+r*s.x,cy-r*s.y] as const;};
           const point=(v:Vec,size:number,color:string)=>{const [x,y]=xy(v);dot(ctx,x,y,size,color);};
@@ -45,17 +48,17 @@ const { pauli = false } = Astro.props;
           const v=bloch(step.state!) as Vec;
           for(let j=0;j<=20;j++)point(v.map(x=>x*j/20) as Vec,1.35,p.signal);
           point(v,4,p.signal);
-          ctx.fillStyle=p.ink;ctx.font='12px monospace';ctx.textAlign='center';ctx.fillText(i?'After turn':'Start',cx,14);
+          ctx.fillStyle=p.ink;ctx.font='12px monospace';ctx.textAlign='center';ctx.fillText(i?'After gate '+step.value:'Start',cx,14);
         }
         const base=h-20,pitch=Math.min(6,(half-14)/10),cols=10;
         counts.forEach((n,i)=>{for(let j=0;j<n;j++)dot(ctx,half*i+(half-cols*pitch)/2+(j%cols+.5)*pitch,base-(Math.floor(j/cols)+.5)*pitch,pitch*.35,i?p.signal:p.ink2);ctx.fillStyle=p.ink;ctx.textAlign='center';ctx.fillText(i+': '+n,half*(i+.5),h-4);});
       };
       const update=(announce:boolean)=>{
-        steps=data();counts=sample(probs(steps[1].state!),100,Math.random);if(angle)this.querySelector('[data-degrees]')!.textContent=angle.value+'°';
-        if(announce){const [x,y,z]=bloch(steps[1].state!).map(n=>Math.abs(n)<1e-10?'0':n.toFixed(3));const odds=probs(steps[1].state!);$('.tool-readout').textContent='Started as |'+start.value+'⟩, after '+axis.value+' '+(angle?.value??'180')+'°: Bloch ('+x+', '+y+', '+z+'). Exact odds of 1: '+pct(odds[1])+'. 100 shots: '+counts[0]+' zeros, '+counts[1]+' ones.';}
+        steps=data();counts=sample(probs(steps[+step.value].state!),100,Math.random);if(angle)this.querySelector('[data-degrees]')!.textContent=angle.value+'°';
+        if(announce){const current=steps[+step.value].state!,[x,y,z]=bloch(current).map(n=>Math.abs(n)<1e-10?'0':n.toFixed(3));const odds=probs(current),first=isPauli?axis.value+' (half turn)':'R'+axis.value+'('+angle!.value+'°)',action=step.value==='1'?first:first+' then '+(isPauli?(follow!.value==='Hadamard'?'H':axis.value):'R'+axis.value+'('+(-Number(angle!.value))+'°)');$('.tool-readout').textContent='Started as |'+start.value+'⟩, after '+action+': amplitudes ('+current.map(complex).join(', ')+'), Bloch ('+x+', '+y+', '+z+'). Exact odds of 1: '+pct(odds[1])+'. 100 shots: '+counts[0]+' zeros, '+counts[1]+' ones.';}
         draw();
       };
-      for(const el of [start,axis,angle])el?.addEventListener('change',()=>update(true));
+      for(const el of [start,axis,angle,follow,step])el?.addEventListener('change',()=>update(true));
       angle?.addEventListener('input',()=>{this.querySelector('[data-degrees]')!.textContent=angle.value+'°';});
       $('[data-run]').addEventListener('click',()=>update(true));
       onResize(this,draw);onTheme(draw);onSeen(this,v=>{seen=v;if(v)draw();});update(true);

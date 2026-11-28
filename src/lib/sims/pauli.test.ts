@@ -2,15 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
 import * as g from './gate-lab.ts';
-import { boolean, viaNand } from './classical-gates.ts';
 import { unitaryError } from './gates.ts';
-import { u, euler } from './single-qubit-unitary.ts';
-import { stderr } from './shots.ts';
-import { implementation } from './controlled-gates.ts';
-import { noScratch } from './multi-controlled.ts';
-import { fredkin } from './fredkin.ts';
-import { family } from './two-qubit-gates.ts';
-import { circuits } from './circuit-identities.ts';
 
 import { checkLabs, close, state, matrix, phase } from './gate-lab-checks.ts';
 const {run,last}=await checkLabs(['pauli']);
@@ -23,3 +15,4 @@ test('unitary gates and Paulis: adjoint reverses, Y signs, and XY=iZ',()=>{
  for(const axis of ['X','Y','Z'])state(last('pauli',{start:'+i',axis}).state!,g.ket('+i'));
 });
 test('Bloch half-turns independently reverse the two perpendicular coordinates',()=>{for(const [i,k] of ['X','Y','Z'].entries()){const v=q.fromBloch(.8,.4),before=q.bloch(v),after=q.bloch(g.apply(v,g.gate(k)));after.forEach((x,j)=>close(x,before[j]*(i===j?1:-1)));}});
+test('Z preserves 0/1 probabilities but H reveals its relative phase',()=>{const ss=run('pauli',{start:'+',axis:'Z',follow:'Hadamard'});q.probs(ss[0].state!).forEach((x,i)=>close(x,q.probs(ss[1].state!)[i]));state(ss[2].state!,q.basis(1,1));state(q.matVec(q.H,q.plus()),q.basis(1,0));});
