@@ -1,0 +1,62 @@
+---
+description: "Decide if a mixed state of two qubits is entangled. Run the PPT test and a witness side by side, and see where the witness goes blind."
+answer: "A mixed state of two qubits is entangled when no mix of product states (one state for each qubit) makes it. The PPT test transposes the density matrix on one qubit only (the partial transpose): a negative eigenvalue means entangled, and for two qubits no negative eigenvalue means separable."
+myth:
+  claim: "A mix of entangled states is an entangled state."
+  truth: "Not always. An equal mix of the four Bell pairs gives the same odds in every test as an equal mix of the four plain pairs 00, 01, 10 and 11, and that mix is separable."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import PptLab from '../../components/tools/PptLab.astro';
+
+<Depth level="kid">
+
+Picture a recipe book. A coin picks a recipe, and each recipe gives qubit A its own state and qubit B its own state. A pair is entangled when no such book can make it.
+
+For two qubits there is a paper trick: write the pair's state as a grid of numbers, then flip B's half. A real state's grid has four special numbers, like odds, never negative. Any book's grid keeps that after the flip, so a negative one rules out every book.
+
+Take a Bell pair (start as 00, a Hadamard gate on A, a CNOT from A to B) with chance x, else random bits. A negative number appears once x is above one third.
+
+Where the picture breaks: the flip is paper work, not something a device does. And the trick is exact only for two qubits, or a qubit and a three-level system.
+
+</Depth>
+
+<Depth level="student">
+
+A mixed state of two qubits is separable if it is a mix of product states, one state for each qubit. Otherwise it is entangled.
+
+A two-qubit [density matrix](/learn/density-matrix/) is a 4 by 4 grid. Flip each of its four 2 by 2 blocks over its diagonal: that flips B's half (the partial transpose). A state's eigenvalues are never negative, and a mix of product states keeps that after the flip, so a negative eigenvalue means entangled. This is the PPT test.
+
+Start as 00, apply a Hadamard gate to A, then a CNOT from A to B: the Bell pair. Make it with chance x, else a random one of 00, 01, 10 and 11: the smallest eigenvalue is (1 − 3x)/4, negative once x is above ⅓. For two qubits, no negative eigenvalue means separable; beyond a qubit and a three-level system, some entangled states pass.
+
+A witness is a quicker check from measuring each qubit alone: below 0 means entangled, 0 or more shows nothing, and each witness catches only some entangled states. A gate on B can blind the Bell pair witness; the PPT eigenvalues do not move.
+
+</Depth>
+
+<Depth level="engineer">
+
+A two-qubit state $\rho$ is separable if $\rho = \sum_k p_k\,\rho^A_k \otimes \rho^B_k$, a mix of product states; otherwise it is entangled. Deciding separability is NP-hard in general (Gurvits, as in Aaronson's notes).
+
+The partial transpose on B is $\langle ab|\rho^\Gamma|a'b'\rangle = \langle ab'|\rho|a'b\rangle$. For a product mix, $\rho^\Gamma = \sum_k p_k\,\rho^A_k \otimes (\rho^B_k)^T$, and each transpose is a density matrix, so $\rho^\Gamma \ge 0$: a negative eigenvalue proves entanglement (Peres 1996). Gates $U \otimes V$ leave its eigenvalues alone. For $2\times2$ and $2\times3$ systems, $\rho^\Gamma \ge 0$ also shows separability (Horodecki, Horodecki and Horodecki 1996). For larger systems it does not: entangled states that pass exist, and they are bound entangled.
+
+Take the Bell pair $|\Phi^+\rangle$ (from $|00\rangle$: Hadamard on A, then CNOT) with chance $x$, else $I/4$:
+
+$$
+\rho_x = x\,|\Phi^+\rangle\langle\Phi^+| + (1-x)\,I/4.
+$$
+
+$\rho_x^\Gamma$ has eigenvalues $\tfrac{1+x}{4}$ three times and $\tfrac{1-3x}{4}$: entangled exactly when $x > \tfrac13$. At $x = \tfrac13$ it is an equal mix of the six pairs $|a\rangle|a^*\rangle$ ($a$ an eigenstate of $X$, $Y$ or $Z$), and smaller $x$ adds $I/4$, so it is separable for $x \le \tfrac13$.
+
+A witness is a Hermitian $W$ with $\operatorname{tr}(W\sigma) \ge 0$ for every separable $\sigma$; $\operatorname{tr}(W\rho) < 0$ shows entanglement. $W = I/2 - |\Phi^+\rangle\langle\Phi^+|$ works: a product state has $|\langle\Phi^+|a\,b\rangle|^2 \le \tfrac12$. As $|\Phi^+\rangle\langle\Phi^+| = \tfrac14(II + XX - YY + ZZ)$, three local settings measure it. Every entangled state has some witness, but none fits all. After $\mathrm{RY}(\beta)$ on B:
+
+$$
+\operatorname{tr}(W\rho_x) = \tfrac14\bigl(1 - x(1 + 2\cos\beta)\bigr).
+$$
+
+For $\beta \ge 90^\circ$ it is never negative, yet the eigenvalues of $\rho_x^\Gamma$ do not depend on $\beta$.
+
+</Depth>
+
+<Lab title="Add noise until the test says separable" intro="Lower x until the smallest eigenvalue of ρ^Γ is no longer below 0 (33%). Then set x back above 33%, turn B past 90° and measure pairs: the witness goes blind, the PPT test does not.">
+  <PptLab />
+</Lab>

@@ -1,0 +1,405 @@
+---
+// Mixes a Bell pair with noise and tests the result two ways: the PPT test, computed exactly from the density matrix and
+// exact for two qubits, and an entanglement witness, estimated from measured pairs with Born rule odds. Honest physics:
+// every eigenvalue and value comes from the sim file, every shot is a Born rule draw, and a gate on B shows the witness
+// going blind while the PPT eigenvalues do not move.
+import { rho, partialTransposeB, moves, entry, madeText, eigenText, pptText, witnessText, measuredText, smallestPpt, isPpt, witness, val, fromPercent, recipe, recipeLines, SETTING, BASES } from '../../lib/sims/separability.ts';
+const uid = 'ppt-' + Math.random().toString(36).slice(2, 8);
+const N0 = 'white', X0 = 60, B0 = 0;
+const r0 = rho(N0, fromPercent(X0), B0), t0 = partialTransposeB(r0);
+const names = ['00', '01', '10', '11'];
+const nonzero = (v: number) => Math.abs(v) > 1e-9;
+const xPicks = [[0, 'only noise'], [30, ''], [40, ''], [100, 'only the Bell pair']] as const;
+const bPicks = [[0, 'no gate: the Bell pair'], [90, ''], [180, 'the singlet']] as const;
+---
+<qce-ppt-lab class="tool">
+  <fieldset class="noise">
+    <legend>When it does not make the Bell pair, the machine makes</legend>
+    <label><input type="radio" name={`${uid}-n`} value="white" checked /> <span>White noise: <code>00</code>, <code>01</code>, <code>10</code> or <code>11</code> at random</span></label>
+    <label><input type="radio" name={`${uid}-n`} value="coin" /> <span>Coin noise: <code>00</code> or <code>11</code> at random</span></label>
+  </fieldset>
+
+  <div class="control">
+    <div class="row">
+      <label for={`${uid}-x`}>x, the chance it makes the Bell pair</label>
+      <output for={`${uid}-x`} class="doto" data-xout>{X0}%</output>
+    </div>
+    <input id={`${uid}-x`} type="range" min="0" max="100" step="1" value={X0} data-x aria-valuetext={`${X0}%`} />
+    <div class="picks" role="group" aria-label="Set x to">
+      {xPicks.map(([n, said]) => (
+        <button type="button" class="pick" data-xset={n} aria-pressed={String(n === X0)}>{n}%{said && <span class="visually-hidden">: {said}</span>}</button>
+      ))}
+    </div>
+  </div>
+
+  <div class="control">
+    <div class="row">
+      <label for={`${uid}-b`}>β, then a gate RY(β) on B alone</label>
+      <output for={`${uid}-b`} class="doto" data-bout>{B0}°</output>
+    </div>
+    <input id={`${uid}-b`} type="range" min="0" max="180" step="1" value={B0} data-b aria-valuetext={`${B0} degrees`} />
+    <div class="picks" role="group" aria-label="Set β to">
+      {bPicks.map(([n, said]) => (
+        <button type="button" class="pick" data-bset={n} aria-pressed={String(n === B0)}>{n}°{said && <span class="visually-hidden">: {said}</span>}</button>
+      ))}
+    </div>
+  </div>
+
+  <p class="made" data-made>{madeText(N0, fromPercent(X0), B0)}</p>
+
+  <div class="grids">
+    <figure>
+      <table data-rho>
+        <caption>ρ, the pair's density matrix. Rows and columns are the bits of A and B.</caption>
+        <thead><tr><td></td>{names.map((n) => <th scope="col">{n}</th>)}</tr></thead>
+        <tbody>
+          {names.map((n, i) => (
+            <tr><th scope="row">{n}</th>{names.map((_, j) => <td data-i={i} data-j={j} class:list={{ moved: moves(i, j) && nonzero(r0[i][j].re) }}>{entry(r0[i][j].re)}</td>)}</tr>
+          ))}
+        </tbody>
+      </table>
+    </figure>
+    <figure>
+      <table data-pt>
+        <caption>ρ^Γ, the same matrix with B's half flipped (partial transpose).</caption>
+        <thead><tr><td></td>{names.map((n) => <th scope="col">{n}</th>)}</tr></thead>
+        <tbody>
+          {names.map((n, i) => (
+            <tr><th scope="row">{n}</th>{names.map((_, j) => <td data-i={i} data-j={j} class:list={{ moved: moves(i, j) && nonzero(t0[i][j].re) }}>{entry(t0[i][j].re)}</td>)}</tr>
+          ))}
+        </tbody>
+      </table>
+    </figure>
+  </div>
+  <p class="hint">An outlined entry swaps places under the flip, with its mirror entry (B's bit flipped in both its row and its column). The other entries stay. Every entry is a real number here.</p>
+
+  <section class="test" aria-labelledby={`${uid}-h1`}>
+    <h3 id={`${uid}-h1`} class="sub">Test 1: the partial transpose</h3>
+    <figure class="eig">
+      <canvas data-eig aria-hidden="true" style="height: 176px"></canvas>
+      <figcaption data-eigs>{eigenText(r0)}</figcaption>
+    </figure>
+    <p class="key">
+      <span class="k0">an eigenvalue of 0 or more</span><span class="k1">an eigenvalue below 0</span>
+      <span class="kt">The dots are computed from the matrices, not measured.</span>
+    </p>
+    <dl class="score">
+      <div>
+        <dt class="label">Smallest eigenvalue of ρ^Γ</dt>
+        <dd><b class="doto" data-pmin>{val(smallestPpt(r0))}</b><span data-pword>{isPpt(r0) ? 'not below 0: passes, separable' : 'below 0: entangled'}</span></dd>
+      </div>
+    </dl>
+    <p data-ppt>{pptText(r0)}</p>
+    <details class="recipe" data-recipe hidden={recipe(N0, fromPercent(X0), B0) === null}>
+      <summary>Show a recipe of product pairs that makes this state</summary>
+      <p>A coin picks one pair, with these chances. A and B each get a state of their own, so no pair is entangled, and on average the pairs make exactly ρ.</p>
+      <ul data-lines>{(recipeLines(recipe(N0, fromPercent(X0), B0) ?? [])).map((l) => <li>{l}</li>)}</ul>
+    </details>
+  </section>
+
+  <section class="test" aria-labelledby={`${uid}-h2`}>
+    <h3 id={`${uid}-h2`} class="sub">Test 2: a witness, measured</h3>
+    <p class="hint">The witness is <code>W = I/2 − |Φ+⟩⟨Φ+|</code>. It is at least 0 for every separable state, so a value below 0 shows entanglement. It needs only three settings, each qubit measured alone: both in the +/− basis, both in the +i/−i basis, both in the 0/1 basis. Each new pair goes to one setting, taking turns. One dot is one pair: filled if the two results agreed, a ring if they differed.</p>
+    <div class="tool-controls">
+      <button type="button" class="btn btn-sm" data-make="30">Measure 30 pairs</button>
+      <button type="button" class="btn btn-sm" data-make="300">Measure 300 pairs</button>
+      <button type="button" class="btn btn-sm btn-line" data-clear>Clear</button>
+    </div>
+    <div class="tests">
+      {BASES.map((b) => (
+        <figure>
+          <figcaption><b>{SETTING[b].op} setting</b> both qubits in the {SETTING[b].test} basis<span data-n={b}>no pairs yet</span></figcaption>
+          <canvas data-test={b} aria-hidden="true"></canvas>
+        </figure>
+      ))}
+    </div>
+    <p class="key">
+      <span class="k0">the two results agreed</span><span class="kx">the two results differed</span>
+    </p>
+    <dl class="score">
+      <div>
+        <dt class="label">W from the shots</dt>
+        <dd><b class="doto" data-wm>–</b><span data-wn>no pairs yet</span></dd>
+      </div>
+      <div>
+        <dt class="label">W exact (Born rule)</dt>
+        <dd><b class="doto" data-we>{val(witness(r0))}</b><span data-wword>{witness(r0) < -1e-9 ? 'below 0: detects entanglement' : 'not below 0: says nothing'}</span></dd>
+      </div>
+    </dl>
+    <p data-wtext>{witnessText(r0)}</p>
+  </section>
+
+  <p class="tool-readout" aria-live="polite">{madeText(N0, fromPercent(X0), B0)} {eigenText(r0)} {pptText(r0)} {witnessText(r0)} {measuredText(r0, { x: [], y: [], z: [] })}</p>
+  <p class="note">A simulation of ideal, noise-free qubits. Each shot is a Born rule draw from your browser's random numbers. The tool reaches only these states: a Bell pair mixed with white or coin noise, then one gate on B, so every entry is real. It shows two qubits only. For two qubits the PPT test is exact. Beyond two qubits, or a qubit and a three-level system, some entangled states pass it. A witness is one-sided: a value below 0 shows entanglement, and a value of 0 or more shows nothing. Changing the state clears the shots.</p>
+</qce-ppt-lab>
+
+<script>
+  import { rho, partialTransposeB, moves, entry, madeText, eigenText, pptText, witnessText, report, eigenvalues, pptEigenvalues, smallestPpt, isPpt, witness, val, fromPercent, clampDegrees, recipe, recipeLines, basisFor, shoot, tally, estimate, CAP, BASES, type Noise, type Basis, type Pair } from '../../lib/sims/separability.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  /** ms between new pairs; ms a new pair stays enlarged. */
+  const STEP = 10, POP = 260;
+  type Shot = { bits: Pair; t: number };
+  type Panel = { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D | null; w: number; h: number; g: ReturnType<typeof layout> };
+  const NEG = 1e-9;
+
+  /** Grid layout for a panel width: dots per line, dot radius, spacing, and the canvas height. */
+  function layout(w: number) {
+    const pitch = 14, pad = 6, cols = Math.max(5, Math.floor((w - 2 * pad) / pitch));
+    return { cols, pitch, pad, r: 4.5, h: Math.ceil(2 * pad + Math.ceil(CAP / cols) * pitch) };
+  }
+
+  class PptLab extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(sel: string) => this.querySelector<T>(sel)!;
+      const xs = $<HTMLInputElement>('[data-x]'), bs = $<HTMLInputElement>('[data-b]');
+      const xout = $('[data-xout]'), bout = $('[data-bout]');
+      const xpicks = [...this.querySelectorAll<HTMLButtonElement>('[data-xset]')], bpicks = [...this.querySelectorAll<HTMLButtonElement>('[data-bset]')];
+      const makes = [...this.querySelectorAll<HTMLButtonElement>('[data-make]')];
+      const root = this, readoutEl = $('.tool-readout'), eig = $<HTMLCanvasElement>('[data-eig]');
+      const panels = {} as Record<Basis, Panel>;
+      for (const b of BASES) panels[b] = { canvas: $<HTMLCanvasElement>(`canvas[data-test="${b}"]`), ctx: null, w: 0, h: 0, g: layout(0) };
+      let eigView = { ctx: null as CanvasRenderingContext2D | null, w: 0, h: 0 };
+
+      let noise: Noise = 'white', x = fromPercent(+xs.value), beta = clampDegrees(+bs.value);
+      let shots: Record<Basis, Shot[]> = { x: [], y: [], z: [] };
+      let queue = 0, last = 0, raf = 0, seen = false;
+
+      const made = () => shots.x.length + shots.y.length + shots.z.length;
+      const pairs = (): Record<Basis, Pair[]> => ({ x: shots.x.map((s) => s.bits), y: shots.y.map((s) => s.bits), z: shots.z.map((s) => s.bits) });
+      const state = () => rho(noise, x, beta);
+
+      // ---- The eigenvalue picture
+      function paintEig() {
+        const { ctx, w, h } = eigView;
+        if (!ctx) return;
+        const pal = palette(), mono = token('--mono'), r = state(), rows = [
+          { name: 'ρ', vals: eigenvalues(r) },
+          { name: 'ρ^Γ, B\'s half flipped', vals: pptEigenvalues(r) },
+        ];
+        const lo = -0.5, hi = 1, padL = 12, padR = 12, xAt = (v: number) => padL + ((v - lo) / (hi - lo)) * (w - padL - padR);
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = pal.paper; ctx.fillRect(xAt(lo), 0, xAt(0) - xAt(lo), h - 22);
+        ctx.strokeStyle = pal.ink2; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+        ctx.beginPath(); ctx.moveTo(xAt(0), 0); ctx.lineTo(xAt(0), h - 22); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = pal.ink2; ctx.font = `500 12px ${mono}`; ctx.textBaseline = 'alphabetic';
+        for (const v of [-0.5, 0, 0.5, 1]) {
+          ctx.textAlign = v === lo ? 'left' : v === hi ? 'right' : 'center';
+          ctx.fillText(String(v).replace('-', '−'), v === lo ? padL - 4 : v === hi ? w - padR + 4 : xAt(v), h - 4);
+        }
+        const rad = 6, gap = 15;
+        rows.forEach((row, k) => {
+          const top = 8 + k * 78, cy = top + 40;
+          ctx.fillStyle = pal.ink; ctx.font = `500 12px ${mono}`; ctx.textAlign = 'left'; ctx.fillText(row.name, padL, top + 8);
+          // Equal eigenvalues stack: three equal ones are three dots in a column.
+          const groups: number[][] = [];
+          for (const v of row.vals) { const g = groups.find((q) => Math.abs(q[0] - v) < 1e-6); if (g) g.push(v); else groups.push([v]); }
+          for (const g of groups) {
+            g.forEach((v, i) => {
+              const px = xAt(Math.max(lo, Math.min(hi, v))), py = cy + (i - (g.length - 1) / 2) * gap;
+              if (v < -NEG) {
+                // Below 0: a ring, not just another color.
+                dot(ctx, px, py, rad, pal.paper); ctx.strokeStyle = pal.hot; ctx.lineWidth = 2.5;
+                ctx.beginPath(); ctx.arc(px, py, rad - 1.25, 0, Math.PI * 2); ctx.stroke();
+              } else dot(ctx, px, py, rad, pal.signal);
+            });
+          }
+        });
+      }
+      function sizeEig() { ({ ctx: eigView.ctx, w: eigView.w, h: eigView.h } = fit(eig)); paintEig(); }
+
+      // ---- The shot panels
+      function paint(b: Basis, now = performance.now()) {
+        const { ctx, w, h, g } = panels[b];
+        if (!ctx) return;
+        const pal = palette(), list = shots[b];
+        ctx.clearRect(0, 0, w, h);
+        for (let i = 0; i < CAP; i++) {
+          const px = g.pad + (i % g.cols + 0.5) * g.pitch, py = g.pad + (Math.floor(i / g.cols) + 0.5) * g.pitch, s = list[i];
+          if (!s) { dot(ctx, px, py, 1.5, pal.rule); continue; }
+          const age = now - s.t, rr = g.r * (age < POP ? 1 + 0.5 * (1 - age / POP) : 1);
+          if (s.bits[0] === s.bits[1]) dot(ctx, px, py, rr, pal.signal);
+          else {
+            dot(ctx, px, py, rr, pal.paper); ctx.strokeStyle = pal.hot; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(px, py, rr - 1, 0, Math.PI * 2); ctx.stroke();
+          }
+        }
+      }
+      const paintAll = (now?: number) => BASES.forEach((b) => paint(b, now));
+      function size(b: Basis) {
+        const P = panels[b];
+        P.g = layout(P.canvas.getBoundingClientRect().width);
+        P.canvas.style.height = `${P.g.h}px`;
+        ({ ctx: P.ctx, w: P.w, h: P.h } = fit(P.canvas));
+        paint(b);
+      }
+
+      /** Counts, the witness from the shots and the button states. Cheap, so it runs on every new pair. */
+      function count() {
+        for (const b of BASES) {
+          const t = tally(shots[b].map((s) => s.bits));
+          $(`[data-n="${b}"]`).textContent = t.pairs ? `agreed on ${t.agree} of ${t.pairs} pairs` : 'no pairs yet';
+        }
+        const r = state(), e = estimate(r, { x: tally(pairs().x), y: tally(pairs().y), z: tally(pairs().z) });
+        $('[data-wm]').textContent = e ? val(e.value) : '–';
+        $('[data-wn]').textContent = e ? `${made()} pairs, chance alone moves it by about ${e.wobble.toFixed(2)}` : made() ? `${made()} pairs: needs all three settings` : 'no pairs yet';
+        const full = made() + queue >= 3 * CAP;
+        makes.forEach((b) => b.setAttribute('aria-disabled', String(full)));
+      }
+      const say = () => { count(); readoutEl.textContent = report(noise, x, beta, pairs()); };
+
+      const add = (now: number) => {
+        const b = basisFor(made());
+        shots[b].push({ bits: shoot(state(), b, Math.random), t: now });
+        queue--; count();
+      };
+      /** Finish every queued pair at once and draw the end state: for reduced motion, and when the tool is off screen. */
+      const flush = () => {
+        while (queue > 0) add(-Infinity);
+        for (const b of BASES) shots[b].forEach((s) => { s.t = -Infinity; });
+        paintAll(); say();
+      };
+      const newest = () => Math.max(...BASES.map((b) => shots[b].at(-1)?.t ?? -Infinity));
+
+      function frame(now: number) {
+        raf = 0;
+        if (!seen) { flush(); return; }
+        // One pair per STEP ms, catching up when frames are slow.
+        if (now - last > 4 * STEP) last = now - STEP;
+        while (queue > 0 && now - last >= STEP) { add(now); last += STEP; }
+        paintAll(now);
+        if (queue > 0 || now < newest() + POP) raf = requestAnimationFrame(frame); else say();
+      }
+      const kick = () => { if (reduceMotion() || !seen) flush(); else if (!raf) raf = requestAnimationFrame(frame); };
+
+      function clear() {
+        shots = { x: [], y: [], z: [] }; queue = 0;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        paintAll(); count();
+      }
+
+      /** Show the state the machine makes now: its matrices, eigenvalues, both verdicts and a recipe if one exists.
+       *  speak: also update the live readout. Slider steps do not speak; the release (change) does. */
+      function show(speak: boolean) {
+        const r = state(), t = partialTransposeB(r);
+        $('[data-made]').textContent = madeText(noise, x, beta);
+        for (const [sel, m] of [['[data-rho]', r], ['[data-pt]', t]] as const) {
+          root.querySelectorAll<HTMLElement>(`${sel} td[data-i]`).forEach((td) => {
+            const i = +td.dataset.i!, j = +td.dataset.j!, v = m[i][j].re;
+            td.textContent = entry(v);
+            td.classList.toggle('moved', moves(i, j) && Math.abs(v) > 1e-9);
+          });
+        }
+        $('[data-eigs]').textContent = eigenText(r);
+        $('[data-pmin]').textContent = val(smallestPpt(r));
+        $('[data-pword]').textContent = isPpt(r) ? 'not below 0: passes, separable' : 'below 0: entangled';
+        $('[data-ppt]').textContent = pptText(r);
+        const rec = recipe(noise, x, beta), det = $<HTMLDetailsElement>('[data-recipe]');
+        det.hidden = rec === null;
+        $('[data-lines]').replaceChildren(...recipeLines(rec ?? []).map((l) => { const li = document.createElement('li'); li.textContent = l; return li; }));
+        $('[data-we]').textContent = val(witness(r));
+        $('[data-wword]').textContent = witness(r) < -NEG ? 'below 0: detects entanglement' : 'not below 0: says nothing';
+        $('[data-wtext]').textContent = witnessText(r);
+        xout.textContent = `${Math.round(x * 100)}%`; bout.textContent = `${beta}°`;
+        xs.setAttribute('aria-valuetext', `${Math.round(x * 100)}%`); bs.setAttribute('aria-valuetext', `${beta} degrees`);
+        xpicks.forEach((p) => p.setAttribute('aria-pressed', String(fromPercent(+p.dataset.xset!) === x)));
+        bpicks.forEach((p) => p.setAttribute('aria-pressed', String(clampDegrees(+p.dataset.bset!) === beta)));
+        paintEig();
+        clear();
+        if (speak) say();
+      }
+
+      xs.addEventListener('input', () => { x = fromPercent(+xs.value); show(false); });
+      xs.addEventListener('change', () => { x = fromPercent(+xs.value); show(true); });
+      bs.addEventListener('input', () => { beta = clampDegrees(+bs.value); show(false); });
+      bs.addEventListener('change', () => { beta = clampDegrees(+bs.value); show(true); });
+      xpicks.forEach((p) => p.addEventListener('click', () => { xs.value = p.dataset.xset!; x = fromPercent(+xs.value); show(true); }));
+      bpicks.forEach((p) => p.addEventListener('click', () => { bs.value = p.dataset.bset!; beta = clampDegrees(+bs.value); show(true); }));
+      this.querySelectorAll<HTMLInputElement>('input[type="radio"]').forEach((r) => r.addEventListener('change', () => { if (r.checked) { noise = r.value as Noise; show(true); } }));
+      makes.forEach((b) => b.addEventListener('click', () => {
+        const room = 3 * CAP - made() - queue;
+        if (room <= 0) { say(); return; }
+        queue += Math.min(+b.dataset.make!, room);
+        count(); kick();
+      }));
+      $('[data-clear]').addEventListener('click', () => { clear(); say(); });
+
+      for (const b of BASES) onResize(panels[b].canvas, () => size(b));
+      onResize(eig, sizeEig);
+      onTheme(() => { paintEig(); paintAll(); });
+      onSeen(this, (v) => { seen = v; if (!v && queue > 0) flush(); });
+      // Start from the controls as the page shows them: a browser can restore form values on going back.
+      noise = (this.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.value ?? 'white') as Noise;
+      x = fromPercent(+xs.value); beta = clampDegrees(+bs.value);
+      show(true);
+    }
+  }
+  customElements.define('qce-ppt-lab', PptLab);
+</script>
+
+<style>
+  .noise { display: grid; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  .noise legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  .noise label { display: flex; align-items: center; gap: var(--s2); min-height: 2.75rem; padding: var(--s2) var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); font-weight: 500; cursor: pointer; overflow-wrap: anywhere }
+  .noise label:hover { border-color: var(--ink) }
+  .noise label:has(:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink) }
+  .noise input { flex: none; width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--signal) }
+
+  .control { display: grid; gap: var(--s3) }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .row output { flex: none; font: 900 2rem/1 var(--dots) }
+  .control input[type="range"] { margin-inline: 0 }
+  .picks { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .pick { min-width: 3.5rem; min-height: 2.75rem; padding: 0 .6rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer }
+  .pick:hover { border-color: var(--ink) }
+  .pick[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+
+  .made { max-width: var(--read); padding: var(--s3); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); overflow-wrap: anywhere }
+
+  .grids { display: grid; gap: var(--s4) }
+  .grids figure { min-width: 0; margin: 0; overflow-x: auto }
+  table { border-collapse: collapse; font: 500 .78rem var(--mono) }
+  caption { max-width: 22rem; padding-bottom: var(--s2); text-align: left; font: 500 .9375rem var(--sans); color: var(--ink-2) }
+  th, td { padding: var(--s1) .3rem; border: 1px solid var(--rule); text-align: center; white-space: nowrap }
+  th { font-weight: 500; color: var(--ink-2) }
+  thead td { border: 0 }
+  td { background: var(--paper) }
+  td.moved { outline: 2.5px solid var(--ink); outline-offset: -2.5px; font-weight: 700 }
+
+  .hint, .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  [aria-disabled="true"] { opacity: .45; cursor: not-allowed }
+
+  .test { display: grid; gap: var(--s3); min-width: 0; padding-top: var(--s4); border-top: 1px dotted var(--ink-2) }
+  .sub { font: 600 1.25rem/1.2 var(--sans); letter-spacing: -.01em }
+  figure { display: grid; gap: var(--s2); min-width: 0; margin: 0 }
+  figcaption { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  figcaption b { display: block; color: var(--ink); font-size: 1.0625rem }
+  figcaption span { display: block }
+
+  .key { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); font: 500 .875rem var(--mono); color: var(--ink-2) }
+  .key > span { display: inline-flex; align-items: center; gap: .4rem }
+  .key > span::before { content: ""; flex: none; width: .75rem; height: .75rem; border-radius: 50% }
+  .key > .k0::before { background: var(--signal) }
+  .key > .k1::before, .key > .kx::before { border: 2.5px solid var(--hot); background: var(--paper) }
+  .key > .kt { font-family: var(--sans); font-size: .9375rem }
+  .key > .kt::before { display: none }
+
+  .score { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr)); gap: 1px; margin: 0; background: var(--rule); border: 1px solid var(--rule) }
+  .score > div { display: grid; align-content: start; gap: var(--s1); min-width: 0; padding: var(--s3); background: var(--paper) }
+  .score dd { margin: 0; display: grid; gap: var(--s1); color: var(--ink-2); font-size: .9375rem }
+  .score b { font-size: 1.75rem; line-height: 1; color: var(--ink) }
+
+  .recipe { max-width: var(--read); padding: var(--s3); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r) }
+  .recipe[hidden] { display: none }
+  .recipe summary { min-height: 1.5rem; font-weight: 600; cursor: pointer }
+  .recipe p { margin-top: var(--s2); font-size: .9375rem; color: var(--ink-2) }
+  .recipe ul { display: grid; gap: var(--s1); margin-top: var(--s2); font: 500 .9375rem var(--mono); overflow-wrap: anywhere }
+
+  .tests { display: grid; gap: var(--s4) }
+
+  @media (min-width: 40rem) {
+    .noise { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+    .noise legend { grid-column: 1 / -1 }
+    .grids { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  }
+</style>
