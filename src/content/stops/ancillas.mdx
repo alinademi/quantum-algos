@@ -1,5 +1,5 @@
 ---
-description: "Ancillas are helper qubits used for intermediate computations, measurements or control, with specified initial and final state requirements."
+description: "Borrow a clean or unknown helper qubit to build a controlled flip, then return it in its original state."
 answer: "Ancillas are helper qubits used for intermediate computations, measurements or control, with specified initial and final state requirements."
 myth:
   claim: "Any spare qubit can be treated as 0 and discarded afterward."
@@ -12,22 +12,22 @@ import { lab } from '../../lib/sims/ancillas.ts';
 
 <Depth level="kid">
 
-Use a spare work surface to hold an intermediate result. If it is already being used, you must not assume it is blank, and must return it as you found it.
+Imagine borrowing a friend's notebook to help calculate an answer. If they give you an empty page, you know its starting condition. If the notebook already has a secret mark, you need a method that works without reading it or assuming it is blank. A clever sequence of four reversible instructions can use the notebook to flip a separate answer mark only when three other marks are all yes, then restore the borrowed page. Skipping an instruction may leave the wrong answer or change the notebook. The picture breaks because a borrowed qubit can be linked to another qubit, so even those relationships must be preserved.
 
 </Depth>
 
 <Depth level="student">
 
-A clean scratch qubit starts in a known state such as |0⟩. A dirty scratch qubit may start in an arbitrary state. CNOT twice restores the helper, including its correlations with another register, whereas one CNOT need not.
+An ancilla is an extra qubit in a [circuit](/learn/circuits/). A clean helper has a known starting state, commonly |0⟩; a dirty helper may be in an unknown state or entangled with another system. In the lab, four Toffoli gates implement a flip on target t controlled by three data bits a,b,c, using borrowed helper d. First XOR ab into d, XOR dc into t, restore d, then XOR dc into t again. The two target flips combine to abc, regardless of d's previous value. The whole transformation restores the helper and its correlations. Omit the last operation and compare the result.
 
 </Depth>
 
 <Depth level="engineer">
 
-If the intended operation is $V$ on data, a clean-ancilla circuit may satisfy $U|\psi\rangle|0\rangle=V|\psi\rangle|0\rangle$. A borrowed dirty ancilla must instead satisfy the analogous identity for arbitrary helper states, also when entangled with an external system. A lone compute step can entangle scratch with data; discarding it can decohere the data.
+For data operation V a clean helper may satisfy $U|\psi\rangle|0\rangle=V|\psi\rangle|0\rangle$. A borrowed helper requires the operator identity $U=V\otimes I_d$, including arbitrary correlations with a reference. The example uses Toffolis in order $(a,b\to d),(d,c\to t),(a,b\to d),(d,c\to t)$. In Boolean algebra the target changes by $(d\oplus ab)c\oplus dc=abc$, while d returns unchanged. Checking every basis column proves the exact operator identity, hence it also holds for superpositions and entangled inputs.
 
 </Depth>
 
-<Lab title="Try clean and dirty scratch" intro="Choose the helper and control, then compare a compute step with the compute-and-uncompute pair.">
+<Lab title="Try clean and dirty scratch" intro="Change the borrowed helper and data, then compare the four-Toffoli protocol with its incomplete version.">
   <GateLab id="ancillas" lab={lab} />
 </Lab>
