@@ -18,7 +18,7 @@ Imagine two cards inside a special box. A helper reports only whether the cards 
 
 <Depth level="student">
 
-Prepare a helper in |0⟩. Apply [CNOT](/learn/cnot/) from each data wire into the helper. Its value on each basis input is the XOR of the two data bits. [Measure just the helper](/learn/partial-measurement/): 0 means even parity (00 or 11), and 1 means odd (01 or 10). With both data qubits in |+⟩, the even result leaves equal amplitudes for 00 and 11; the odd result leaves equal amplitudes for 01 and 10. Each is a Bell state. No record distinguishes the alternatives within the chosen parity, so their coherence survives. Both methods give the same parity odds, but try the separate XX test: from |++⟩, either helper result has XX expectation +1, whereas measuring both Z values first gives 0.
+Prepare a helper in |0⟩. Apply [CNOT](/learn/cnot/) from each data wire into the helper. Its value on each basis input is the XOR of the two data bits. [Measure just the helper](/learn/partial-measurement/): 0 means even parity (00 or 11), and 1 means odd (01 or 10). With both data qubits in |+⟩, the even result leaves equal amplitudes for 00 and 11; the odd result leaves equal amplitudes for 01 and 10. Each is a Bell state. The measurement records no distinction within the chosen parity, so coherence survives. If one bit was already known, parity can also reveal the other. Both methods give the same parity odds, but try the separate XX test: from |++⟩, either helper result has XX expectation +1, whereas measuring both Z values first gives 0.
 
 </Depth>
 
@@ -28,6 +28,6 @@ The observable is $Z\otimes Z$, with projectors $P_+=(I+ZZ)/2$ and $P_-=(I-ZZ)/2
 
 </Depth>
 
-<Lab title="Measure only parity" intro="Follow the two CNOTs, measure the helper, then compare the surviving XX correlation with measuring both data bits separately.">
+<Lab title="Measure only parity" intro="Follow the two CNOTs, measure the helper, then switch conditional readout to X to sample the surviving XX correlation. Compare with recording both Z values separately.">
   <GateLab id="parity-measurement" lab={lab} />
 </Lab>

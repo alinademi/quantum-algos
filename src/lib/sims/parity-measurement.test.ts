@@ -11,3 +11,5 @@ test('parity measurement preserves coherence inside parity subspaces, including 
 });
 
 test('the two methods have equal parity odds but individual bit records destroy the XX correlation',()=>{const s=run('parity-measurement',{a:'+',b:'+'});for(const step of s.slice(-2)){close(value(step,'XX expectation, measure parity only'),1);close(value(step,'XX expectation, measure both Z values'),0);}});
+
+test('X readout samples a signed parity witness for each allowed branch',()=>{for(const [a,expected] of [['+',1],['−',0]] as const){const s=run('parity-measurement',{a,b:'+',readout:'X basis'});for(const step of s.slice(-2)){const p=q.probs(step.state!).reduce((t,p,i)=>t+((i>>2)===(i>>1&1)?p:0),0);close(p,expected);}}});
