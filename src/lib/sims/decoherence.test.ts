@@ -351,6 +351,8 @@ test('readouts name the start state and the setup, and say the right verdict', (
   assert.ok(verdict(0, 45, false).includes('every shot reads 0'));
   assert.ok(verdict(10, 0, false).includes('no record'));
   assert.ok(verdict(10, 45, true).includes('full stripes return'));
+  // Undoing is possible in the ideal model; real surroundings make it hopeless in practice, not impossible in principle.
+  assert.ok(verdict(10, 45, true).includes('hopeless in practice')); assert.ok(!verdict(10, 45, true).includes('never allow'));
   assert.ok(verdict(3, 180, false).includes('exactly like a plain coin flip'));
   assert.ok(verdict(10, 45, false).startsWith('Stripes left: 45%.'));
   assert.ok(verdict(10, 45, false).includes(`${percent(bestGuess(overlap(10, 45)))} of the time`));

@@ -170,7 +170,7 @@ export function verdict(n: number, deg: number, undo: boolean): string {
   if (n === 0) return 'Nothing holds a record, so the stripes are full: at φ = 0° the two contributions to the amplitude for 1 cancel, and every shot reads 0.';
   if (r === 1) return 'Bumps of strength 0° leave no record, so the stripes are full: every shot reads 0 at φ = 0°.';
   if (undo) return 'Running every bump backwards erases the record, and the full stripes return: every shot reads 0 at φ = 0°. '
-    + 'This works because the qubit and the particles stayed in one quantum state. It needs every particle back, which real surroundings never allow.';
+    + 'This works because the qubit and the particles stayed in one quantum state. It needs every particle back, which is hopeless in practice for real surroundings.';
   if (r === 0) return 'The particles hold a full record: a guess made from them alone always matches a 0/1 measurement of the qubit made right after the bumps, in place of the phase and second Hadamard. '
     + 'No stripes are left: at every phase the qubit gives 0 or 1 with equal chance, exactly like a plain coin flip.';
   return `Stripes left: ${percent(r)}. A best guess of 0 or 1 made from the particles alone would match a 0/1 measurement of the qubit made right after the bumps, in place of the phase and second Hadamard, ${percent(bestGuess(r))} of the time.`

@@ -46,7 +46,7 @@ const r0 = overlap(BUMPS.start, STRENGTH.start);
     <label class="switch"><input type="checkbox" role="switch" data-undo aria-describedby={`${uid}-u-hint`} /><span class="track" aria-hidden="true"></span>Undo every bump</label>
     <button class="btn btn-line" type="button" data-send>Send {SHOTS} new shots</button>
   </div>
-  <p class="hint" id={`${uid}-u-hint`}>Undo runs each bump backwards, last first. That needs full control of every particle, which real surroundings never give.</p>
+  <p class="hint" id={`${uid}-u-hint`}>Undo runs each bump backwards, last first. That needs full control of every particle, which is hopeless in practice for real surroundings. It works here because the model is ideal.</p>
 
   <p class="tool-readout" aria-live="polite">{report(BUMPS.start, STRENGTH.start, false)}</p>
   <p class="note">A simulation of ideal qubits in a toy model. Each particle starts as 0, and a bump is a controlled turn of that particle, with the qubit in control. Real surroundings bump in many other ways, and can also flip the qubit or take its energy; these bumps only record 0 versus 1, so the qubit's own odds of 0 and 1 stay even. Each shot is a Born-rule draw from your browser's random numbers. A shot keeps its draw when you move a slider, so dots flip instead of re-rolling.</p>
