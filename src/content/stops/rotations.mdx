@@ -7,6 +7,7 @@ myth:
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
+import BlochGateStudy from '../../components/tools/BlochGateStudy.astro';
 import GateLab from '../../components/tools/GateLab.astro';
 import { lab } from '../../lib/sims/rotations.ts';
 
@@ -35,5 +36,6 @@ For example $R_Y(\theta)|0\rangle=\cos(\theta/2)|0\rangle+\sin(\theta/2)|1\rangl
 </Depth>
 
 <Lab title="Turn a qubit" intro="Select an axis and angle. Compare the state and Bloch coordinates, then undo the turn.">
+  <BlochGateStudy />
   <GateLab id="rotations" lab={lab} />
 </Lab>
