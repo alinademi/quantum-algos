@@ -1,5 +1,5 @@
 ---
-description: "A Pauli string is a tensor product of single-qubit I, X, Y and Z operators. Such strings describe observables and form an operator basis."
+description: "Combine Pauli operators on several wires and use the sign-counting rule to determine whether two strings commute."
 answer: "A Pauli string is a tensor product of single-qubit I, X, Y and Z operators. Such strings describe observables and form an operator basis."
 myth:
   claim: "Every pair of Pauli strings anticommutes if any position differs."
@@ -12,13 +12,13 @@ import { lab } from '../../lib/sims/pauli-strings.ts';
 
 <Depth level="kid">
 
-Write a letter above each wire to say what to do there. The whole row of letters represents one operation on all wires.
+Imagine a row of three arrows. Each instruction has a mark above each arrow telling you to leave it alone or turn it half a circle around one of three axes. Two rows of instructions can be performed in either order. In this quantum version, when two different active marks meet at a place, reversing their order produces a minus sign. Two such signs cancel, while a single sign remains. Count the mismatched active marks to decide whether the rows commute. The picture breaks because plain arrows do not track quantum signs; these instructions act on complex amplitudes, including states where several wires are linked.
 
 </Depth>
 
 <Depth level="student">
 
-XZ means X on the first qubit and Z on the second. At a single site, two different nonidentity Pauli matrices anticommute. When two strings are multiplied, their local sign changes multiply. A pair of sign changes cancels.
+A [Pauli](/learn/pauli/) string assigns one of I, X, Y or Z to every qubit. XZI means X on the first, Z on the second, and identity on the third. This is a [tensor product](/learn/tensor-product/). To swap the order of two strings, count sites having two different letters, neither I. Each gives a minus sign because those local matrices anticommute. Even count: the strings [commute](/learn/commutators/). Odd count: they anticommute. For example XZ and ZX commute because both sites give a sign change; XZ and ZZ anticommute because only the first site gives one. Try other strings and compare the actual matrix products.
 
 </Depth>
 
