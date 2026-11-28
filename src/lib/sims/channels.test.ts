@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
 import {
   KINDS, SHOTS, THETA, CHANNELS,
-  trace, outer, gap, num, pointText, startKet, startPoint, startText, shrinkWeights, krausOps, completeness, keepsTrace, applyMap,
+  trace, traceC, outer, gap, num, pointText, startKet, startPoint, startText, shrinkWeights, krausOps, completeness, keepsTrace, applyMap,
   pointOf, output, circleImage, jumps, lostChance, pick, batch, tally, pairOutput, hermitianEigenvalues, pairEigenvalues, pairVerdict,
   valueText, valueShort, describe, type Kind,
 } from './channels.ts';
@@ -540,4 +540,34 @@ test('the sliders: every start is inside its range and on its step', () => {
     assert.ok(krausOps(kind, start) !== null);
   }
   assert.ok(THETA.start >= THETA.min && THETA.start <= THETA.max && THETA.max % THETA.step === 0);
+});
+
+test('every map is complex linear: E(iM) = iE(M), and shrink at 0 sends i|0><0| to diag(i/2, i/2)', () => {
+  const iM: q.Matrix = [[q.c(0, 1), q.c(0)], [q.c(0), q.c(0)]];
+  closeM(applyMap('shrink', 0, iM), [[q.c(0, 0.5), q.c(0)], [q.c(0), q.c(0, 0.5)]]);
+  const r = q.rng(5), rnd = () => q.c(r() - 0.5, r() - 0.5);
+  for (const kind of KINDS) for (const v of [CHANNELS[kind].min, CHANNELS[kind].start, CHANNELS[kind].max]) {
+    const m: q.Matrix = [[rnd(), rnd()], [rnd(), rnd()]];
+    const times = (a: q.Matrix, z: q.C) => a.map((row) => row.map((x) => q.mul(x, z)));
+    closeM(applyMap(kind, v, times(m, q.c(0, 1))), times(applyMap(kind, v, m), q.c(0, 1)));
+    const t = traceC(m);
+    close(t.re, m[0][0].re + m[1][1].re); close(t.im, m[0][0].im + m[1][1].im);
+  }
+});
+
+test('shrink matches its Kraus sum on every matrix unit wherever it has operators', () => {
+  const units: q.Matrix[] = [0, 1, 2, 3].map((k) => [0, 1].map((i) => [0, 1].map((j) => q.c(2 * i + j === k ? 1 : 0))));
+  for (let v = CHANNELS.shrink.min; v <= CHANNELS.shrink.max; v++) {
+    const ops = krausOps('shrink', v);
+    if (!ops) continue;
+    for (const e of units) closeM(applyMap('shrink', v, e), ops.reduce((t, o) => t.map((row, i) => row.map((x, j) => q.add(x, q.matMul(q.matMul(o.m, e), q.dagger(o.m))[i][j]))), [[q.c(0), q.c(0)], [q.c(0), q.c(0)]]));
+  }
+});
+
+test('a shot is never lost to rounding when the operators keep trace', () => {
+  for (const kind of KINDS) {
+    const v = CHANNELS[kind].start, js = jumps(kind, v, 90);
+    if (!js.length || lostChance(js) > 0) continue;
+    assert.notEqual(pick(js, 1 - Number.EPSILON / 2), -1, kind);
+  }
 });

@@ -13,7 +13,7 @@
 //   the average of these jumps; a different Kraus set for the same channel gives different jumps with the same average.
 // - The pair test: (E tensor id) applied to (|00> + |11>)/sqrt2, E on qubit 0, qubit 1 untouched. Index 2a + b.
 //   The result is a valid state only when E is completely positive. Its trace is 1 only when E preserves trace.
-import { c, add, mul, scale, conj, norm2, normalize, matMul, matVec, dagger, fromBloch, I, X, Y, Z, RY, type Matrix, type State } from '../quantum.ts';
+import { c, add, mul, scale, conj, norm2, normalize, matMul, matVec, dagger, fromBloch, I, X, Y, Z, RY, type C, type Matrix, type State } from '../quantum.ts';
 import { pct } from '../draw.ts';
 
 export type Kind = 'gate' | 'flip' | 'damp' | 'shrink' | 'drop';
@@ -50,8 +50,10 @@ const mScale = (a: Matrix, k: number): Matrix => a.map((r) => r.map((x) => scale
 /** K M K^dagger */
 const conjugate = (k: Matrix, m: Matrix): Matrix => matMul(matMul(k, m), dagger(k));
 const zeros = (n: number): Matrix => Array.from({ length: n }, () => Array.from({ length: n }, () => c(0)));
-/** The sum of the diagonal. */
-export const trace = (m: Matrix): number => m.reduce((t, r, i) => t + r[i].re, 0);
+/** The sum of the diagonal, as a complex number. */
+export const traceC = (m: Matrix): C => m.reduce((t, r, i) => add(t, r[i]), c(0));
+/** The real part of the trace: for chances and readouts of Hermitian matrices only. */
+export const trace = (m: Matrix): number => traceC(m).re;
 /** |s><s| */
 export const outer = (s: State): Matrix => s.map((a) => s.map((b) => mul(a, conj(b))));
 /** Largest gap between two same-size matrices. */
@@ -124,7 +126,8 @@ export function applyMap(kind: Kind, v: number, m: Matrix): Matrix {
   if (kind === 'shrink') {
     const l = v / 100;
     // lambda M + (1 − lambda) tr(M) I/2: the Bloch vector is scaled by lambda, the trace is kept.
-    return mAdd(mScale(m, l), mScale(I, ((1 - l) * trace(m)) / 2));
+    const t = scale(traceC(m), (1 - l) / 2);
+    return mAdd(mScale(m, l), I.map((r) => r.map((x) => mul(x, t))));
   }
   return krausOps(kind, v)!.reduce((t, o) => mAdd(t, conjugate(o.m, m)), zeros(m.length));
 }
@@ -172,7 +175,8 @@ export const lostChance = (js: Jump[]): number => clean(1 - js.reduce((t, j) => 
 export function pick(js: Jump[], u: number): number {
   let r = u;
   for (let i = 0; i < js.length; i++) { r -= js[i].p; if (r < 0) return i; }
-  return -1;
+  // Past every chance: a real loss only if the operators lose trace, else rounding, so keep the last door.
+  return lostChance(js) > 0 || !js.length ? -1 : js.length - 1;
 }
 /** A batch: one pick per fixed uniform draw. */
 export const batch = (js: Jump[], us: number[]): number[] => us.map((u) => pick(js, u));
