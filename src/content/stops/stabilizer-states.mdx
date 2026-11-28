@@ -1,9 +1,9 @@
 ---
-description: "Describe a pure stabilizer state with signed Pauli rules and follow how those rules change under gates."
+description: "Describe a pure stabilizer state with signed Pauli rules and follow how those rules change under Clifford gates."
 answer: "A pure stabilizer state is the unique common +1 eigenstate of n independent commuting signed Pauli generators on n qubits."
 myth:
-  claim: "A stabilizer state must be a product of one-qubit states."
-  truth: "Bell and GHZ states are entangled stabilizer states."
+  claim: "Entangled states always need all 2ⁿ amplitudes to describe them."
+  truth: "Bell and GHZ states are entangled but each has a compact description by independent stabilizer rules."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -18,7 +18,7 @@ Imagine a puzzle with a huge list of possible patterns, but a few rules specify 
 
 <Depth level="student">
 
-A pure stabilizer state is specified by n independent commuting signed [Pauli strings](/learn/pauli-strings/) with eigenvalue +1. For |0⟩ the rule is +Z; for |+⟩ it is +X; for |1⟩ it is −Z. A Bell pair has rules XX and ZZ, so stabilizer states need not be product states. As [Clifford gates](/learn/clifford-group/) act, conjugate each rule to get the new rules. Since we only need n generators, three qubits need three rules rather than eight amplitudes, and 50 need 50 rather than 2⁵⁰. See [eigenvectors](/learn/eigen/) and [stabilizers](/learn/stabilizers/) for the links between these rules and certainty. Not every quantum state has this representation.
+A pure stabilizer state is specified by n independent commuting signed [Pauli strings](/learn/pauli-strings/) that each leave the state unchanged: Z|0⟩ = |0⟩ and −Z|1⟩ = |1⟩. For |+⟩ the rule is +X. A Bell pair has rules XX and ZZ, so stabilizer states need not be product states. As [Clifford gates](/learn/clifford-group/) act, conjugate each rule to get the new rules. Since we only need n generators, three qubits need three rules rather than eight amplitudes, and 50 need 50 rather than 2⁵⁰. See [eigenvectors](/learn/eigen/) and [stabilizers](/learn/stabilizers/) for the links between these rules and certainty. Not every quantum state has this representation.
 
 </Depth>
 
