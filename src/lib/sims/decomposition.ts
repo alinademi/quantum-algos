@@ -27,12 +27,20 @@ export function elementary(factors:Op[]):Op[]{
   const theta=2*Math.atan2(abs(v[1][0]),abs(v[0][0])),diff=a^b;
   const map:Op[]=[...(a&2?[gate('X',0)]:[]),...(a&1?[gate('X',1)]:[]),...(diff===3?[cx(0,1)]:[])];
   const target=diff===1?1:0;
-  result.push(...map,...controlledEuler(theta,beta-alpha,-beta-alpha,gamma,0,1-target,target),...inverse(map));
+  result.push(...map,...controlledEuler(theta,beta-alpha,-beta-alpha,gamma,0,1-target,target),...[...map].reverse());
  }
- return result;
+ // Drop exact identity factors (within numerical tolerance) and adjacent inverse pairs.
+ const kept:Op[]=[];
+ for(const o of result){
+  if(matrixGap(o.matrix,eye(o.matrix.length))<1e-12)continue;
+  const prev=kept.at(-1);
+  if(prev&&prev.wires.join(',')===o.wires.join(',')&&matrixGap(matMul(o.matrix,prev.matrix),eye(o.matrix.length))<1e-12){kept.pop();continue;}
+  kept.push(o);
+ }
+ return kept;
 }
 export const parameterBound=(n:number)=>(4**n-1)/15;
 export const lab:Lab={
  controls:[choice('example','Target unitary',['H, CNOT, RZ','Rotations and CNOT','SWAP']),choice('mode','Factor size',['Elementary gates','Two-level factors']),choice('a','Start q0',['0','1','+','+i']),choice('b','Start q1',['0','1','+'])],
- run:v=>{const ops=v.example==='SWAP'?[cx(0,1),cx(1,0),cx(0,1)]:v.example==='H, CNOT, RZ'?[gate('H'),cx(0,1),rotation('Z',45,1)]:[rotation('Y',60),rotation('X',90,1),cx(0,1),rotation('Z',30)];const u=fullMatrix(2,ops),dec=twoLevel(u),small=elementary(dec),chosen=v.mode==='Elementary gates'?small:dec,s=sequence(product(v.a,v.b),chosen,'The target is reconstructed from the selected factorization.');s.at(-1)!.rows=[row('Two-level factors',dec.length-1),row('Elementary gate count',small.length),...([2,4,8,12].map(n=>row('Generic exact gate lower bound, '+n+' qubits',Math.ceil(parameterBound(n))))),row('Reconstruction error (all entries)',matrixGap(u,fullMatrix(2,chosen)))];return s}
+ run:v=>{const ops=v.example==='SWAP'?[cx(0,1),cx(1,0),cx(0,1)]:v.example==='H, CNOT, RZ'?[gate('H'),cx(0,1),rotation('Z',45,1)]:[rotation('Y',60),rotation('X',90,1),cx(0,1),rotation('Z',30)];const u=fullMatrix(2,ops),dec=twoLevel(u),small=elementary(dec),chosen=v.mode==='Elementary gates'?small:dec,s=sequence(product(v.a,v.b),chosen,'This constructive factorization is not an optimizer. Compare it with the given target circuit, or the three-CNOT upper bound for a different synthesis method.');s.at(-1)!.rows=[row('Two-level factors',dec.length-1),row('Given target gate count',ops.length),row('Given target CNOT count',ops.filter(o=>o.name==='CNOT').length),row('Constructive elementary gate count',small.length),row('Constructive CNOT count',small.filter(o=>o.name==='CNOT').length),row('KAK synthesis: at most CNOTs',3),...([2,4,8,12].map(n=>row('Generic exact gate lower bound, '+n+' qubits',String(Math.ceil(parameterBound(n)))))),row('Reconstruction error (all entries)',matrixGap(u,fullMatrix(2,chosen)))];return s}
 };
