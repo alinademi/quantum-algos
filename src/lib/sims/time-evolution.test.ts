@@ -192,6 +192,21 @@ test('H along Z, started as 0 then a Hadamard gate: 0/1 odds stay 50/50; with a 
   for (const id of te.STARTS) for (const a of [0, 45, 90]) assert.ok(te.describe(id, a, 0.5, 'X').includes('X basis'));
 });
 
+test('U = e^{−iHt/ħ} needs a steady H: X for time 1, then Z for time 1 (ħ = 1) is not e^{−i(X + Z)}, and the order matters', () => {
+  // e^{−iX} = RX(2) and e^{−iZ} = RZ(2). Time ordering puts the later step on the left.
+  const steps = q.matMul(q.RZ(2), q.RX(2)), swapped = q.matMul(q.RX(2), q.RZ(2));
+  // e^{−i(X+Z)} = cos√2 I − i sin√2 (X+Z)/√2, by (X+Z)² = 2I.
+  const r = Math.SQRT2, k = Math.sin(r) / r;
+  const sum: q.Matrix = [[q.c(Math.cos(r), -k), q.c(0, -k)], [q.c(0, -k), q.c(Math.cos(r), k)]];
+  const gap = (a: q.Matrix, b: q.Matrix) => Math.max(...a.flatMap((row, i) => row.map((x, j) => q.abs(q.sub(x, b[i][j])))));
+  // Phase-free overlap |tr(A†B)|/2 is 1 only for the same rotation up to a global phase.
+  const overlap = (a: q.Matrix, b: q.Matrix) => { const m = q.matMul(q.dagger(a), b); return q.abs(q.add(m[0][0], m[1][1])) / 2; };
+  assert.ok(overlap(steps, sum) < 0.9, 'time-ordered product is not the single exponential');
+  assert.ok(overlap(steps, swapped) < 0.9, 'order of the steps matters when H(t) does not commute');
+  // For a steady H = X + Z the sim's closed form agrees: n·σ at 45° with angle π·turns = √2, so turns = √2/π.
+  closeM(te.evolution(45, Math.SQRT2 / Math.PI), sum, 1e-12);
+});
+
 test('energy eigenstates (on the axis) only gain a global phase e^{∓iωt/2}: nothing measurable changes', () => {
   const eig: [te.StartId, number, number][] = [['0', 0, 1], ['1', 0, -1], ['1', 180, 1], ['0', 180, -1], ['+', 90, 1], ['-', 90, -1]];
   for (const [id, a, e] of eig) {
