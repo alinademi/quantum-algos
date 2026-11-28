@@ -139,6 +139,7 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
         const {labels,counts:got}=measured;
         const active=labels.map((name,i)=>({name,n:got[i]})).filter(r=>r.n>0);
         const width=canvas.getBoundingClientRect().width;
+        if(width<40)return;
         const cols=width>=430?4:2,cell=width/cols,rows=Math.ceil(active.length/cols);
         const max=Math.max(...got),maxRows=Math.max(1,Math.ceil(Math.sqrt(max)));
         const pitch=Math.min(7,(cell-12)/maxRows,112/maxRows),nAcross=Math.max(1,Math.floor((cell-12)/pitch));
@@ -232,7 +233,7 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
         }));
         if (jumpFocus) stepList.querySelector<HTMLButtonElement>('[aria-current=step]')?.focus();
         drawCircuit(s.diagram);
-        $('[data-title]').textContent = 'Step '+(index+1)+': '+s.title; $('[data-note]').textContent = s.start?s.note:'Start or preparation: '+startLabel()+'. '+s.note;
+        $('[data-title]').textContent = 'Step '+(index+1)+': '+s.title; $('[data-note]').textContent = s.note.startsWith('Started as ')?s.note:'Start or preparation: '+startLabel()+'. '+s.note;
         details.replaceChildren(...(s.rows ?? []).map(r => { const d = el('div'); d.append(el('dt', r.label), el('dd', r.value)); return d; }));
         const d = s.distribution ?? (s.state ? stateDistribution(s.state) : undefined);
         dist.hidden = shots.hidden = !d; counts.textContent = 'No shots yet.'; measured=undefined;canvas.hidden=key.hidden=true;
@@ -245,7 +246,15 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
         }));
       };
       const update = () => {
-        try { steps = lab.run(values()); index = 0; render(); speak(); }
+        try {
+          const v=values();
+          for(const input of inputs){
+            // Angles are only meaningful for the parameterized gate in these two labs.
+            const inactive=input.dataset.control==='angle'&&((this.dataset.lesson==='phase-kickback'&&v.mode!=='P')||(this.dataset.lesson==='hadamard-test'&&v.unitary!=='P'));
+            input.closest('label')!.hidden=inactive;input.disabled=inactive;
+          }
+          steps = lab.run(v); index = 0; render(); speak();
+        }
         catch { status.textContent = 'This setting could not be calculated.'; }
       };
       inputs.forEach(e => e.addEventListener('change', update));
