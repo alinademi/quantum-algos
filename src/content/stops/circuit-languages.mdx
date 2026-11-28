@@ -1,5 +1,5 @@
 ---
-description: "Compare small circuit programs in OpenQASM, Qiskit, Cirq and Q#, then follow its common gate diagram."
+description: "Write small circuit programs in OpenQASM, Qiskit, Cirq and Q#, then follow its common gate diagram."
 answer: "Circuit languages and software libraries describe quantum operations, measurement and sometimes classical control in different forms."
 myth:
   claim: "A language and its simulator are the same thing."
@@ -7,8 +7,7 @@ myth:
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
-import GateLab from '../../components/tools/GateLab.astro';
-import { lab } from '../../lib/sims/circuit-languages.ts';
+import CircuitCode from '../../components/tools/CircuitCode.astro';
 
 <Depth level="kid">
 
@@ -18,16 +17,16 @@ Imagine giving the same recipe to people who speak different languages. One writ
 
 <Depth level="student">
 
-[Circuit diagrams](/learn/circuits/) can be expressed as code. OpenQASM 3 is a circuit-oriented language with gates and classical instructions. Qiskit and Cirq are Python libraries for constructing and executing circuits; Q# is a quantum programming language. The Bell example allocates two qubits, applies H on the first and CNOT from first to second, then measures both. The ideal state before measurement is the Bell state with equal amplitudes for 00 and 11, so either is measured with equal chance. Switch circuits and compare the snippets with their shared diagram. X on q0 exposes a difference in bit display order. The simulator implements their common mathematical gates; it does not run or parse those programming languages. Output bit ordering may differ across systems.
+[Circuit diagrams](/learn/circuits/) can be expressed as code. OpenQASM 3 is a circuit-oriented language with gates and classical instructions. Qiskit and Cirq are Python libraries for constructing and executing circuits; Q# is a quantum programming language. The Bell example allocates two qubits, applies H on the first and CNOT from first to second, then measures both. The ideal state before measurement is the Bell state with equal amplitudes for 00 and 11, so either is measured with equal chance. Edit the gate statements in the lab, then build the diagram. H, X, Z and CNOT are supported on two wires, not arbitrary programs. X on q0 exposes a difference in bit display order. The simulator implements the parsed gates, not the full languages.
 
 </Depth>
 
 <Depth level="engineer">
 
-See the [OpenQASM 3 specification](https://openqasm.com/), [Qiskit circuit guide](https://quantum.cloud.ibm.com/docs/en/guides/construct-circuits), [Cirq circuits](https://quantumai.google/cirq/build/circuits) and [Q# documentation](https://learn.microsoft.com/en-us/azure/quantum/qsharp-overview). For the Bell example the logical state before measurement is $(|00\rangle+|11\rangle)/\sqrt2$. APIs can differ in register ownership, bit display order, and execution semantics; Qiskit commonly displays the highest classical bit first, whereas this lab displays q0 first.
+See the [OpenQASM 3 specification](https://openqasm.com/), [Qiskit circuit guide](https://quantum.cloud.ibm.com/docs/en/guides/construct-circuits), [Cirq circuits](https://quantumai.google/cirq/build/circuits) and [Q# documentation](https://learn.microsoft.com/en-us/azure/quantum/qsharp-overview). For the Bell example the logical state before measurement is $(|00\rangle+|11\rangle)/\sqrt2$. The lab parses a restricted set of gate statements and generates the surrounding declarations and final measurements. It cannot parse control flow, arbitrary functions or general source code. APIs can differ in register ownership, bit display order and execution semantics; Qiskit commonly displays the highest classical bit first, whereas this lab displays q0 first.
 
 </Depth>
 
-<Lab title="Read equivalent programs" intro="Choose a circuit and switch languages. Try X on q0 and compare the displayed output order.">
-  <GateLab id="circuit-languages" lab={lab} />
+<Lab title="Read equivalent programs" intro="Edit valid H, X, Z or CNOT statements, build the diagram and switch languages. Try reversing CNOT or adding Z.">
+  <CircuitCode />
 </Lab>

@@ -1,0 +1,82 @@
+---
+import { code,programOps,gateStatement } from '../../lib/sims/circuit-languages.ts';
+const first='OpenQASM 3';
+---
+<qce-circuit-code class="tool">
+  <div class="tool-controls">
+    <label>Language<select data-language>{Object.keys(code).map(l=><option>{l}</option>)}</select></label>
+    <label>Load an example<select data-preset><option>Bell pair</option><option>CNOT before H</option><option>X on q0</option><option>X on q1</option></select></label>
+  </div>
+  <label>Write gate statements (one per line)
+    <textarea data-source rows="5" spellcheck="false" autocomplete="off">{programOps('Bell pair').map(o=>gateStatement(first,o)).join('\n')}</textarea>
+  </label>
+  <p class="note" data-help></p>
+  <div class="tool-controls"><button type="button" class="btn btn-sm" data-run>Build circuit and sample</button></div>
+  <div class="diagram" tabindex="0" role="region" aria-label="Compiled circuit diagram, scroll horizontally" data-diagram></div>
+  <details><summary>Complete program (illustrative)</summary><pre data-code></pre></details>
+  <canvas aria-hidden="true"></canvas>
+  <p class="tool-readout" aria-live="polite"></p>
+  <p class="note">This restricted editor accepts up to 12 H, X, Z or CNOT statements on two qubits, initialized to 00. It adds the fixed declarations and final measurements. It does not execute Python, Q#, or a general OpenQASM program. Each dot is one fresh simulated shot; the diagram reads left to right.</p>
+</qce-circuit-code>
+<script>
+  import { programOps,gateStatement,compileStatements } from '../../lib/sims/circuit-languages.ts';
+  import { type Op } from '../../lib/sims/gate-lab.ts';
+  import { sample,probs } from '../../lib/quantum.ts';
+  import { fit,palette,dot,pct,onResize,onTheme,onSeen } from '../../lib/draw.ts';
+  class CircuitCode extends HTMLElement {
+    connectedCallback(){
+      const $=<T extends Element>(s:string)=>this.querySelector<T>(s)!;
+      const lang=$<HTMLSelectElement>('[data-language]'),preset=$<HTMLSelectElement>('[data-preset]'),source=$<HTMLTextAreaElement>('[data-source]'),canvas=$<HTMLCanvasElement>('canvas'),diagram=$<HTMLElement>('[data-diagram]'),readout=$('.tool-readout');
+      let ops=programOps('Bell pair'),counts:number[]=[],seen=true;
+      const draw=()=>{
+        if(!seen||!counts.length)return;
+        const {ctx,w,h}=fit(canvas),colors=palette(),cell=w/4,pitch=Math.min(6,(cell-8)/10);
+        ctx.clearRect(0,0,w,h);ctx.font='12px monospace';ctx.textAlign='center';
+        counts.forEach((n,i)=>{const x=(i+.5)*cell,base=h-30;for(let j=0;j<n;j++)dot(ctx,x+(j%10-4.5)*pitch,base-(Math.floor(j/10)+.5)*pitch,pitch*.34,colors.signal);ctx.fillStyle=colors.ink;ctx.fillText(i.toString(2).padStart(2,'0'),x,h-15);ctx.fillText(String(n),x,h-2);});
+      };
+      const drawCircuit=(ops:Op[])=>{
+        const svg=<K extends keyof SVGElementTagNameMap>(tag:K,attrs:Record<string,string|number>,label?:string)=>{
+          const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,String(v));if(label!==undefined)e.textContent=label;return e;
+        };
+        const width=100+ops.length*52,y=(wire:number)=>28+wire*45;
+        const chart=svg('svg',{width,height:102,viewBox:'0 0 '+width+' 102',role:'img','aria-label':'Start 00; '+ops.map(o=>o.name+' on '+o.wires.map(w=>'q'+w).join(', ')).join('; ')+'; measure both wires.'});
+        for(let w=0;w<2;w++)chart.append(svg('text',{x:3,y:y(w)+4,fill:'currentColor','font-size':12},'q'+w),svg('line',{x1:26,x2:width-12,y1:y(w),y2:y(w),stroke:'currentColor'}));
+        ops.forEach((o,i)=>{
+          const x=51+i*52,a=y(o.wires[0]);
+          if(o.name==='CNOT'){
+            const b=y(o.wires[1]);chart.append(svg('line',{x1:x,x2:x,y1:a,y2:b,stroke:'currentColor'}),svg('circle',{cx:x,cy:a,r:4,fill:'currentColor'}),svg('circle',{cx:x,cy:b,r:10,stroke:'currentColor',fill:'var(--paper)'}),svg('path',{d:'M'+(x-6)+' '+b+'h12 M'+x+' '+(b-6)+'v12',stroke:'currentColor'}));
+          }else chart.append(svg('rect',{x:x-12,y:a-12,width:24,height:24,rx:2,stroke:'currentColor',fill:'var(--paper)'}),svg('text',{x,y:a+4,'text-anchor':'middle','font-size':12,fill:'currentColor'},o.name));
+        });
+        for(let w=0;w<2;w++){const x=width-22,cy=y(w);chart.append(svg('rect',{x:x-10,y:cy-10,width:20,height:20,rx:2,stroke:'currentColor',fill:'var(--paper)'}),svg('path',{d:'M'+(x-6)+' '+(cy+4)+'a6 6 0 0 1 12 0 M'+x+' '+(cy+4)+'L'+(x+4)+' '+(cy-4),stroke:'currentColor',fill:'none'}));}
+        diagram.replaceChildren(chart);
+      };
+      const build=()=>{
+        try{
+          const result=compileStatements(lang.value,source.value);ops=result.ops;const p=probs(result.state);counts=sample(p,100,Math.random);
+          source.removeAttribute('aria-invalid');$('[data-code]').textContent=result.code;drawCircuit(ops);
+          readout.textContent='Started as |00⟩. '+ops.length+' gates; 100 shots (q0 first): '+counts.map((n,i)=>i.toString(2).padStart(2,'0')+' '+n+' (ideal '+pct(p[i]<1e-24?0:Math.min(1,p[i]))+')').join('; ')+'. Qiskit bit strings reverse these two displayed bits.';draw();
+        }catch(e){source.setAttribute('aria-invalid','true');readout.textContent=(e instanceof Error?e.message:'Invalid gate statements.')+' The previous valid circuit is still shown.';}
+      };
+      const load=()=>{
+        source.value=ops.map(o=>gateStatement(lang.value,o)).join('\n');
+        $('[data-help]').textContent='Syntax examples: '+gateStatement(lang.value,programOps('Bell pair')[0])+' and '+gateStatement(lang.value,programOps('Bell pair')[1])+'. Switching language or loading an example replaces the editor with a valid program.';
+        build();
+      };
+      lang.addEventListener('change',load);preset.addEventListener('change',()=>{ops=programOps(preset.value);load();});$('[data-run]').addEventListener('click',build);
+      onResize(this,draw);onTheme(draw);onSeen(this,v=>{seen=v;if(v)draw();});load();
+    }
+  }
+  if(!customElements.get('qce-circuit-code'))customElements.define('qce-circuit-code',CircuitCode);
+</script>
+<style>
+  qce-circuit-code{display:grid;gap:var(--s3);min-width:0}
+  .tool-controls{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:end;min-width:0}
+  label{display:grid;gap:var(--s1);flex:1 1 8rem;min-width:0}
+  select,textarea{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);width:100%;max-width:100%;min-width:0;min-height:2.75rem;box-sizing:border-box}
+  textarea,pre{font-family:var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%}
+  textarea{resize:vertical;padding:var(--s2)}
+  .diagram{max-width:100%;min-width:0;overflow-x:auto;border:1px solid var(--rule);border-radius:var(--r)}
+  .diagram :global(svg){display:block;max-width:none}
+  canvas{width:100%;height:9rem}
+  .note{font-size:.875rem;color:var(--ink-2);overflow-wrap:anywhere}
+</style>
