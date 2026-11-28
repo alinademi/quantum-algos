@@ -140,6 +140,7 @@ Rules:
 | cross-2019-volume | Cross et al. | 2019 | Validating quantum computers using randomized model circuits | Physical Review A | Paper | Research | 10.1103/PhysRevA.100.032328 | arXiv:1811.12926 | - | - |
 | cross-2022-openqasm | Cross et al. | 2022 | OpenQASM 3: A Broader and Deeper Quantum Assembly Language | ACM Transactions on Quantum Computing | Standard | University | 10.1145/3505636 | arXiv:2104.14722 | - | - |
 | cuccaro-2004-adder | Cuccaro et al. | 2004 | A new quantum ripple-carry addition circuit | arXiv | Paper | Research | - | arXiv:quant-ph/0410184 | - | - |
+| draper-2000-adder | Thomas G. Draper | 2000 | Addition on a Quantum Computer | arXiv | Paper | Research | - | arXiv:quant-ph/0008033 | - | - |
 | cuffaro-2024-quantcomp | Cuffaro and Hagar | 2024 | Quantum Computing | Stanford Encyclopedia of Philosophy | Encyclopedia | University | - | - | https://plato.stanford.edu/entries/qt-quantcomp/ | - |
 | czarnik-2021-cdr | Czarnik et al. | 2021 | Error mitigation with Clifford quantum-circuit data | Quantum | Paper | Research | 10.22331/q-2021-11-26-592 | arXiv:2005.10189 | - | - |
 | dahlberg-2019-linklayer | Dahlberg et al. | 2019 | A link layer protocol for quantum networks | Proceedings of the ACM Special Interest Group on Data Communication | Paper | Research | 10.1145/3341302.3342070 | arXiv:1903.09778 | - | - |
@@ -783,6 +784,7 @@ Rules:
 | uncomputation | childs-notes | Section 1.4, Reversible computation | https://www.cs.umd.edu/~amchilds/qa/qa.pdf#page=10 |
 | quantum-arithmetic | vedral-1996-arithmetic | Full paper | https://arxiv.org/abs/quant-ph/9511018 |
 | quantum-arithmetic | cuccaro-2004-adder | Full paper | https://arxiv.org/abs/quant-ph/0410184 |
+| quantum-arithmetic | draper-2000-adder | Fourier-based addition | https://arxiv.org/abs/quant-ph/0008033 |
 | universal | dewolf-notes | Section 2.2, Universality of various sets of elementary gates | https://homepages.cwi.nl/~rdewolf/qcnotes.pdf#page=28 |
 | universal | aaronson-2018-qclec | Section 16.2.2, Quantum Universality | https://www.scottaaronson.com/qclec.pdf#page=128 |
 | universal | childs-notes | Section 1.3, Universal gate sets | https://www.cs.umd.edu/~amchilds/qa/qa.pdf#page=10 |
