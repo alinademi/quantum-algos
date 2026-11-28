@@ -1,9 +1,9 @@
 ---
-description: "Explore ideal Ising-anyon braid matrices and how collective encoding protects information from local perturbations."
+description: "Compare Ising-anyon braid orders and relations, and see why braiding alone gives only Clifford gates."
 answer: "Topological quantum computation encodes information in collective degrees of freedom and can implement gates by braiding suitable non-Abelian anyons."
 myth:
-  claim: "All braiding operations on all types of anyons provide universal quantum computing."
-  truth: "Ising-anyon braids alone are not universal; the available gates depend on the anyon model."
+  claim: "Braiding Majorana or Ising anyons is enough for universal quantum computing."
+  truth: "Ising braids alone yield Clifford gates; Fibonacci anyons can approximate arbitrary gates by braiding."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -12,7 +12,7 @@ import { lab } from '../../lib/sims/topological-model.ts';
 
 <Depth level="kid">
 
-Imagine braiding several strings. Pull them gently into different shapes without passing one through another and the braid remains the same. In a quantum model, special particles can carry information in how they belong together, rather than in any single particle. Local disturbances that do not change this collective arrangement cannot read or change the stored information in the ideal model. Exchanging the particles in different orders can perform different operations. Some types of particles can build any desired operation with braids alone, while others need an extra resource. The string picture breaks because the information is a quantum state of the particles together, and actual devices can still suffer errors.
+Imagine braiding several strings. Pull them gently into different shapes without passing one through another and the braid remains the same. In a quantum model, special particles can carry information in how they belong together, rather than in any single particle. In the ideal model, widely separated particles hide their shared information from disturbances near just one particle. Exchanging the particles in different orders can perform different operations. Some types of particles can get as close as needed to any operation with braids alone, while others need an extra resource. The string picture breaks because the information is a quantum state of the particles together, and actual devices can still suffer errors.
 
 </Depth>
 
@@ -24,9 +24,7 @@ Non-Abelian anyons encode information in their joint fusion channel: which total
 
 <Depth level="engineer">
 
-For four Ising anyons with fixed total charge, the fusion basis has dimension two. In one convention $R=\operatorname{diag}(e^{-i\pi/8},e^{3i\pi/8})$ and $F=H$. Removing the common braid phase gives generators $B_1=R_Z(\pi/2)$ and $B_2=R_X(\pi/2)$. They obey $B_1B_2B_1=B_2B_1B_2$ but do not commute. The protected information is stored nonlocally in fusion channels; ideal local perturbations cannot distinguish or change it, and braid topology determines the gate. Practical errors remain possible. Ising braids generate a finite Clifford group modulo phases and require a non-Clifford resource for universality. Fibonacci braids alone are dense on suitable encoded spaces (Freedman, Larsen and Wang). See [Nayak et al.](https://arxiv.org/abs/0707.1889). This lab models ideal fusion matrices, not particle dynamics.
-
-The ideas used here build on [Groups](/learn/groups/).
+For four Ising anyons with fixed total vacuum charge, the fusion basis has dimension two: |0⟩ labels first-pair charge 1 (vacuum), and |1⟩ labels ψ. In one convention $R=\operatorname{diag}(e^{-i\pi/8},e^{3i\pi/8})$ and $F=H$. Removing the common braid phase gives generators $B_1=R_Z(\pi/2)$ and $B_2=R_X(\pi/2)$. They obey $B_1B_2B_1=B_2B_1B_2$ but do not commute. The protected information is stored nonlocally in fusion channels; ideal local perturbations cannot distinguish or change it, and braid topology determines the gate. Practical errors remain possible. On this logical qubit Ising braids generate the 24-element Clifford [group](/learn/groups/) modulo phases and require a non-Clifford resource for universality. Fibonacci braids alone are dense on suitable encoded spaces (Freedman, Larsen and Wang). See [Nayak et al.](https://arxiv.org/abs/0707.1889). This lab models ideal fusion matrices, not particle dynamics or noise.
 
 </Depth>
 

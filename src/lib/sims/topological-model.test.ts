@@ -19,3 +19,18 @@ test('Ising braid relation holds and order matters',()=>{
  assert.ok(g.matrixGap(g.fullMatrix(1,[B1,B2]),g.fullMatrix(1,[B2,B1]))>.1);
 });
 test('Ising R and F matrices agree with braid generators up to common phase',()=>{const R=[[q.expi(-Math.PI/8),q.c(0)],[q.c(0),q.expi(3*Math.PI/8)]];matrix(phase(B1.matrix,Math.PI/8),R);matrix(phase(B2.matrix,Math.PI/8),q.matMul(q.H,q.matMul(R,q.H)));});
+test('Ising braids generate exactly the 24 single-qubit Cliffords modulo phase',()=>{
+ const group=[q.I];const equivalent=(a:q.Matrix,b:q.Matrix)=>q.abs(q.inner(a.flat(),b.flat()))>2-1e-10;
+ for(let i=0;i<group.length;i++){
+  for(const generator of [B1.matrix,B2.matrix]){
+   const next=q.matMul(generator,group[i]);
+   if(!group.some(u=>equivalent(u,next)))group.push(next);
+  }
+  assert.ok(group.length<=24);
+ }
+ assert.equal(group.length,24);
+ for(const u of group)for(const p of [q.X,q.Y,q.Z]){
+  const conjugated=q.matMul(u,q.matMul(p,q.dagger(u)));
+  assert.ok([q.X,q.Y,q.Z].some(x=>equivalent(x,conjugated)));
+ }
+});
