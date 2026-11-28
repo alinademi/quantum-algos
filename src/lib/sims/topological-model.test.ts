@@ -2,17 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
 import * as g from './gate-lab.ts';
-import { unitaryError } from './gates.ts';
-import { pauli } from './pauli-strings.ts';
-import { evolveGenerators, prep } from './stabilizer-states.ts';
-import { expect } from './gottesman-knill.ts';
-import { search } from './solovay-kitaev.ts';
-import { shift } from './qtm.ts';
-import { evolution } from './adiabatic.ts';
 import { B1, B2 } from './topological-model.ts';
-import { gaussian } from './cv-model.ts';
 
-import { checkLabs, close, state, matrix, phase, all, value } from './gate-lab-checks.ts';
+import { checkLabs,matrix,phase,value } from './gate-lab-checks.ts';
 const {run,last}=await checkLabs(['topological-model']);
 test('Ising braid relation holds and order matters',()=>{
  matrix(g.fullMatrix(1,[B1,B2,B1]),g.fullMatrix(1,[B2,B1,B2]));
@@ -34,3 +26,4 @@ test('Ising braids generate exactly the 24 single-qubit Cliffords modulo phase',
   assert.ok([q.X,q.Y,q.Z].some(x=>equivalent(x,conjugated)));
  }
 });
+test('braid lab classifies the selected word and identifies the Hadamard',()=>{for(const order of ['1 then 2','2 then 1','1–2–1','2–1–2','Undo both']){const rows=last('topological-model',{order}).rows!;assert.equal(rows.find(r=>r.label.startsWith('Clifford check'))!.value,'Yes');assert.equal(rows.find(r=>r.label.startsWith('Equals H'))!.value,order==='1–2–1'||order==='2–1–2'?'Yes':'No');}matrix(g.fullMatrix(1,[B1,B2,B1]),phase(q.H,-Math.PI/2));});
