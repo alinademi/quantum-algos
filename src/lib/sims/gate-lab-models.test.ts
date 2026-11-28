@@ -39,7 +39,7 @@ test('ZX color change and fusion preserve full matrices (all control settings ch
  matrix(q.matMul(q.P(.3),q.P(.7)),q.P(1));matrix(q.matMul(q.H,q.matMul(q.P(Math.PI),q.H)),q.X);
 });
 test('QTM toy shift wraps at boundaries and is a bijection; direction remains coherent',()=>{
- for(let i=0;i<8;i++)state(g.apply(q.basis(3,i),shift),q.basis(3,(i&4)|(((i&3)+(i&4?1:3))%4)));
+ for(const [i,j] of [3,0,1,2,5,6,7,4].entries())state(g.apply(q.basis(3,i),shift),q.basis(3,j));
  close(unitaryError(shift.matrix),0);
 });
 test('adiabatic midpoint evolution maintains norm, converges under step refinement and follows the gapped ground state at long time',()=>{

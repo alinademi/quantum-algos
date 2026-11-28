@@ -31,7 +31,7 @@ import { lab } from '../../lib/sims/qtm.ts';
       const run=()=>{
         const v=Object.fromEntries(inputs.map(i=>[i.dataset.key!,i.value]));
         p=headDistribution(lab.run(v).at(-1)!.state!);counts=sample(p,100,Math.random);
-        this.querySelector('.tool-readout')!.textContent='Started at site '+v.pos+' with coin |'+v.coin+'⟩; after '+v.steps+' steps: '+p.map((q,i)=>'site '+i+' '+pct(Math.min(1,q))+' ideal, '+counts[i]+'/100 observed').join('; ')+'.';
+        this.querySelector('.tool-readout')!.textContent='Started at site '+v.pos+' with coin |'+v.coin+'⟩; after '+v.steps+(v.steps==='1'?' step: ':' steps: ')+p.map((q,i)=>'site '+i+' '+pct(Math.min(1,q))+' ideal, '+counts[i]+'/100 observed').join('; ')+'.';
         draw();
       };
       inputs.forEach(i=>i.addEventListener('change',run));this.querySelector('[data-run]')!.addEventListener('click',run);
