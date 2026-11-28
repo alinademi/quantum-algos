@@ -1,5 +1,5 @@
 ---
-description: "Mid-circuit measurement produces a classical outcome during a circuit, which can determine the next operation."
+description: "Measure a qubit during a circuit, then use the recorded result to reset a wire or choose a later gate."
 answer: "Mid-circuit measurement produces a classical outcome during a circuit, which can determine the next operation."
 myth:
   claim: "A measurement followed by a conditional X can restore an unknown superposition."
@@ -12,13 +12,13 @@ import { lab } from '../../lib/sims/mid-circuit.ts';
 
 <Depth level="kid">
 
-You can ask one qubit a question while the experiment is running. Use that answer to decide what to do next. The other parts of the experiment can keep running.
+Imagine a recipe that tells you to open an envelope halfway through and use the number inside to choose the next instruction. You can continue the recipe without knowing in advance which instruction you will follow. A quantum experiment can also record an answer partway through and respond to it. The answer may come out differently on different runs. It can even tell you how to put the measured part back into a known starting state. There is an important difference from the envelope picture: reading the quantum part changes its state, and resetting it does not recover the original wave.
 
 </Depth>
 
 <Depth level="student">
 
-Prepare two qubits, entangle them with CNOT, and measure the first. The lab displays each possible branch and its probability. If the outcome is 1, you can flip the other wire or reset the measured wire. Without conditioning on the outcome the result is a mixture.
+[Measurement](/learn/measurement/) need not be the last operation of a [circuit](/learn/circuits/). Prepare |+⟩ on q0 and |0⟩ on q1, then CNOT. Measuring q0 gives 0 or 1 with equal probability and changes the joint state to 00 or 11 respectively. If the result is 1, X on q1 makes q1 zero in either case; instead X on q0 resets q0 to zero. Neither action restores the earlier superposition. Circuits that measure during execution and use a classical outcome to select later operations are called dynamic circuits. The lab lists the conditional states and the averaged outcome distribution.
 
 </Depth>
 
