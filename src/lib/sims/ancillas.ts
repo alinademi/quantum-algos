@@ -17,14 +17,14 @@ export function borrowedOverlap(s:State,helper:State,wires:number[]){
  return overlap;
 }
 export const lab:Lab={
- controls:[choice('scratch','Borrowed q3 start',['0','1','+','+i','Bell pair with q5']),choice('data','First control q0',['+','0','1']),choice('target','Target q4',['0','1']),choice('mode','Protocol',['Compute and uncompute','Omit final operation'])],
+ controls:[choice('scratch','Borrowed q3 start',['0','1','+','+i','Bell pair with q5']),choice('data','First control q0',['+','0','1']),choice('b','Second control q1',['1','0','+']),choice('c','Third control q2',['1','0','+']),choice('target','Target q4',['0','1']),choice('mode','Protocol',['Compute and uncompute','Omit final operation'])],
  run:v=>{
   const bell=v.scratch==='Bell pair with q5',scratch=bell?'0':v.scratch;
-  let start=product(v.data,'1','1',scratch,v.target,...(bell?['0']:[]));
+  let start=product(v.data,v.b??'1',v.c??'1',scratch,v.target,...(bell?['0']:[]));
   if(bell)start=apply(apply(start,gate('H',3)),cx(3,5));
   const helper=bell?[c(Math.SQRT1_2),c(0),c(0),c(Math.SQRT1_2)]:ket(scratch);
   const target=apply(start,op('Ideal CCCX',control(X,3),0,1,2,4));
-  const label='|'+v.data+'⟩|11⟩, target |'+v.target+'⟩, borrowed q3 '+(bell?'in Bell pair with q5':'|'+scratch+'⟩');
+  const label='|'+v.data+'⟩|'+(v.b??'1')+'⟩|'+(v.c??'1')+'⟩, target |'+v.target+'⟩, borrowed q3 '+(bell?'in Bell pair with q5':'|'+scratch+'⟩');
   const steps=sequence(start,v.mode==='Compute and uncompute'?borrowedOps:borrowedOps.slice(0,3),v.mode==='Compute and uncompute'?'The triple-controlled flip is correct and the borrowed register is restored.':'The missing correction leaves the target dependent on the borrowed value or its correlations.',label);
   steps.forEach(step=>{step.rows=[...(step.rows??[]),row('Borrowed register overlap with original',borrowedOverlap(step.state!,helper,bell?[3,5]:[3])),row('Whole-state fidelity to ideal CCCX',fidelity(step.state!,target))]});
   return steps;
