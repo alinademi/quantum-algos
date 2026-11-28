@@ -3,7 +3,7 @@ description: "Plain odds for a qubit can be one half of a pair in one exact stat
 answer: "A purification of a mixed state is a pure state of a bigger system that leaves the mixed state when you ignore the extra part. Every mixed state has one, and any two purifications that use the same extra part differ by a unitary gate on that part alone."
 myth:
   claim: "A mixed qubit is really in one exact state, we just do not know which."
-  truth: "Not always. A qubit can look mixed because it is entangled with a partner: the pair is in one exact state and the qubit alone has none. The same odds also fit many different lists of exact states, and which list shows up depends on how the partner is measured."
+  truth: "Not always. A qubit can look mixed because it is entangled with a partner: the pair is in one exact pure state and the qubit alone is in a mixed state, with no pure state. The same odds also fit many different lists of exact states, and which list shows up depends on how the partner is measured."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -11,11 +11,11 @@ import HiddenPartner from '../../components/tools/HiddenPartner.astro';
 
 <Depth level="kid">
 
-Start two qubits as 0 and 0. Give the first a Hadamard gate, then flip the second if the first is 1. The pair is in one exact quantum state. Yet the first qubit alone gives plain 50/50 odds in every test.
+Start two qubits as 0 and 0. Give the first a Hadamard gate, then flip the second if the first is 1. The pair is in one exact quantum state. Yet the first qubit alone gives plain 50/50 odds in any basis.
 
 Any plain odds can be made this way, as one half of a pair in one exact state. The other half is the partner. Building the pair is called purification.
 
-Think of half a torn page: alone, random scraps; with the other half, clear writing. The picture breaks here: a torn page always had its writing. In quantum theory, the first qubit alone has no exact state of its own. Only the pair does.
+Think of half a torn page: alone, random scraps; with the other half, clear writing. The picture breaks here: a torn page always had its writing. In quantum theory, the first qubit alone has no pure state, only plain odds: a mixed state. Only the pair is in a pure state.
 
 A gate on the partner changes the pair, not the first qubit's odds. Measure the partner and the first qubit is left in an exact state. Which one depends on that gate and on what the partner reads.
 
@@ -31,7 +31,7 @@ A gate on the partner alone changes the pair, never A alone.
 
 Measure the partner and A is left in an exact state. With no gate: 0 (chance 80%) leaves A as $|0\rangle$, 1 (chance 20%) leaves $|1\rangle$. After a Hadamard gate on the partner, each result has chance 50%, and A is $0.89\,|0\rangle + 0.45\,|1\rangle$ or $0.89\,|0\rangle - 0.45\,|1\rangle$. (The tool's quarter turn gives the same two states, with the results swapped.) Different lists, same A alone.
 
-Any two pairs that purify the same A with the same kind of partner differ by a gate on the partner alone.
+Any two pairs that purify the same A with a partner of the same size differ by a gate on the partner alone.
 
 </Depth>
 
@@ -50,6 +50,8 @@ If $|\Psi'\rangle$ also purifies $\rho_A$ on the same $R$, let $|v_i\rangle = \l
 $$
 |\Psi'\rangle = (I \otimes U)|\Psi\rangle.
 $$
+
+If the purifying systems differ in size, an isometry $V$ from the smaller into the larger gives $|\Psi_{\text{larger}}\rangle = (I \otimes V)\,|\Psi_{\text{smaller}}\rangle$.
 
 A gate on $R$ cannot change $\rho_A$. Measure $R$ in an orthonormal basis $\{|b_k\rangle\}$: result $k$ has chance $q_k = \|\langle b_k|\Psi\rangle\|^2$ and leaves $A$ in $|\phi_k\rangle = \langle b_k|\Psi\rangle/\sqrt{q_k}$, and $\sum_k q_k |\phi_k\rangle\langle\phi_k| = \rho_A$. Conversely (Hughston, Jozsa and Wootters): from any purification, every ensemble of $\rho_A$, of any size, comes from some [general measurement](/learn/povm/) on $R$; a basis measurement is not always enough.
 
