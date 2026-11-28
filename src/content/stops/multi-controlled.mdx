@@ -32,7 +32,7 @@ For $k$ controls, $C^kX$ maps target $t$ to $t\oplus\prod_j a_j$. The shown clea
 
 With $m=k+1$ wires, conjugate multi-controlled Z by H on the target. The identity $2^{m-1}\prod_j b_j=\sum_{S\ne\varnothing}(-1)^{|S|-1}\bigoplus_{j\in S}b_j$ expands the phase into subset parities. Compute each parity, apply a phase of $\pm\pi/2^{m-1}$ and undo it. This particular no-helper construction is exponential. [Barenco et al.](https://arxiv.org/abs/quant-ph/9503016), Cor. 7.6, give a no-extra-qubit construction for general multi-controlled U with quadratic elementary-gate cost. See [controlled gates](/learn/controlled-gates/) for the open-control construction.
 
-The ideas used here build on [Toffoli and SWAP](/learn/toffoli/).
+Each [Toffoli](/learn/toffoli/) in the clean-ancilla ladder either computes a partial AND, applies the controlled operation or uncomputes the scratch.
 
 </Depth>
 
