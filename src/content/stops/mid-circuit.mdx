@@ -2,8 +2,8 @@
 description: "Measure a qubit during a circuit, then use the recorded result to reset a wire or choose a later gate."
 answer: "Mid-circuit measurement produces a classical outcome during a circuit, which can determine the next operation."
 myth:
-  claim: "A measurement followed by a conditional X can restore an unknown superposition."
-  truth: "A reset can prepare 0, but does not restore the coherence lost by measurement."
+  claim: "You can only measure at the end of a quantum circuit."
+  truth: "A dynamic circuit can measure during execution and use the result to choose a later gate or reset a qubit."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -24,7 +24,7 @@ Imagine a recipe that tells you to open an envelope halfway through and use the 
 
 <Depth level="engineer">
 
-For projectors $P_m$, branch probability is $p_m=\langle\psi|P_m|\psi\rangle$ and conditional state is $P_m|\psi\rangle/\sqrt{p_m}$ for $p_m>0$. Outcome-dependent gates $U_m$ produce the ensemble $\sum_m U_mP_m\rho P_mU_m^\dagger$. Resetting a measured bit by conditional X is not a unitary inverse.
+For projectors $P_m$, branch probability is $p_m=\langle\psi|P_m|\psi\rangle$ and conditional state is $P_m|\psi\rangle/\sqrt{p_m}$ for $p_m>0$. Outcome-dependent gates $U_m$ produce the ensemble $\sum_m U_mP_m\rho P_mU_m^\dagger$. Dynamic circuits process m in real time so the controller can apply $U_m$ before coherence is lost on the remaining qubits; see the [2021 demonstration by Córcoles et al.](https://arxiv.org/abs/2102.01682). Reset is the non-unitary channel $\rho\mapsto|0\rangle\langle0|$ on a single qubit, independent of its input. Conditional X after a Z measurement implements that reset, not recovery of the original superposition.
 
 </Depth>
 
