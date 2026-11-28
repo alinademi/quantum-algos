@@ -1,0 +1,33 @@
+---
+description: "A shot is one execution of a preparation and measurement circuit, yielding one sample from its outcome distribution."
+answer: "A shot is one execution of a preparation and measurement circuit, yielding one sample from its outcome distribution."
+myth:
+  claim: "More shots change the underlying state or make each sample more accurate."
+  truth: "More independent shots reduce the statistical uncertainty of the estimated probabilities."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/shots.ts';
+
+<Depth level="kid">
+
+Imagine repeating the same experiment many times. You get one answer each time. After many answers you can estimate how often each answer happens.
+
+</Depth>
+
+<Depth level="student">
+
+Prepare the same ideal qubit for every shot. If 1 has probability p, the number of ones in N independent shots follows a binomial distribution. The fraction of ones is usually closer to p with more shots, but is not guaranteed to be closer on every run.
+
+</Depth>
+
+<Depth level="engineer">
+
+For independent identically prepared and measured copies, $K\sim\mathrm{Binomial}(N,p)$, $\hat p=K/N$, and $\operatorname{Var}(\hat p)=p(1-p)/N$. Standard error scales as $1/\sqrt N$. These formulas describe sampling uncertainty, not drift, hardware noise or correlated trials. A measured qubit is not simply reused as a fresh copy.
+
+</Depth>
+
+<Lab title="Repeat the experiment" intro="Choose the preparation angle, run fresh shots and compare observed frequencies with the predicted probability and standard error.">
+  <GateLab id="shots" lab={lab} />
+</Lab>

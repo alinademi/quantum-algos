@@ -1,0 +1,33 @@
+---
+description: "CNOT flips the target qubit in the branch where the control qubit is |1⟩. It preserves coherent superpositions."
+answer: "CNOT flips the target qubit in the branch where the control qubit is |1⟩. It preserves coherent superpositions."
+myth:
+  claim: "CNOT measures its control or copies an arbitrary quantum state."
+  truth: "It is unitary. With a control superposition and a target in 0 it can create entanglement, not independent copies."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/cnot.ts';
+
+<Depth level="kid">
+
+The first bit is a switch: when it is 1, the second bit flips. In a quantum circuit both paths can happen coherently until measurement.
+
+</Depth>
+
+<Depth level="student">
+
+For basis inputs, 00 and 01 stay unchanged, while 10 and 11 exchange. With |+⟩ on the control and |0⟩ on the target the output is the Bell state, not two separate |+⟩ states.
+
+</Depth>
+
+<Depth level="engineer">
+
+The map is $|a,b\rangle\mapsto|a,a\oplus b\rangle$. By linearity, $(|0\rangle+|1\rangle)|0\rangle/\sqrt2$ becomes $(|00\rangle+|11\rangle)/\sqrt2$. The gate is its own inverse. Control and target are ordered: swapping them generally changes the matrix. With target $|+\rangle$ the gate instead acts trivially on that product state.
+
+</Depth>
+
+<Lab title="Control a flip" intro="Prepare each wire independently and step through two CNOTs.">
+  <GateLab id="cnot" lab={lab} />
+</Lab>

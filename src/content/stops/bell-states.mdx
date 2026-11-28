@@ -1,0 +1,33 @@
+---
+description: "The four Bell states form an orthonormal basis of maximally entangled two-qubit states. H and CNOT can prepare and decode them."
+answer: "The four Bell states form an orthonormal basis of maximally entangled two-qubit states. H and CNOT can prepare and decode them."
+myth:
+  claim: "The two bits in a Bell state always have the same outcome in every basis."
+  truth: "The correlations depend on the Bell state and measurement bases; each single-qubit reduced state is maximally mixed."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/bell-states.ts';
+
+<Depth level="kid">
+
+Prepare a pair of qubits with linked outcomes. You cannot tell which answer one qubit will give by itself, but the pair has a well-defined joint state.
+
+</Depth>
+
+<Depth level="student">
+
+Apply H on the first bit then CNOT. Starting with each of 00, 01, 10 and 11 makes a different Bell state. Reverse the preparation to tell all four apart in a Bell-basis measurement.
+
+</Depth>
+
+<Depth level="engineer">
+
+For input $|a,b\rangle$, the circuit produces $(|0,b\rangle+(-1)^a|1,1\oplus b\rangle)/\sqrt2$. These are $\Phi^\pm$ for $b=0$, $\Psi^\pm$ for $b=1$. Each partial trace is $I/2$. The inverse, CNOT then H, maps the Bell basis to the computational basis. Merely measuring in Z cannot distinguish the two signs.
+
+</Depth>
+
+<Lab title="Prepare and decode the Bell basis" intro="Select the two input bits and watch the entangled state appear, then optionally decode it.">
+  <GateLab id="bell-states" lab={lab} />
+</Lab>

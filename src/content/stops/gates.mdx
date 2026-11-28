@@ -1,0 +1,33 @@
+---
+description: "An ideal quantum gate is a unitary transformation of quantum amplitudes. It preserves total probability and can be reversed."
+answer: "An ideal quantum gate is a unitary transformation of quantum amplitudes. It preserves total probability and can be reversed."
+myth:
+  claim: "Quantum gates directly change measurement probabilities like classical random switches."
+  truth: "They act on complex amplitudes. Different paths can interfere; probabilities are computed afterward."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/gates.ts';
+
+<Depth level="kid">
+
+Think of two waves that can add or cancel. A gate changes how the waves fit together without losing their total strength. Another gate can undo the first.
+
+</Depth>
+
+<Depth level="student">
+
+A one-qubit gate multiplies the two amplitudes by a 2 by 2 complex matrix. X exchanges the amplitudes, H mixes them, and Z changes one sign. Apply a gate and then its inverse in the lab: both amplitudes return. Measurement is a different operation.
+
+</Depth>
+
+<Depth level="engineer">
+
+A gate on $n$ qubits is a $2^n$ by $2^n$ matrix $U$ satisfying $U^\dagger U=I$. This preserves inner products and hence normalization. The inverse is $U^\dagger$. For a circuit applying $U$ then $V$, the resulting matrix is $VU$. A general physical operation can be a channel rather than a unitary, but the ideal gates here are unitaries.
+
+</Depth>
+
+<Lab title="Apply and undo a gate" intro="Compare the input, the transformed amplitudes, the unitarity error and the inverse.">
+  <GateLab id="gates" lab={lab} />
+</Lab>

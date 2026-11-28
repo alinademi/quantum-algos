@@ -1,0 +1,33 @@
+---
+description: "The Fredkin gate swaps two target qubits only when its control is 1."
+answer: "The Fredkin gate swaps two target qubits only when its control is 1."
+myth:
+  claim: "Fredkin destroys one target when it copies the other into its place."
+  truth: "A swap exchanges the two complete states and can be undone."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/fredkin.ts';
+
+<Depth level="kid">
+
+Imagine two boxes and a switch. Switch on: exchange the boxes. Switch off: leave them alone. The quantum version keeps both control branches coherent.
+
+</Depth>
+
+<Depth level="student">
+
+For control 0, the targets do not change. For 1, their positions exchange. A control in |+⟩ with different targets produces a three-qubit entangled state.
+
+</Depth>
+
+<Depth level="engineer">
+
+The controlled-SWAP matrix is $|0\rangle\langle0|\otimes I_4+|1\rangle\langle1|\otimes\mathrm{SWAP}$, so its square is identity. It also preserves the Hamming weight of every basis string, since it only permutes targets. Label control c and targets a,b. CNOT a→b, Toffoli (c,b)→a, CNOT a→b implements Fredkin; checking basis inputs proves the linear maps coincide.
+
+</Depth>
+
+<Lab title="Control a swap" intro="Try the direct operation and its three-operation decomposition, including a superposed control.">
+  <GateLab id="fredkin" lab={lab} />
+</Lab>

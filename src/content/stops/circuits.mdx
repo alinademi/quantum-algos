@@ -1,0 +1,33 @@
+---
+description: "A quantum circuit is an ordered sequence of operations on labeled wires, followed by any specified measurements."
+answer: "A quantum circuit is an ordered sequence of operations on labeled wires, followed by any specified measurements."
+myth:
+  claim: "The order of gates does not matter."
+  truth: "Gates on the same wires need not commute; changing the order can change the result."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/circuits.ts';
+
+<Depth level="kid">
+
+Think of instructions for a machine. Each wire carries a qubit. Follow the instructions in order; the same instructions in a different order can give a different answer.
+
+</Depth>
+
+<Depth level="student">
+
+A circuit starts with a state and updates it gate by gate. Gates on different wires can often run in parallel. H on the first wire followed by CNOT can make an entangled pair; the reverse order on 00 does not.
+
+</Depth>
+
+<Depth level="engineer">
+
+With column vectors, chronological gates $U_1,\ldots,U_m$ give $U_m\cdots U_1|\psi\rangle$. Operations on disjoint subsystems commute, but overlapping ones need not. The lab uses the convention $|q_0q_1\rangle$, with q0 the most significant displayed bit. Measurement and classical control require more than a single unitary matrix.
+
+</Depth>
+
+<Lab title="Follow the circuit" intro="Change gate order and input bits, then inspect each step and the complete resulting unitary.">
+  <GateLab id="circuits" lab={lab} />
+</Lab>

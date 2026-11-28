@@ -1,0 +1,33 @@
+---
+description: "The Toffoli gate flips a target if both controls are 1. It is a reversible three-qubit gate."
+answer: "The Toffoli gate flips a target if both controls are 1. It is a reversible three-qubit gate."
+myth:
+  claim: "Toffoli alone is universal for arbitrary quantum computation."
+  truth: "Toffoli implements reversible classical computation with extra bits, but cannot create general quantum amplitudes by itself."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/toffoli.ts';
+
+<Depth level="kid">
+
+Two switches must both be on before the third bit flips. All three wires remain available; flip again to undo the operation.
+
+</Depth>
+
+<Depth level="student">
+
+Its action is (a,b,t) → (a,b,t XOR (a AND b)). A target initially in 0 stores the AND without deleting either original bit. The other reversible example in this lab swaps two wires using three CNOTs.
+
+</Depth>
+
+<Depth level="engineer">
+
+$CCX|a,b,t\rangle=|a,b,t\oplus ab\rangle$ and $CCX^2=I$. Toffoli acts as a permutation matrix, so its linear extension also works on superpositions. With fixed constants it generates reversible classical computations, including NAND with target 1. No quantum phase or arbitrary superposition is generated from basis states by Toffoli alone.
+
+</Depth>
+
+<Lab title="Compute a reversible AND" intro="Try every input, apply Toffoli twice, and compare the three-CNOT SWAP example.">
+  <GateLab id="toffoli" lab={lab} />
+</Lab>

@@ -1,0 +1,33 @@
+---
+description: "Rotation gates turn the Bloch vector around X, Y or Z by a chosen angle."
+answer: "Rotation gates turn the Bloch vector around X, Y or Z by a chosen angle."
+myth:
+  claim: "An angle of 360 degrees always gives the identity matrix."
+  truth: "A full Bloch rotation gives −I on the state vector. This global phase is normally unobservable."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/rotations.ts';
+
+<Depth level="kid">
+
+A gate can turn the arrow used to picture a qubit. The direction of the turn and its size are separate choices. Turn backward to undo it.
+
+</Depth>
+
+<Depth level="student">
+
+Starting at 0, an X or Y rotation by 90 degrees produces equal measurement odds, but different complex amplitudes. A Z rotation changes the relative phase. An inverse rotation uses the negative angle.
+
+</Depth>
+
+<Depth level="engineer">
+
+For a Pauli $P$, $R_P(\theta)=e^{-i\theta P/2}=\cos(\theta/2)I-i\sin(\theta/2)P$. Since $P^2=I$, this follows directly by separating even and odd terms in the exponential. $R_P(2\pi)=-I$, $R_P(4\pi)=I$. The rotation is right-handed in the usual Bloch coordinates, with $\hbar=1$ in the exponent convention.
+
+</Depth>
+
+<Lab title="Turn a qubit" intro="Select an axis and angle. Compare the state and Bloch coordinates, then undo the turn.">
+  <GateLab id="rotations" lab={lab} />
+</Lab>

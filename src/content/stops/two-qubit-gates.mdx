@@ -1,0 +1,33 @@
+---
+description: "Two-qubit gate families include exchange, interaction rotations, controlled gates and hardware-inspired entanglers."
+answer: "Two-qubit gate families include exchange, interaction rotations, controlled gates and hardware-inspired entanglers."
+myth:
+  claim: "Any two-qubit gate entangles every input."
+  truth: "Some product inputs remain product; SWAP never creates entanglement from product inputs."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/two-qubit-gates.ts';
+
+<Depth level="kid">
+
+Two qubits can exchange places, exchange parts of their waves or pick up phases together. These operations are not all the same.
+
+</Depth>
+
+<Depth level="student">
+
+iSWAP exchanges 01 and 10 and attaches i. Square-root SWAP squares to SWAP. XX and ZZ rotations act through products of Pauli operators. fSim mixes 01 and 10 and adds a phase to 11.
+
+</Depth>
+
+<Depth level="engineer">
+
+Use the ordered basis 00, 01, 10, 11. $R_{PP}(\theta)=e^{-i\theta P\otimes P/2}$; the lab uses the two-qubit XX convention for MS. fSim has the odd-parity block $\begin{pmatrix}\cos\theta&-i\sin\theta\\-i\sin\theta&\cos\theta\end{pmatrix}$, diagonal entries 1 and $e^{-i\phi}$ on 00 and 11. ECR uses the IBM [ECRGate convention](https://quantum.cloud.ibm.com/docs/en/api/qiskit/qiskit.circuit.library.ECRGate) reordered to q0-first. Physical implementations may differ in phases and pulse conventions.
+
+</Depth>
+
+<Lab title="Compare two-qubit families" intro="Choose the family and angles. Inspect the matrix, output amplitudes and inverse.">
+  <GateLab id="two-qubit-gates" lab={lab} />
+</Lab>

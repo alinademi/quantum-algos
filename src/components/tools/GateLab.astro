@@ -1,0 +1,254 @@
+---
+// An accessible step-by-step lab shared by circuit stops: each stop supplies its own math and controls.
+import { defaults, complex, stateDistribution, type Lab } from '../../lib/sims/gate-lab.ts';
+import { pct } from '../../lib/draw.ts';
+interface Props { id: string; lab: Lab }
+const { id, lab } = Astro.props;
+const initial = lab.run(defaults(lab));
+const first = initial[0];
+const d = first.distribution ?? (first.state ? stateDistribution(first.state) : undefined);
+---
+<qce-gate-lab data-lesson={id}>
+  <div class="controls">
+    {lab.controls.map(control => (
+      <label>{control.label}
+        <select data-control={control.key}>
+          {control.options.map(option => <option value={option.value}>{option.label}</option>)}
+        </select>
+      </label>
+    ))}
+  </div>
+  <div class="scrubber">
+    <button type="button" class="btn btn-sm" data-back disabled>Back</button>
+    <label>Step <output data-step-count>1 / {initial.length}</output>
+      <input type="range" data-step min="0" max={initial.length - 1} value="0" disabled={initial.length === 1}/>
+    </label>
+    <button type="button" class="btn btn-sm" data-next disabled={initial.length === 1}>Next</button>
+  </div>
+  <ol class="steps" data-steps aria-label="Sequence of steps">
+    {initial.map((s, i) => <li><button type="button" data-jump={i} aria-current={i === 0 ? 'step' : undefined}>{s.title}</button></li>)}
+  </ol>
+  <div class="diagram" data-diagram hidden aria-label="Circuit diagram"></div>
+  <div class="panel" aria-live="polite" aria-atomic="true">
+    <h3 data-title>{first.title}</h3>
+    <p data-note>{first.note}</p>
+    <dl data-details>{first.rows?.map(r => <div><dt>{r.label}</dt><dd>{r.value}</dd></div>)}</dl>
+    <div data-distribution hidden={!d}>
+      <p class="label">Outcome · amplitude (if pure) · ideal probability</p>
+      <div class="outcomes" data-outcomes>
+        {d?.labels.map((name, i) => <div class="outcome">
+          <span>{name}</span><span>{first.state ? complex(first.state[i]) : ''}</span><span>{pct(Math.min(1,d.p[i]))}</span>
+          <div class="meter" aria-hidden="true"><i style={`width: ${d.p[i] * 100}%`}></i></div>
+        </div>)}
+      </div>
+    </div>
+  </div>
+  <div data-shots hidden={!d}>
+    <label>Fresh shots <select data-shot-size><option>100</option><option>1000</option><option>10000</option></select></label>
+    <button type="button" class="btn btn-sm" data-run>Run shots</button>
+    <p data-counts class="tool-readout" aria-live="polite">No shots yet.</p>
+  </div>
+  <p class="note">This is an ideal mathematical model, not a quantum device. Amplitudes are computed before measurement; shots use the browser's random numbers. Change a setting or step to clear the old counts.</p>
+  <p data-status aria-live="polite"></p>
+</qce-gate-lab>
+
+<script>
+  import { complex, stateDistribution, type Lab, type Values, type Step, type Diagram } from '../../lib/sims/gate-lab.ts';
+  import { sample } from '../../lib/quantum.ts';
+  import { pct } from '../../lib/draw.ts';
+  // Lazy imports: only the current lab is loaded into the browser.
+  const modules = import.meta.glob<{ lab: Lab }>([
+    '../../lib/sims/classical-gates.ts',
+    '../../lib/sims/gates.ts',
+    '../../lib/sims/pauli.ts',
+    '../../lib/sims/phase-gates.ts',
+    '../../lib/sims/rotations.ts',
+    '../../lib/sims/single-qubit-unitary.ts',
+    '../../lib/sims/shots.ts',
+    '../../lib/sims/cnot.ts',
+    '../../lib/sims/circuits.ts',
+    '../../lib/sims/bell-states.ts',
+    '../../lib/sims/controlled-gates.ts',
+    '../../lib/sims/toffoli.ts',
+    '../../lib/sims/fredkin.ts',
+    '../../lib/sims/multi-controlled.ts',
+    '../../lib/sims/two-qubit-gates.ts',
+    '../../lib/sims/circuit-identities.ts',
+    '../../lib/sims/phase-kickback.ts',
+    '../../lib/sims/mid-circuit.ts',
+    '../../lib/sims/deferred-measurement.ts',
+    '../../lib/sims/parity-measurement.ts',
+    '../../lib/sims/hadamard-test.ts',
+    '../../lib/sims/swap-test.ts',
+    '../../lib/sims/reversible.ts',
+    '../../lib/sims/oracles.ts',
+    '../../lib/sims/quantum-parallelism.ts',
+    '../../lib/sims/ancillas.ts',
+    '../../lib/sims/uncomputation.ts',
+    '../../lib/sims/quantum-arithmetic.ts',
+    '../../lib/sims/universal.ts',
+    '../../lib/sims/pauli-strings.ts',
+    '../../lib/sims/pauli-rotations.ts',
+    '../../lib/sims/clifford-group.ts',
+    '../../lib/sims/clifford-t.ts',
+    '../../lib/sims/circuit-cost.ts',
+    '../../lib/sims/native-gates.ts',
+    '../../lib/sims/transpilation.ts',
+    '../../lib/sims/circuit-languages.ts',
+    '../../lib/sims/classical-simulation.ts',
+    '../../lib/sims/decomposition.ts',
+    '../../lib/sims/two-qubit-synthesis.ts',
+    '../../lib/sims/qubit-routing.ts',
+    '../../lib/sims/stabilizer-states.ts',
+    '../../lib/sims/gottesman-knill.ts',
+    '../../lib/sims/solovay-kitaev.ts',
+    '../../lib/sims/gate-teleportation.ts',
+    '../../lib/sims/zx-calculus.ts',
+    '../../lib/sims/qtm.ts',
+    '../../lib/sims/mbqc.ts',
+    '../../lib/sims/adiabatic.ts',
+    '../../lib/sims/topological-model.ts',
+    '../../lib/sims/cv-model.ts',
+  ]);
+  class GateLab extends HTMLElement {
+    async connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const status = $('[data-status]');
+      let lab: Lab;
+      try {
+        const load = modules['../../lib/sims/' + this.dataset.lesson + '.ts'];
+        if (!load) throw Error('Missing lab');
+        lab = (await load()).lab;
+      } catch {
+        status.textContent = 'Could not load this lab. Refresh the page to try again.';
+        return;
+      }
+      const inputs = [...this.querySelectorAll<HTMLSelectElement>('[data-control]')];
+      const slider = $<HTMLInputElement>('[data-step]'), back = $<HTMLButtonElement>('[data-back]'), next = $<HTMLButtonElement>('[data-next]');
+      const stepList = $('[data-steps]'), details = $('[data-details]'), outcomes = $('[data-outcomes]');
+      const dist = $<HTMLElement>('[data-distribution]'), shots = $<HTMLElement>('[data-shots]'), counts = $('[data-counts]');
+      let steps: Step[] = [], index = 0;
+      const values = (): Values => Object.fromEntries(inputs.map(el => [el.dataset.control!, el.value]));
+      const el = (tag: string, text?: string, cls?: string) => {
+        const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e;
+      };
+      const diagram = $<HTMLElement>('[data-diagram]');
+      const drawCircuit = (d?: Diagram) => {
+        diagram.hidden = !d || !d.ops.length;
+        diagram.replaceChildren();
+        if (!d || !d.ops.length) return;
+        const svg = <K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string | number>, content?: string) => {
+          const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+          Object.entries(attrs).forEach(([k,v]) => e.setAttribute(k,String(v)));
+          if (content !== undefined) e.textContent = content;
+          return e;
+        };
+        const x0 = 48, dx = 108, y0 = 38, dy = 40, width = x0 + dx*d.ops.length + 16, height = y0 + dy*d.n;
+        const chart = svg('svg',{viewBox:'0 0 '+width+' '+height,width,height,role:'img','aria-label':'Quantum circuit, current gate '+(d.current+1)+' of '+d.ops.length});
+        const y = (w:number) => y0+dy*w;
+        if(d.current>=0) chart.append(svg('rect',{x:x0+dx*d.current,y:0,width:dx,height,fill:'var(--signal)',opacity:0.10,rx:4}));
+        for(let w=0;w<d.n;w++){
+          chart.append(svg('text',{x:5,y:y(w)+4,fill:'currentColor','font-size':12},'q'+w));
+          chart.append(svg('line',{x1:32,y1:y(w),x2:width-8,y2:y(w),stroke:'currentColor','stroke-opacity':0.45}));
+        }
+        d.ops.forEach((o,i)=>{
+          const x=x0+dx*(i+.5), ys=o.wires.map(y), color=i===d.current?'var(--signal)':'currentColor';
+          const title=o.name.includes('spider')?o.name.replace(' spider',''):o.name.length>14?o.name.slice(0,12)+'…':o.name;
+          const full=svg('g',{'aria-label':o.name+' on '+o.wires.map(w=>'q'+w).join(', ')});
+          full.append(svg('title',{},o.name+' on '+o.wires.map(w=>'q'+w).join(', ')));
+          full.append(svg('text',{x,y:16,'text-anchor':'middle','font-size':11,fill:color},title));
+          if(ys.length>1)full.append(svg('line',{x1:x,y1:Math.min(...ys),x2:x,y2:Math.max(...ys),stroke:color,'stroke-width':2}));
+          const flip=/^(CNOT|Toffoli|Multi-controlled X)/.test(o.name), swap=o.name.startsWith('SWAP')||o.name.startsWith('Controlled SWAP');
+          for(let j=0;j<ys.length;j++){
+            const cy=ys[j], isControl=(flip&&j<ys.length-1)||(swap&&ys.length===3&&j===0);
+            if(isControl){full.append(svg('circle',{cx:x,cy,r:4,fill:color}));continue;}
+            if(flip){full.append(svg('circle',{cx:x,cy,r:10,stroke:color,fill:'var(--paper)','stroke-width':2}),svg('path',{d:'M'+(x-7)+' '+cy+'h14 M'+x+' '+(cy-7)+'v14',stroke:color,'stroke-width':2}));continue;}
+            if(o.name.startsWith('Green spider')||o.name.startsWith('Red spider')){full.append(svg('circle',{cx:x,cy,r:11,fill:o.name.startsWith('Green spider')?'#16804a':'#b42f0c',stroke:color}));continue;}
+            if(swap){full.append(svg('path',{d:'M'+(x-7)+' '+(cy-7)+'l14 14 M'+(x+7)+' '+(cy-7)+'l-14 14',stroke:color,'stroke-width':2}));continue;}
+            full.append(svg('rect',{x:x-13,y:cy-12,width:26,height:24,rx:3,stroke:color,fill:'var(--paper)'}),svg('text',{x,y:cy+4,'text-anchor':'middle','font-size':11,fill:color},o.name.length<=3?o.name:'U'));
+          }
+          chart.append(full);
+        });
+        diagram.append(chart);
+        if(d.current>=0){
+          // Keep the selected gate visible without scrolling the whole page.
+          diagram.scrollLeft=Math.max(0,x0+dx*(d.current+.5)-diagram.clientWidth/2);
+        }
+      };
+      const render = (jumpFocus = false) => {
+        const s = steps[index];
+        slider.max = String(steps.length - 1); slider.value = String(index); slider.disabled = steps.length === 1;
+        back.disabled = index === 0; next.disabled = index === steps.length - 1;
+        $('[data-step-count]').textContent = (index + 1) + ' / ' + steps.length;
+        slider.setAttribute('aria-valuetext', s.title);
+        stepList.replaceChildren(...steps.map((step, i) => {
+          const item = el('li'), button = el('button', step.title) as HTMLButtonElement;
+          button.type = 'button'; if (i === index) button.setAttribute('aria-current', 'step');
+          button.addEventListener('click', () => { index = i; render(true); }); item.append(button); return item;
+        }));
+        if (jumpFocus) stepList.querySelector<HTMLButtonElement>('[aria-current=step]')?.focus();
+        drawCircuit(s.diagram);
+        $('[data-title]').textContent = s.title; $('[data-note]').textContent = s.note;
+        details.replaceChildren(...(s.rows ?? []).map(r => { const d = el('div'); d.append(el('dt', r.label), el('dd', r.value)); return d; }));
+        const d = s.distribution ?? (s.state ? stateDistribution(s.state) : undefined);
+        dist.hidden = shots.hidden = !d; counts.textContent = 'No shots yet.';
+        outcomes.replaceChildren(...(d?.labels ?? []).map((name, i) => {
+          const p = Math.max(0, Math.min(1, d!.p[i]));
+          const item = el('div', undefined, 'outcome'), meter = el('div', undefined, 'meter'), bar = el('i');
+          meter.setAttribute('aria-hidden', 'true'); bar.style.width = p * 100 + '%'; meter.append(bar);
+          item.append(el('span', name), el('span', s.state ? complex(s.state[i]) : ''), el('span', pct(p)), meter); return item;
+        }));
+      };
+      const update = () => {
+        try { steps = lab.run(values()); index = 0; render(); status.textContent = ''; }
+        catch { status.textContent = 'This setting could not be calculated.'; }
+      };
+      inputs.forEach(e => e.addEventListener('change', update));
+      slider.addEventListener('input', () => { index = +slider.value; render(); });
+      back.addEventListener('click', () => { if (index > 0) { index--; render(); } });
+      next.addEventListener('click', () => { if (index < steps.length - 1) { index++; render(); } });
+      $('[data-run]').addEventListener('click', () => {
+        const s = steps[index], d = s.distribution ?? (s.state ? stateDistribution(s.state) : undefined);
+        if (!d) return;
+        const n = +$<HTMLSelectElement>('[data-shot-size]').value;
+        const got = sample(d.p, n, Math.random);
+        [...outcomes.children].forEach((item,i)=>{
+          item.querySelector('.observed')?.remove();
+          const observed=el('div',undefined,'observed'),bar=el('div',undefined,'observed-track'),fill=el('i');
+          fill.style.width=got[i]/n*100+'%';bar.append(fill);bar.setAttribute('aria-hidden','true');
+          observed.append(el('span','Observed: '+got[i]+' / '+n+' ('+pct(got[i]/n)+')'),bar);
+          item.append(observed);
+        });
+        counts.textContent = n + ' shots: ' + d.labels.map((v, i) => v + ' = ' + got[i]).join('; ') + '.';
+      });
+      update();
+    }
+  }
+  if (!customElements.get('qce-gate-lab')) customElements.define('qce-gate-lab', GateLab);
+</script>
+<style>
+  qce-gate-lab { display:grid; gap:var(--s3); min-width:0 }
+  .controls, .scrubber, [data-shots] { display:flex; flex-wrap:wrap; gap:var(--s3); align-items:end }
+  label { display:grid; gap:var(--s1); color:var(--ink-2); flex:1 1 9rem; min-width:0 }
+  select { font:inherit; color:var(--ink); border:1px solid var(--rule); border-radius:var(--r); background:var(--paper); padding:var(--s2); width:100% }
+  input { width:100%; accent-color:var(--signal) }
+  .steps { display:flex; gap:var(--s2); flex-wrap:wrap; padding:0; margin:0; list-style:none }
+  .steps :global(button) { font:inherit; border:1px dotted var(--rule); padding:var(--s1) var(--s2); color:var(--ink); background:transparent; cursor:pointer; border-radius:var(--r) }
+  .steps :global([aria-current="step"]) { background:var(--signal); color:var(--on-signal); border-style:solid }
+  .diagram { overflow-x:auto; max-width:100%; color:var(--ink); border:1px solid var(--rule); border-radius:var(--r); padding:var(--s2); font-family:var(--mono) }
+  .diagram :global(svg) { display:block; max-width:none }
+  .panel { border-top:1px dotted var(--rule); padding-top:var(--s3); min-width:0; display:grid; gap:var(--s2) }
+  dl { display:grid; gap:var(--s1); margin:0 }
+  dl :global(div) { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:var(--s2); border-bottom:1px dotted var(--rule); padding:var(--s1) 0 }
+  dl :global(dd) { margin:0; overflow-wrap:anywhere; white-space:pre-wrap; font-family:var(--mono) }
+  .outcomes { display:grid; gap:var(--s2); max-height:24rem; overflow-y:auto }
+  .outcomes :global(.outcome) { display:grid; grid-template-columns:minmax(4rem,1fr) minmax(0,2fr) auto; gap:var(--s1) var(--s2); font-family:var(--mono); font-size:.85rem; align-items:center }
+  .outcomes :global(.outcome span) { overflow-wrap:anywhere }
+  .outcomes :global(.meter) { grid-column:1/-1; width:100%; height:var(--s2); background:var(--rule); border-radius:var(--r); overflow:hidden }
+  .outcomes :global(.observed) { grid-column:1/-1; display:grid; gap:var(--s1); color:var(--ink-2) }
+  .outcomes :global(.observed-track) { height:var(--s2); background:var(--rule); overflow:hidden; border-radius:var(--r) }
+  .outcomes :global(.observed-track i) { display:block; height:100%; background:var(--hot) }
+  .outcomes :global(.meter i) { display:block; height:100%; background:var(--signal) }
+  [hidden] { display:none !important }
+  .note { font-size:.875rem; color:var(--ink-2) }
+</style>

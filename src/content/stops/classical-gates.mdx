@@ -1,0 +1,33 @@
+---
+description: "A classical logic gate computes an output bit from one or more input bits using a truth table."
+answer: "A classical logic gate computes an output bit from one or more input bits using a truth table."
+myth:
+  claim: "Every logic gate can be run backward."
+  truth: "AND and OR lose information about their inputs. NOT is reversible."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/classical-gates.ts';
+
+<Depth level="kid">
+
+Imagine a lamp with two switches. An AND gate lights it only when both switches are on. An OR gate lights it when at least one is on. A NOT gate flips a single switch value.
+
+</Depth>
+
+<Depth level="student">
+
+XOR outputs 1 when its two inputs differ. NAND is NOT AND. Every Boolean function can be built from NAND gates alone: NOT(a) = NAND(a,a), and AND is NAND followed by NOT. Try all four pairs in the lab.
+
+</Depth>
+
+<Depth level="engineer">
+
+For bits $a,b$, AND is $ab$, XOR is addition modulo 2, and OR is $a+b-ab$ using ordinary integer arithmetic. NAND is $1-ab$. NAND is functionally complete: NOT and AND are expressible with NAND, and these generate all Boolean functions. A usual Boolean gate may map several inputs to one output; a quantum gate must instead be a reversible linear map on its full register.
+
+</Depth>
+
+<Lab title="Build a truth table" intro="Change the input bits and verify the same output using only NAND.">
+  <GateLab id="classical-gates" lab={lab} />
+</Lab>

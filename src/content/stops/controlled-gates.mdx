@@ -1,0 +1,33 @@
+---
+description: "A controlled-U gate applies U to its target in a chosen control branch and leaves the other branch unchanged."
+answer: "A controlled-U gate applies U to its target in a chosen control branch and leaves the other branch unchanged."
+myth:
+  claim: "Replacing U by a globally phase-shifted U never affects a controlled gate."
+  truth: "That phase becomes relative between control branches and may change interference."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/controlled-gates.ts';
+
+<Depth level="kid">
+
+A coherent switch decides which branch gets a gate. The switch itself is not read. A control in superposition can connect the two qubits.
+
+</Depth>
+
+<Depth level="student">
+
+CZ multiplies |11⟩ by −1. CY flips the target with Y instead of X. Controlled phase gates give a chosen phase to |11⟩. An open control activates on 0 instead of 1.
+
+</Depth>
+
+<Depth level="engineer">
+
+For control-on-one, $C(U)=|0\rangle\langle0|\otimes I+|1\rangle\langle1|\otimes U$. Control-on-zero conjugates by X on the control. $CZ=(I\otimes H)CX(I\otimes H)$ and $CY=(I\otimes S)CX(I\otimes S^\dagger)$. For CP, apply $P(\phi/2)$ to each wire, CNOT, $P(-\phi/2)$ on target, then CNOT. Comparing complete matrices checks the control phase as well.
+
+</Depth>
+
+<Lab title="Decompose controlled gates" intro="Choose the gate, control condition and inputs. Compare its decomposition to the direct matrix.">
+  <GateLab id="controlled-gates" lab={lab} />
+</Lab>

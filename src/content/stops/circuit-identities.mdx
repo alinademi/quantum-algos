@@ -1,0 +1,33 @@
+---
+description: "Circuit identities are replacements of gate sequences that implement the same operation, sometimes up to a stated global phase."
+answer: "Circuit identities are replacements of gate sequences that implement the same operation, sometimes up to a stated global phase."
+myth:
+  claim: "Two circuits that agree on one input are equivalent."
+  truth: "They must agree as linear maps on a complete basis, with global phase handled consistently."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/circuit-identities.ts';
+
+<Depth level="kid">
+
+Two sets of instructions can do the same job. If two flips cancel, remove them. But test the replacement on more than just one input.
+
+</Depth>
+
+<Depth level="student">
+
+H X H equals Z. Two CNOTs with identical wires cancel. A CZ gate is symmetric in its two wires. Hadamards on both wires before and after a CNOT reverse the direction of control.
+
+</Depth>
+
+<Depth level="engineer">
+
+Use $HXH=Z$, $H^2=I$, $CX^2=I$. In two-qubit notation, $(H\otimes H)CX_{0,1}(H\otimes H)=CX_{1,0}$. Equality of all matrix entries establishes equality on arbitrary superpositions and entangled inputs. Equality only up to a global phase needs care if a subcircuit is controlled.
+
+</Depth>
+
+<Lab title="Test a circuit rewrite" intro="Inspect both circuits and compare their full matrices.">
+  <GateLab id="circuit-identities" lab={lab} />
+</Lab>

@@ -1,0 +1,33 @@
+---
+description: "A multi-controlled gate activates only when all selected controls satisfy their conditions."
+answer: "A multi-controlled gate activates only when all selected controls satisfy their conditions."
+myth:
+  claim: "Adding more controls makes a single free hardware instruction."
+  truth: "An abstract multi-controlled gate must usually be decomposed; its cost depends on the available gates and scratch space."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/multi-controlled.ts';
+
+<Depth level="kid">
+
+A lock can require several keys. Only when every key is present does the target flip. Temporary helper wires can hold intermediate answers.
+
+</Depth>
+
+<Depth level="student">
+
+Compute the AND of the first controls into clean scratch wires, flip the target using the last control, then undo the scratch calculation. With three controls this needs one clean scratch and three Toffoli gates.
+
+</Depth>
+
+<Depth level="engineer">
+
+For $k$ positive controls, $C^kX|a_1\ldots a_k,t\rangle=|a_1\ldots a_k,t\oplus\prod_j a_j\rangle$. The displayed clean-ancilla ladder for $k\ge2$ uses $k-2$ ancillas and $2k-3$ Toffoli gates. This is one resource tradeoff, not an optimality statement; ancillas must start and finish in 0. With no scratch, conjugate a multi-controlled Z by H on the target. For m active wires, expand $2^{m-1}\prod_j b_j$ as an alternating sum of XORs over all nonempty subsets: the sign is positive for odd-size subsets, negative for even. Compute each parity onto an existing wire, apply a phase of $\pm\pi/2^{m-1}$, then undo the parity. This exact construction uses no ancillas but has exponentially many phase terms.
+
+</Depth>
+
+<Lab title="Add more controls" intro="Compare the direct gate, the clean-scratch ladder and the no-scratch phase ladder. Inspect costs and scratch bits.">
+  <GateLab id="multi-controlled" lab={lab} />
+</Lab>

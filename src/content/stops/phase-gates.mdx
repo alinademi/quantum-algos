@@ -1,0 +1,33 @@
+---
+description: "A phase gate changes the relative phase between |0⟩ and |1⟩ without changing their immediate Z-basis probabilities."
+answer: "A phase gate changes the relative phase between |0⟩ and |1⟩ without changing their immediate Z-basis probabilities."
+myth:
+  claim: "A phase gate does nothing because the measurement odds stay the same."
+  truth: "Relative phase can change the probabilities after a later mixing gate such as H."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/phase-gates.ts';
+
+<Depth level="kid">
+
+Two waves can have equal strength but different timing. Shift one wave, then combine them: a different pattern appears.
+
+</Depth>
+
+<Depth level="student">
+
+Z gives a phase of 180 degrees, S gives 90 degrees and T gives 45 degrees to the |1⟩ amplitude. A subsequent H tests the relative phase. On |+⟩, Z then H gives 1 with certainty.
+
+</Depth>
+
+<Depth level="engineer">
+
+The phase gate is $P(\phi)=\operatorname{diag}(1,e^{i\phi})$. $Z=P(\pi)$, $S=P(\pi/2)$, $T=P(\pi/4)$. $P(\phi)=e^{i\phi/2}R_Z(\phi)$. On $|+\rangle$, measuring after $HP(\phi)$ gives $p(0)=\cos^2(\phi/2)$ and $p(1)=\sin^2(\phi/2)$. The phase relating P and RZ is global for an unconditional gate but can matter when the operation is controlled.
+
+</Depth>
+
+<Lab title="Reveal a hidden phase" intro="Apply a phase gate, then H. Read the amplitudes and compare the measurement odds.">
+  <GateLab id="phase-gates" lab={lab} />
+</Lab>
