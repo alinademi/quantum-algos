@@ -1,9 +1,9 @@
 ---
-description: "State tomography rebuilds an unknown qubit state from many shots in three bases. Run it live: watch the error shrink and the rebuild leave the ball."
-answer: "State tomography rebuilds an unknown quantum state from many measurements on identical copies. For one qubit, measure in the X, Y and Z bases: the three average results estimate the Bloch vector, and so ρ = ½(I + xX + yY + zZ)."
+description: "State tomography rebuilds an unknown qubit state from many shots in three Pauli bases. Run it live: watch the error shrink and the rebuild leave the ball."
+answer: "State tomography rebuilds an unknown quantum state from many measurements on identical copies. For one qubit, the usual way is to measure in the X, Y and Z bases: the three average results estimate the Bloch vector, and so ρ = ½(I + xX + yY + zZ)."
 myth:
   claim: "Measure a qubit and you learn its state."
-  truth: "One measurement gives one answer, 0 or 1, and leaves the qubit in the matching state, so measuring again only repeats it. To learn an unknown state you need many identical copies, measured in several bases: three for one qubit."
+  truth: "One measurement gives one answer, 0 or 1, and leaves the qubit in the matching state, so measuring again only repeats it. To learn an unknown state you need many identical copies, measured in three bases (X, Y and Z) for one qubit, or all with one four-outcome general measurement (a POVM)."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -15,7 +15,7 @@ Picture a hidden arrow in a box. You cannot look at it. You may only ask how far
 
 A qubit's state is like that arrow. But a qubit answers only once: a measurement gives one answer, 0 or 1, and leaves the qubit matching that answer. Ask again and it just repeats itself. So a machine makes the same state again and again. You measure many copies one way, many a second way, many a third way. Each pile of answers gives one number.
 
-The numbers are never exact, because every answer is a random draw. If the real arrow touches the edge, the rebuilt one is often a little too long, longer than any real state allows. More copies only make it less too long.
+The numbers are rarely exact, because answers are random draws. If the real arrow touches the edge, the rebuilt one is often a little too long, longer than any real state allows. More copies make it less too long on average.
 
 Where the picture breaks: a real arrow can be measured exactly. Here, every number is a guess from random answers.
 
@@ -29,7 +29,7 @@ One qubit's state is a point (x, y, z) in the [Bloch ball](/learn/bloch/). Measu
 
 Example: the state started as 0, then a Hadamard gate, has (x, y, z) = (1, 0, 0). With 100 shots per basis, the X pile is all +1, but the Y and Z averages wander about 0.1 around 0. The rebuilt point is slightly off, almost always outside the ball. That is not a state: some measurement would give a negative chance. Move it to the nearest point of the ball.
 
-Only Z? Every state with the same z gives the same results, so X and Y are needed too: with only two bases, a whole line of states still matches.
+Only Z? Every state with the same z gives the same results, so X and Y are needed too: with only two bases, usually a whole line of states still matches. Three bases are needed for two-answer tests like these. One general measurement with four answers, used on many copies, can replace all three: see [general measurements](/learn/povm/).
 
 </Depth>
 
@@ -41,9 +41,9 @@ $$
 \tilde\rho = \tfrac12\,(I + \alpha_x X + \alpha_y Y + \alpha_z Z).
 $$
 
-It has trace 1, but its eigenvalues $\tfrac12(1 \pm |\vec\alpha|)$ are both nonnegative only if $|\vec\alpha| \le 1$. Near the surface, noise often pushes it outside: a negative eigenvalue, so some measurement would get a negative probability. One rounding Watrous describes sets negative eigenvalues to 0 and renormalizes. For a qubit that moves $\vec\alpha$ to $\vec\alpha/|\vec\alpha|$, the nearest point of the ball, which cannot be farther from the true state. Maximum likelihood (James et al., 2001) always returns a physical state, at the cost of numerical optimization.
+It has trace 1, but its eigenvalues $\tfrac12(1 \pm |\vec\alpha|)$ are both nonnegative only if $|\vec\alpha| \le 1$. Near the surface, noise often pushes it outside: a negative eigenvalue, so some measurement would get a negative probability. One rounding Watrous describes sets negative eigenvalues to 0 and renormalizes. For a qubit that moves $\vec\alpha$ to $\vec\alpha/|\vec\alpha|$, the nearest point of the ball, which cannot be farther from the true state. Maximum likelihood (James et al., 2001) always returns a physical state.
 
-The mean squared error of $\vec\alpha$ is $\sum_k (1 - r_k^2)/n = (3 - r^2)/n$. The [trace distance](/learn/distance-measures/) is $\tfrac12|\vec\alpha - \vec r|$, so it falls like $1/\sqrt{n}$. One basis fixes only one $r_k$; all three are needed.
+The mean squared error of $\vec\alpha$ is $\sum_k (1 - r_k^2)/n = (3 - r^2)/n$. The half trace norm of $\tilde\rho - \rho$ is $\tfrac12|\vec\alpha - \vec r|$, so it falls like $1/\sqrt{n}$. It is a [trace distance](/learn/distance-measures/) only when $\tilde\rho$ is a state. One basis fixes only one $r_k$, so three two-outcome Pauli bases are needed. One four-outcome [POVM](/learn/povm/) with $E_k = \tfrac14(I + \vec n_k\cdot\vec\sigma)$, $\vec n_k$ unit vectors to the corners of a regular tetrahedron, does it alone: $p_k = \tfrac14(1 + \vec n_k\cdot\vec r)$, so $\vec r = 3\sum_k p_k\vec n_k$.
 
 For $m$ qubits, $\rho = 2^{-m}\sum_P \operatorname{tr}(P\rho)\,P$ over $4^m$ [Pauli strings](/learn/pauli-strings/): $4^m - 1$ real numbers. If each setting measures every qubit in $X$, $Y$ or $Z$, $3^m$ settings are needed (a string with no identity needs its own) and enough. The cost is exponential; [classical shadows](/learn/classical-shadows/) predict chosen properties from fewer runs.
 

@@ -12,7 +12,7 @@ const BATCHES = [10, 100, 1000];
       <canvas class="ball" aria-hidden="true"></canvas>
       <p class="key">The faint dots only draw the Bloch ball; they are not measurements. The open ring is the true state of the source. You set it, so you can check the rebuild; a real experiment has no answer key. The large dot is the rebuilt state from your counts, with a line from the center to it. It is blue inside the ball and red outside. The square is the rebuild rounded to a state, drawn when it had to move. When a basis is not measured, the small faint dots are the states that match your numbers exactly: the data cannot choose among them. If the measured numbers alone are already outside the ball, no state matches and there are no such dots. Under the ball, each row shows the latest {SHOWN} shots in one basis: a filled dot gave +1, an open dot gave −1. Drag the ball, or use Turn, to turn it.</p>
       <canvas class="chart" aria-hidden="true"></canvas>
-      <p class="key">Each press of Run adds one pair of marks. The filled dot is the trace distance from the rounded rebuild to the true state, and the open ring is the same for the raw rebuild; they sit together when no rounding was needed. The dotted line is the typical error of the raw rebuild for this state, ½√E|α − r|². Both scales are logarithmic. With all three bases, the dotted line is straight: 100 times the shots, a 10 times smaller error.</p>
+      <p class="key">Each press of Run adds one pair of marks. The filled dot is the trace distance from the rounded rebuild (a state) to the true state. The open ring is the half trace-norm error of the raw rebuild matrix, which may not be a state; then it is not a true trace distance; the two sit together when no rounding was needed. The dotted line is the typical error of the raw rebuild for this state, ½√E|α − r|². Both scales are logarithmic. With all three bases, the dotted line is straight: 100 times the shots, a 10 times smaller error.</p>
     </div>
 
     <div class="tool-controls">
@@ -83,8 +83,8 @@ const BATCHES = [10, 100, 1000];
           <div><dt class="label">Eigenvalues of <var>ρ̃</var></dt><dd data-v="eig">none yet</dd></div>
           <div><dt class="label">Rounded point</dt><dd data-v="round">none yet</dd></div>
           <div><dt class="label">True point</dt><dd data-v="true">{vecText(v0)}</dd></div>
-          <div><dt class="label">Trace distance, rounded to true</dt><dd data-v="dist">none yet</dd></div>
-          <div><dt class="label">Typical raw error, from theory</dt><dd data-v="typ">none yet</dd></div>
+          <div><dt class="label">Trace distance, rounded state to true</dt><dd data-v="dist">none yet</dd></div>
+          <div><dt class="label">Typical raw error (half trace-norm), from theory</dt><dd data-v="typ">none yet</dd></div>
         </dl>
       </div>
 
@@ -267,7 +267,7 @@ const BATCHES = [10, 100, 1000];
           g.fillText(n === 10000 ? '10000' : String(n), px(n), T + H + 12);
         }
         g.fillText('shots per basis', L + W / 2, T + H + 26);
-        g.textAlign = 'left'; g.fillText('trace distance to the truth', L + 6, T + 6);
+        g.textAlign = 'left'; g.fillText('dot: trace distance', L + 6, T + 6); g.fillText('ring: half trace-norm, raw', L + 6, T + 19);
         // The typical error of the raw rebuild: dotted, from theory.
         const ch3 = chosen.some(Boolean) ? chosen : ([true, true, true] as Chosen);
         for (let i = 0; i <= 160; i++) {

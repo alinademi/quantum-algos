@@ -154,7 +154,12 @@ export const traceDistance = (a: Vec3, b: Vec3): number => len([a[0] - b[0], a[1
 export const expectedSqError = (v: Vec3, n: Vec3, chosen: Chosen): number =>
   [0, 1, 2].reduce((t, k) => t + (chosen[k] ? (1 - v[k] * v[k]) / n[k] : v[k] * v[k]), 0);
 
-/** Typical (root mean square) trace distance of the unrounded rebuild: ½√E|α − r|². */
+/** Chart and readout labels. The raw matrix may have a negative eigenvalue, so ½tr|ρ̃ − ρ| for it is a half trace-norm error,
+ *  not an operational trace distance; the rounded rebuild is a state, so there it is the trace distance. */
+export const RAW_ERROR_LABEL = 'half trace-norm error (raw matrix, may not be a state)';
+export const STATE_ERROR_LABEL = 'trace distance';
+
+/** Typical (root mean square) half trace-norm error of the unrounded rebuild: ½√E|α − r|². */
 export const rmsError = (v: Vec3, n: Vec3, chosen: Chosen): number => Math.sqrt(expectedSqError(v, n, chosen)) / 2;
 
 /** Same shots n in every chosen basis. */
@@ -256,6 +261,9 @@ export function describe(t: Truth, chosen: Chosen, tally: Tally): string {
       ? `${missing.join(' and ')} not measured: counted as 0 here, but any value that stays in the ball matches the data equally well.`
       : `${missing.join(' and ')} not measured. Even with the missing ${missing.length > 1 ? 'values' : 'value'} at 0 the point is outside the ball, so no state matches these numbers exactly.`);
   }
-  parts.push(`True Bloch vector ${vecText(v)}. Trace distance from the rebuilt state to the truth: ${dist(traceDistance(roundVec(a), v))}.`);
+  const raw = isState(a)
+    ? `Trace distance from the rebuilt state to the truth: ${dist(traceDistance(a, v))}.`
+    : `Trace distance from the rounded state to the truth: ${dist(traceDistance(roundVec(a), v))}. The raw matrix is not a state, so its error is a ${RAW_ERROR_LABEL.replace(' (raw matrix, may not be a state)', '')}: ${dist(traceDistance(a, v))}.`;
+  parts.push(`True Bloch vector ${vecText(v)}. ${raw}`);
   return parts.join(' ');
 }

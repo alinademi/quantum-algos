@@ -413,6 +413,10 @@ test('every readout names the start state, and says what happened', () => {
   assert.ok(s.includes('100 shots in each of X, Y and Z (300 copies in all)'));
   assert.ok(s.includes('Trace distance'));
   assert.ok(s.includes('not a state'), 'started as |+⟩ with finite shots, X is always +1, so the rebuild leaves the ball');
+  // E4: a raw matrix that is not a state has a half trace-norm error, not a trace distance; the rounded state has the trace distance.
+  assert.ok(s.includes('Trace distance from the rounded state'));
+  assert.ok(s.includes('half trace-norm error'));
+  assert.ok(s.includes('is not a state, so its error is a'));
   assert.ok(t.describe(plusT, [false, false, false], t.emptyTally()).includes('at least one basis'));
   const partial = t.describe(plusT, [true, false, true], t.addShots(t.addShots(t.emptyTally(), 0, t.shoot(v, 0, 10, rand)), 2, t.shoot(v, 2, 10, rand)));
   assert.ok(partial.includes('Y not measured'));
@@ -436,4 +440,40 @@ test('the state names are right for a pure state, a pole and a mixed state', () 
   assert.ok(t.stateName({ theta: 100, phi: 30, r: 100 }).includes('θ = 100°, φ = 30°'));
   assert.ok(!t.stateName({ theta: 180, phi: 30, r: 100 }).includes('φ'.concat(' =')));
   assert.ok(t.stateName({ theta: 40, phi: 10, r: 45 }).includes('Bloch length 0.45'));
+});
+
+test('E4 labels: the raw error is a half trace-norm error, the rounded state error a trace distance', () => {
+  assert.equal(t.RAW_ERROR_LABEL, 'half trace-norm error (raw matrix, may not be a state)');
+  assert.equal(t.STATE_ERROR_LABEL, 'trace distance');
+  // A raw vector outside the ball: ρ̃ − ρ = ½ Δr·σ has eigenvalues ±½|Δr|, so ½tr|ρ̃ − ρ| = ½|Δr| (exact, here 3-4-5: Δr = (0.6, 0.8, 0) gives 0.5).
+  close(t.traceDistance([1.6, 0.8, 0], [1, 0, 0]), 0.5);
+  // The same number is the true trace distance only when both are states; the rounded rebuild is one.
+  assert.ok(t.isState(t.roundVec([1.6, 0.8, 0])));
+  assert.ok(!t.isState([1.6, 0.8, 0]));
+  // When the rebuild is already a state, the readout says trace distance for it and does not mention a raw error.
+  const inside = t.describe(t.PRESETS[1].t, ALL, t.addShots(t.addShots(t.addShots(t.emptyTally(), 0, [1, 1]), 1, [1, -1]), 2, [1, -1]));
+  assert.ok(inside.includes('That is a state, inside the ball'));
+  assert.ok(inside.includes('Trace distance from the rebuilt state'));
+  assert.ok(!inside.includes('half trace-norm'));
+});
+
+test('one four-outcome tetrahedral POVM does tomography alone: p_k = (1 + n_k·r)/4 and r = 3 Σ p_k n_k', () => {
+  const s = 1 / Math.sqrt(3);
+  const n: Vec3[] = [[s, s, s], [s, -s, -s], [-s, s, -s], [-s, -s, s]];
+  // Build E_k and ρ as matrices from I, X, Y, Z, so the check does not reuse the formula it tests.
+  const comb = (w: number[]): q.Matrix => q.I.map((row, i) => row.map((_, j) => [q.I, q.X, q.Y, q.Z].reduce((t, m, k) => q.add(t, q.scale(m[i][j], w[k])), q.c(0))));
+  const E = n.map((v) => comb([0.25, v[0] / 4, v[1] / 4, v[2] / 4]));
+  const sumE = E.reduce((a, m) => a.map((row, i) => row.map((x, j) => q.add(x, m[i][j]))));
+  q.I.forEach((row, i) => row.forEach((x, j) => { close(sumE[i][j].re, x.re); close(sumE[i][j].im, x.im); }));
+  closeVec(n.reduce((a, v) => [a[0] + v[0], a[1] + v[1], a[2] + v[2]], [0, 0, 0]), [0, 0, 0]);
+  for (const r of STATES) {
+    const rho = comb([0.5, r[0] / 2, r[1] / 2, r[2] / 2]);
+    const pm = E.map((e) => { const m = q.matMul(e, rho); return m[0][0].re + m[1][1].re; });
+    close(pm.reduce((a, b) => a + b, 0), 1);
+    closeVec(pm, n.map((v) => (1 + v[0] * r[0] + v[1] * r[1] + v[2] * r[2]) / 4));
+    const p = n.map((v) => (1 + v[0] * r[0] + v[1] * r[1] + v[2] * r[2]) / 4);
+    close(p.reduce((a, b) => a + b, 0), 1);
+    assert.ok(p.every((x) => x >= -1e-12), 'every chance is nonnegative for a state');
+    closeVec([0, 1, 2].map((k) => 3 * p.reduce((a, x, i) => a + x * n[i][k], 0)), r);
+  }
 });
