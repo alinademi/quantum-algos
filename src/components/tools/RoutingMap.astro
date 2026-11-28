@@ -49,10 +49,10 @@ import { lab } from '../../lib/sims/qubit-routing.ts';
   customElements.define('qce-routing-map',RoutingMap);
 </script>
 <style>
-  qce-routing-map{display:grid;gap:var(--s3)}
+  qce-routing-map{display:grid;gap:var(--s3);min-width:0}
   .controls{display:flex;flex-wrap:wrap;align-items:end;gap:var(--s2)}
   label{display:grid;flex:1 1 7rem;gap:var(--s1);min-width:0}
-  select,input{min-height:2.75rem;font:inherit;color:var(--ink);background:var(--paper)}
+  select,input{min-width:0;max-width:100%;min-height:2.75rem;font:inherit;color:var(--ink);background:var(--paper)}
   canvas{width:100%;height:10rem}
   .note{font-size:.875rem;color:var(--ink-2)}
 </style>
