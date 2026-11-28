@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
 import {
   BAND, EDGE, LAMBDA, SCREEN, SPACING_UM, WIDTH,
-  beta, binOf, binProbs, chance, chanceMax, describe, integrate, mm, paths, phaseGap, rate, sampleY, sinc, spread, stripeGap,
+  beta, binOf, binProbs, intensity, intensityMax, describe, integrate, mm, paths, phaseGap, rate, sampleY, sinc, spread, stripeGap,
 } from './double-slit.ts';
 
 const close = (a: number, b: number, eps = 1e-12) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b}`);
@@ -71,34 +71,34 @@ test('a phase on both paths (global phase) changes nothing', () => {
 test('Born rule, no mark: chance is |psi1 + psi2|^2, the amplitudes add', () => {
   for (const d of [0.04, 0.1, 0.2]) for (const y of ys) {
     const [a, b] = paths(y, d);
-    close(chance(y, d, 1), q.abs2(q.add(a, b)));
+    close(intensity(y, d, 1), q.abs2(q.add(a, b)));
   }
 });
 
 test('Born rule, full mark: chance is |psi1|^2 + |psi2|^2, the chances add', () => {
   for (const d of [0.04, 0.1, 0.2]) for (const y of ys) {
     const [a, b] = paths(y, d);
-    close(chance(y, d, 0), q.abs2(a) + q.abs2(b));
+    close(intensity(y, d, 0), q.abs2(a) + q.abs2(b));
   }
 });
 
 test('closed form matches OpenStax eq. 4.4 times two-slit fringes: 2 sinc^2(pi a y/lambda L) cos^2(pi d y/lambda L)', () => {
   for (const d of [0.04, 0.1, 0.2]) for (const y of ys) {
     const p = (Math.PI * y) / (LAMBDA * SCREEN);
-    close(chance(y, d, 1), 2 * sinc(p * WIDTH) ** 2 * Math.cos(p * d) ** 2);
+    close(intensity(y, d, 1), 2 * sinc(p * WIDTH) ** 2 * Math.cos(p * d) ** 2);
   }
 });
 
-test('chance never goes above chanceMax, so the rejection sampler is exact', () => {
+test('intensity never goes above intensityMax, so the rejection sampler is exact', () => {
   for (const g of [0, 0.4, 1]) for (const d of [0.04, 0.1, 0.2]) for (const y of ys) {
-    const p = chance(y, d, g);
-    assert.ok(p >= -1e-15 && p <= chanceMax(g) + 1e-12);
+    const p = intensity(y, d, g);
+    assert.ok(p >= -1e-15 && p <= intensityMax(g) + 1e-12);
   }
-  close(chance(0, 0.1, 1), chanceMax(1)); close(chance(0, 0.1, 0), chanceMax(0));
+  close(intensity(0, 0.1, 1), intensityMax(1)); close(intensity(0, 0.1, 0), intensityMax(0));
 });
 
 test('the pattern is mirror symmetric: P(-y) = P(y)', () => {
-  for (const g of [0, 1]) for (const y of ys) close(chance(-y, 0.13, g), chance(y, 0.13, g));
+  for (const g of [0, 1]) for (const y of ys) close(intensity(-y, 0.13, g), intensity(y, 0.13, g));
 });
 
 // ---- Stripes
@@ -107,7 +107,7 @@ test('bright stripes sit at y = m lambda L / d, so the gap is lambda L / d (Open
   close(stripeGap(0.1), 5, 1e-9); close(stripeGap(0.2), 2.5, 1e-9); close(stripeGap(0.04), 12.5, 1e-9);
   for (const d of spacings) for (let m = -3; m <= 3; m++) {
     const y = m * stripeGap(d);
-    close(chance(y, d, 1), 2 * sinc(beta(y)) ** 2, 1e-9); // cos^2 = 1: the two paths arrive in phase
+    close(intensity(y, d, 1), 2 * sinc(beta(y)) ** 2, 1e-9); // cos^2 = 1: the two paths arrive in phase
   }
 });
 
@@ -118,7 +118,7 @@ test('closer slits make wider stripes: the gap shrinks as d grows', () => {
 test('dark stripes: halfway between bright ones the amplitudes cancel and the chance is zero', () => {
   for (const d of spacings) for (let m = -3; m < 3; m++) {
     const y = (m + 0.5) * stripeGap(d), [a, b] = paths(y, d);
-    assert.ok(chance(y, d, 1) < 1e-20, `d=${d} m=${m}`);
+    assert.ok(intensity(y, d, 1) < 1e-20, `d=${d} m=${m}`);
     if (Math.abs(y) < BAND) assert.ok(q.abs2(a) > 1e-3 && q.abs2(b) > 1e-3); // in the middle band, each path alone does reach this spot
   }
 });
@@ -130,21 +130,34 @@ test('more ways, lower chance: with amplitudes 1/2 and -1/2 the spot gets 0, one
 });
 
 test('OpenStax Example 4.4: d = 0.20 mm, a = 0.020 mm gives 19 bright stripes in the middle band, m = 10 and 20 missing', () => {
-  const d = 0.2, top = chance(0, d, 1);
+  const d = 0.2, top = intensity(0, d, 1);
   let bright = 0;
   for (let m = -30; m <= 30; m++) {
     const y = m * stripeGap(d);
-    if (Math.abs(y) < BAND - 1e-9 && chance(y, d, 1) > 1e-6 * top) bright++;
+    if (Math.abs(y) < BAND - 1e-9 && intensity(y, d, 1) > 1e-6 * top) bright++;
   }
   assert.equal(bright, 19);
-  for (const m of [10, -10, 20]) assert.ok(chance(m * stripeGap(d), d, 1) < 1e-20, `m=${m}`);
+  for (const m of [10, -10, 20]) assert.ok(intensity(m * stripeGap(d), d, 1) < 1e-20, `m=${m}`);
 });
 
 test('OpenStax Example 4.3: d = 3a, the m = 1 stripe has 0.684 of the center, m = 3 is missing', () => {
   const d = 3 * WIDTH;
-  close(chance(stripeGap(d), d, 1) / chance(0, d, 1), 0.684, 5e-4);
-  close(chance(stripeGap(d), d, 1) / chance(0, d, 1), sinc(Math.PI / 3) ** 2, 1e-12);
-  assert.ok(chance(3 * stripeGap(d), d, 1) < 1e-20);
+  close(intensity(stripeGap(d), d, 1) / intensity(0, d, 1), 0.684, 5e-4);
+  close(intensity(stripeGap(d), d, 1) / intensity(0, d, 1), sinc(Math.PI / 3) ** 2, 1e-12);
+  assert.ok(intensity(3 * stripeGap(d), d, 1) < 1e-20);
+});
+
+test('intensity is relative, not a probability: it peaks at 2, while the strip chances sum to 1', () => {
+  close(intensity(0, 0.1, 1), 2);
+  assert.ok(intensity(0, 0.1, 1) > 1);
+  close(binProbs(0.1, 1, 51).reduce((t, p) => t + p, 0), 1, 1e-12);
+});
+
+test('stripeGap marks nominal stripe positions: the one-slit band pulls the true peak toward the center', () => {
+  for (const d of [0.04, 0.06, 0.1, 0.2]) {
+    const g = stripeGap(d);
+    assert.ok(intensity(g * 0.998, d, 1) > intensity(g, d, 1), `d=${d}`);
+  }
 });
 
 // ---- Marking the slit
@@ -152,21 +165,21 @@ test('OpenStax Example 4.3: d = 3a, the m = 1 stripe has 0.684 of the center, m 
 test('full mark: no stripes; the pattern is the one-slit band and does not depend on d', () => {
   for (const y of ys) {
     const band = sinc(beta(y)) ** 2;
-    for (const d of spacings) close(chance(y, d, 0), band);
+    for (const d of spacings) close(intensity(y, d, 0), band);
   }
 });
 
 test('with a marker of real overlap g: P(y) = sinc^2(beta) (1 + g cos phi), as on the engineer page', () => {
   for (const g of [0, 0.3, 0.8, 1]) for (const d of [0.04, 0.1, 0.2]) for (const y of ys) {
-    close(chance(y, d, g), sinc(beta(y)) ** 2 * (1 + g * Math.cos(phaseGap(y, d))));
+    close(intensity(y, d, g), sinc(beta(y)) ** 2 * (1 + g * Math.cos(phaseGap(y, d))));
   }
 });
 
 test('stripe contrast equals the overlap <m1|m2>: P / sinc^2 runs from 1 - overlap to 1 + overlap', () => {
   const d = 0.1;
   for (const g of [0, 0.25, 0.5, 1]) {
-    const hi = chance(0, d, g) / sinc(beta(0)) ** 2;
-    const yd = stripeGap(d) / 2, lo = chance(yd, d, g) / sinc(beta(yd)) ** 2;
+    const hi = intensity(0, d, g) / sinc(beta(0)) ** 2;
+    const yd = stripeGap(d) / 2, lo = intensity(yd, d, g) / sinc(beta(yd)) ** 2;
     close(hi, 1 + g, 1e-12); close(lo, 1 - g, 1e-12);
     close((hi - lo) / (hi + lo), g, 1e-12);
   }
@@ -210,7 +223,7 @@ test('sampleY keeps a point with chance P(y) / max: an exact dark spot is never 
   // First try: the dark stripe at 2.5 mm (P = 0) is thrown away even with a tiny draw. Second try: the center (P = max) is kept.
   assert.equal(sampleY(0.1, 1, script([u(2.5), 1e-9, u(0), 0.999])), 0);
   // With a full mark the same spot has P = sinc^2(0.1 pi) = 0.968 of the max, so a draw of 0.9 keeps it.
-  close(chance(2.5, 0.1, 0), sinc(0.1 * Math.PI) ** 2, 1e-12);
+  close(intensity(2.5, 0.1, 0), sinc(0.1 * Math.PI) ** 2, 1e-12);
   close(sampleY(0.1, 0, script([u(2.5), 0.9])), 2.5, 1e-9);
 });
 
@@ -263,7 +276,7 @@ test('readout: no mark names the stripe gap from stripeGap; a mark says the stri
   assert.equal(mm(0.1, 2), '0.10 mm'); assert.equal(mm(stripeGap(0.07), 1), '7.1 mm');
   for (const d of spacings) {
     const free = describe(d, false), marked = describe(d, true);
-    assert.ok(free.includes(`Slits ${d.toFixed(2)} mm apart`) && free.includes(`stripes ${stripeGap(d).toFixed(1)} mm apart`), free);
+    assert.ok(free.includes(`Slits ${d.toFixed(2)} mm apart`) && free.includes(`stripes about ${stripeGap(d).toFixed(1)} mm apart`), free);
     assert.ok(free.includes('cancel') && !free.includes('vanish'));
     assert.ok(marked.includes('stripes vanish') && marked.includes('one slit alone') && !marked.includes(' mm apart:'));
   }

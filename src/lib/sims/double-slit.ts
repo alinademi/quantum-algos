@@ -25,7 +25,7 @@ export const beta = (y: number): number => (Math.PI * WIDTH * y) / (LAMBDA * SCR
 /** Phase gap between the two paths at screen point y: 2 pi (path difference d y / L) / lambda. */
 export const phaseGap = (y: number, d: number): number => (2 * Math.PI * d * y) / (LAMBDA * SCREEN);
 
-/** Gap between bright stripes on the screen: lambda L / d, from d y / L = m lambda. */
+/** Nominal gap between bright stripes: lambda L / d, from d y / L = m lambda. These are the peaks of the cos^2 factor; the one-slit band can shift the true maxima a little. */
 export const stripeGap = (d: number): number => (LAMBDA * SCREEN) / d;
 
 /**
@@ -40,18 +40,18 @@ export function paths(y: number, d: number): [C, C] {
 }
 
 /**
- * Chance density at screen point y, up to one constant factor (the same for every y).
+ * Relative intensity at screen point y, up to one constant factor (the same for every y). It is not a probability: it peaks at 2, and a point has a probability density, not a chance.
  * A marker at the slits ends in state |m1> or |m2>; overlap = <m1|m2>, a real number from 0 to 1.
  * P(y) = |psi1|^2 + |psi2|^2 + 2 Re(conj(psi1) psi2) <m1|m2>.
  * overlap 1: no record, so this is |psi1 + psi2|^2. overlap 0: a full record, so this is |psi1|^2 + |psi2|^2.
  */
-export function chance(y: number, d: number, overlap = 1): number {
+export function intensity(y: number, d: number, overlap = 1): number {
   const [a, b] = paths(y, d);
   return abs2(a) + abs2(b) + 2 * overlap * mul(conj(a), b).re;
 }
 
-/** The largest value chance() can take: sinc^2 <= 1 and 1 + overlap cos(phi) <= 1 + overlap. */
-export const chanceMax = (overlap = 1): number => 1 + overlap;
+/** The largest value intensity() can take: sinc^2 <= 1 and 1 + overlap cos(phi) <= 1 + overlap. */
+export const intensityMax = (overlap = 1): number => 1 + overlap;
 
 /** Simpson's rule for f on [lo, hi] with n (even) steps. */
 export function integrate(f: (y: number) => number, lo: number, hi: number, n = 64): number {
@@ -64,10 +64,10 @@ export function integrate(f: (y: number) => number, lo: number, hi: number, n = 
 /** Which of `bins` equal strips of the shown screen holds point y. */
 export const binOf = (y: number, bins: number): number => Math.min(bins - 1, Math.max(0, Math.floor(((y + EDGE) / (2 * EDGE)) * bins)));
 
-/** Chance that a photon which lands on the shown screen lands in each strip. Sums to 1. */
+/** Chance that a photon, given that it lands on the shown screen, lands in each strip. Sums to 1. */
 export function binProbs(d: number, overlap: number, bins: number): number[] {
   const w = (2 * EDGE) / bins;
-  const raw = Array.from({ length: bins }, (_, i) => integrate((y) => chance(y, d, overlap), -EDGE + i * w, -EDGE + (i + 1) * w, 16));
+  const raw = Array.from({ length: bins }, (_, i) => integrate((y) => intensity(y, d, overlap), -EDGE + i * w, -EDGE + (i + 1) * w, 16));
   const total = raw.reduce((t, p) => t + p, 0);
   return raw.map((p) => p / total);
 }
@@ -77,10 +77,10 @@ export function binProbs(d: number, overlap: number, bins: number): number[] {
  * Rejection sampling: pick a point evenly, keep it with chance P(y) / max. Exact, with no grid.
  */
 export function sampleY(d: number, overlap: number, rand: () => number): number {
-  const top = chanceMax(overlap);
+  const top = intensityMax(overlap);
   for (;;) {
     const y = (rand() * 2 - 1) * EDGE;
-    if (rand() * top < chance(y, d, overlap)) return y;
+    if (rand() * top < intensity(y, d, overlap)) return y;
   }
 }
 
@@ -107,5 +107,5 @@ export function describe(d: number, marked: boolean, landed?: number): string {
   const count = landed === undefined ? '' : `${landed.toLocaleString('en')} photon${landed === 1 ? '' : 's'} so far. `;
   return count + (marked
     ? `Slits ${mm(d, 2)} apart, and a marker records which slit each photon takes. The two paths can now be told apart, so their chances add, not their amplitudes. Nothing cancels, so the stripes vanish. What is left is the pattern of one slit alone: a broad band.`
-    : `Slits ${mm(d, 2)} apart, and nothing records which slit each photon takes. The amplitudes for the two paths add, so they build up in some places and cancel in others: bright stripes ${mm(stripeGap(d), 1)} apart.`);
+    : `Slits ${mm(d, 2)} apart, and nothing records which slit each photon takes. The amplitudes for the two paths add, so they build up in some places and cancel in others: bright stripes about ${mm(stripeGap(d), 1)} apart.`);
 }
