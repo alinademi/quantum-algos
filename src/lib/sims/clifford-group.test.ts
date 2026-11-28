@@ -14,3 +14,5 @@ test('Clifford conjugation maps to signed Paulis; T does not preserve X or Y',()
 });
 
 test('Bell preparation creates entanglement while preserving the signed Pauli group',async()=>{const {lab}=await import('./clifford-group.ts');const steps=lab.run({g:'Bell preparation',p:'ZI'});assert.equal(steps[2].rows![0].value,'1');for(const [i,a] of steps[2].state!.entries())assert.ok(q.abs(q.sub(a,q.c(i===0||i===3?Math.SQRT1_2:0)))<1e-9);assert.equal(conjugate('Bell preparation','ZI'),'XX');assert.equal(conjugate('Bell preparation','IZ'),'ZZ');});
+
+test('conjugating XI by T produces the actual non-Pauli matrix, not just a label',async()=>{const {conjugatedMatrix}=await import('./clifford-group.ts');const x=q.kron(q.X,q.I),y=q.kron(q.Y,q.I);matrix(conjugatedMatrix('T','XI'),x.map((r,i)=>r.map((z,j)=>q.scale(q.add(z,y[i][j]),Math.SQRT1_2))));});

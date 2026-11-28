@@ -18,7 +18,7 @@ Imagine a toolkit that changes a fixed set of direction markings without inventi
 
 <Depth level="student">
 
-[Clifford gates](/learn/gottesman-knill/) map [Pauli strings](/learn/pauli-strings/) to signed Pauli strings when conjugating them. [H](/learn/hadamard/) exchanges X and Z and sends Y to −Y. S sends X to Y and Y to −X. [CNOT](/learn/cnot/) spreads X on the control to XX and Z on the target to ZZ. H, S and CNOT generate all Clifford operations up to global phase. T is outside this set: it sends X halfway between X and Y rather than to one signed Pauli. Although Clifford circuits can entangle qubits into Bell states, the signed-Pauli rule makes an important class of circuits efficient to simulate.
+[Clifford gates](/learn/gottesman-knill/) map [Pauli strings](/learn/pauli-strings/) to signed Pauli strings when conjugating them: apply the gate backward, then the Pauli, then the gate forward. [H](/learn/hadamard/) exchanges X and Z and sends Y to −Y. S sends X to Y and Y to −X. [CNOT](/learn/cnot/) spreads X on the control to XX and Z on the target to ZZ. H, S and CNOT generate all Clifford operations up to global phase. T is outside this set: it sends X halfway between X and Y rather than to one signed Pauli. Although Clifford circuits can entangle qubits into Bell states, the signed-Pauli rule makes an important class of circuits efficient to simulate.
 
 </Depth>
 
@@ -30,6 +30,6 @@ For the [phase gate](/learn/phase-gates/) S, conjugation maps X to Y, Y to −X 
 
 </Depth>
 
-<Lab title="Check conjugation" intro="Prepare a Bell pair or choose one gate, then inspect concurrence and the mapping of every two-qubit Pauli.">
+<Lab title="Check conjugation" intro="From 00, prepare a Bell pair. Choose T and XI to see the non-Pauli matrix, then inspect the mappings of all 16 strings.">
   <GateLab id="clifford-group" lab={lab} />
 </Lab>
