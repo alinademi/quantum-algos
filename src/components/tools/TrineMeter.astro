@@ -1,0 +1,296 @@
+---
+// Measures fresh copies of one qubit state with a standard 0/1 measurement, with the three-outcome trine measurement,
+// or with a standard three-way measurement of a bigger system that gives the same chances. Every chance is the Born rule
+// from sims/povm.ts, where the trine is checked to be a POVM and the bigger system is checked against Naimark's theorem.
+import { ANGLE, MODES, NAMES, OUTCOMES, BATCH, chances, chanceTexts, describe, partsText, stateText, valueText } from '../../lib/sims/povm.ts';
+const uid = 'tm-' + Math.random().toString(36).slice(2, 8);
+const start = chanceTexts(chances('standard', ANGLE.start));
+const names = ['A', 'B', 'C'];
+const presets = [
+  { deg: 0, said: 'the state |0⟩' },
+  { deg: 30, said: 'in the trine, outcome B never happens' },
+  { deg: 45, said: 'the state |+⟩' },
+  { deg: 90, said: 'the state |1⟩, in the trine outcome A never happens' },
+  { deg: 150, said: 'in the trine, outcome C never happens' },
+];
+---
+<qce-trine-meter class="tool">
+  <canvas aria-hidden="true"></canvas>
+
+  <dl class="odds">
+    {[0, 1, 2].map((k) => (
+      <div data-k={k} hidden={k === 2}>
+        <dt>Outcome <span data-name={k}>{OUTCOMES.standard[k] ?? names[k]}</span></dt>
+        <dd><b class="doto" data-p={k}>{start[k]}</b><span class="visually-hidden">. </span><span data-a={k}></span><span data-n={k}></span></dd>
+      </div>
+    ))}
+  </dl>
+
+  <div class="panel">
+    <div class="angle">
+      <div class="row"><label for={`${uid}-g`}>State: angle from |0⟩ toward |1⟩</label><output for={`${uid}-g`}>{ANGLE.start}°</output></div>
+      <input id={`${uid}-g`} type="range" min={ANGLE.min} max={ANGLE.max} step="1" value={ANGLE.start} aria-valuetext={valueText(ANGLE.start)} />
+      <p class="hint" data-state>|ψ⟩ = {stateText(ANGLE.start)}</p>
+      <div class="presets" role="group" aria-label="Set the angle">
+        {presets.map(({ deg, said }) => (
+          <button type="button" data-g={deg} aria-pressed={String(deg === ANGLE.start)}>{deg}°<span class="visually-hidden">, {said}</span></button>
+        ))}
+      </div>
+    </div>
+
+    <fieldset>
+      <legend class="label">Measurement</legend>
+      <div class="chips">
+        {MODES.map((m) => (
+          <label><input type="radio" name={`${uid}-m`} value={m} checked={m === 'standard'} />{NAMES[m]}</label>
+        ))}
+      </div>
+      <button class="btn btn-sm" type="button" data-new>New batch of {BATCH}</button>
+    </fieldset>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">{describe('standard', ANGLE.start, null)}</p>
+  <p class="note" data-parts>{partsText('standard')}</p>
+  <p class="note">Each dot is one shot: a fresh qubit that started in the state you set, measured once, its outcome drawn at random by the Born rule. A batch is 300 shots. Each dot keeps its own random draw, so changing the state or the measurement moves dots between piles instead of re-rolling them. Switching between the trine and the bigger system moves none, because their chances are the same. The dashed line on each pile marks shots × chance. Percents are rounded.</p>
+  <p class="note">In the picture, the solid arrow is the state and the dotted lines are the directions of the parts, with a ring where the arrow's shadow falls on each line. For the trine, the chance of an outcome is 2/3 times the squared length of that shadow, when the arrow has length 1. In the bigger system, the amplitude is √(2/3) times that signed length (the bars), and the chance is the amplitude squared. The tool reaches only real amplitudes, one plane of states (one great circle of the Bloch sphere). The parts and the chances work for every qubit state, only this picture is limited. Ideal qubits, no noise.</p>
+</qce-trine-meter>
+
+<script>
+  import { ANGLE, BATCH, OUTCOMES, chances, qutritAmps, parts, foot, batch, outcome, tally, grid, describe, partsText, stateText, valueText, chanceTexts, signed, type Mode } from '../../lib/sims/povm.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  const TAU = Math.PI * 2, RAD = Math.PI / 180;
+  /** Time, in ms, for a new batch to land, one dot after another. */
+  const REVEAL = 900;
+  /** Height of the amplitude bars above the piles, in px, when the bigger system is shown. */
+  const STRIP = 66;
+  /** The biggest amplitude of the bigger system: sqrt(2/3). */
+  const AMAX = Math.sqrt(2 / 3);
+  type Pal = ReturnType<typeof palette>;
+
+  class TrineMeter extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const canvas = $<HTMLCanvasElement>('canvas'), readout = $('.tool-readout'), partsEl = $('[data-parts]');
+      const range = $<HTMLInputElement>('input[type="range"]'), out = $('output'), hint = $('[data-state]');
+      const presets = [...this.querySelectorAll<HTMLButtonElement>('[data-g]')];
+      const radios = [...this.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+      const again = $<HTMLButtonElement>('[data-new]');
+      const ctx = canvas.getContext('2d')!;
+
+      let deg = ANGLE.start, mode: Mode = 'standard';
+      let shots: number[] = batch(Math.random), shown = 0;
+      let W = 0, Hh = 0, raf = 0, t0 = 0, seen = false, started = false;
+
+      // ---- Words and controls
+
+      const p = () => chances(mode, deg);
+      const counts = () => tally(shots, p(), shown);
+      /** Speak only on release, a press or the end of a batch: not on every slider step. */
+      const say = () => { readout.textContent = describe(mode, deg, shown === BATCH ? counts() : null); };
+      const update = () => {
+        range.value = String(deg);
+        out.textContent = `${deg}°`;
+        range.setAttribute('aria-valuetext', valueText(deg));
+        hint.textContent = `|ψ⟩ = ${stateText(deg)}`;
+        presets.forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.g! === deg)));
+        partsEl.textContent = partsText(mode);
+        const names = OUTCOMES[mode], t = chanceTexts(p()), n = counts(), amps = mode === 'bigger' ? qutritAmps(deg) : null;
+        for (let k = 0; k < 3; k++) {
+          $<HTMLElement>(`[data-k="${k}"]`).hidden = k >= names.length;
+          if (k >= names.length) continue;
+          $(`[data-name="${k}"]`).textContent = names[k];
+          $(`[data-p="${k}"]`).textContent = t[k];
+          $(`[data-a="${k}"]`).textContent = amps ? `amplitude ${signed(amps[k])}` : '';
+          $(`[data-n="${k}"]`).textContent = shown ? `${n[k]} of ${shown} shots` : '';
+        }
+        draw();
+      };
+
+      range.addEventListener('input', () => { deg = +range.value; update(); });
+      range.addEventListener('change', say);
+      presets.forEach((b) => b.addEventListener('click', () => { deg = +b.dataset.g!; update(); say(); }));
+      radios.forEach((r) => r.addEventListener('change', () => { if (r.checked) { mode = r.value as Mode; update(); say(); } }));
+      again.addEventListener('click', () => run());
+
+      // ---- A batch lands, one dot after another
+
+      const step = (now: number) => {
+        raf = 0;
+        shown = Math.min(BATCH, Math.max(shown, Math.ceil(((now - t0) / REVEAL) * BATCH)));
+        update();
+        if (shown < BATCH) { if (seen) raf = requestAnimationFrame(step); }
+        else say();
+      };
+      const kick = () => {
+        if (raf || !seen || shown >= BATCH) return;
+        t0 = performance.now() - (shown / BATCH) * REVEAL;
+        raf = requestAnimationFrame(step);
+      };
+      const run = () => {
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        shots = batch(Math.random);
+        if (reduceMotion()) { shown = BATCH; update(); say(); return; }
+        shown = 0; update(); kick();
+      };
+
+      // ---- Drawing
+
+      const text = (s: string, x: number, y: number, C: Pal, color: string, font: string, align: CanvasTextAlign = 'center') => {
+        ctx.font = font; ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+        ctx.lineWidth = 4; ctx.strokeStyle = C.plate; ctx.strokeText(s, x, y);
+        ctx.fillStyle = color; ctx.fillText(s, x, y);
+      };
+      /** A line of dots from (x0, y0) to (x1, y1). */
+      const dotted = (x0: number, y0: number, x1: number, y1: number, r: number, color: string, gap = 5) => {
+        const n = Math.max(2, Math.round(Math.hypot(x1 - x0, y1 - y0) / gap));
+        for (let k = 0; k <= n; k++) dot(ctx, x0 + ((x1 - x0) * k) / n, y0 + ((y1 - y0) * k) / n, r, color);
+      };
+
+      const draw = () => {
+        if (!W) return;
+        const C = palette(), mono = token('--mono');
+        ctx.clearRect(0, 0, W, Hh);
+        const side = W >= 1.35 * Hh;
+        const pw = side ? Math.round(W * 0.4) : W, ph = side ? Hh : Math.min(Math.round(W * 0.8), 250);
+        picture(0, 0, pw, ph, C, mono);
+        piles(side ? pw + 12 : 0, side ? 0 : ph + 4, side ? W - pw - 12 : W, side ? Hh : Hh - ph - 4, C, mono);
+      };
+
+      const picture = (bx: number, by: number, bw: number, bh: number, C: Pal, mono: string) => {
+        const R = Math.max(30, Math.min((bh - 56) / 2, (bw - 64) / 2));
+        const cx = bx + bw / 2, cy = by + bh / 2;
+        const at = (a: number, r: number): [number, number] => [cx + r * Math.cos(a * RAD), cy - r * Math.sin(a * RAD)];
+
+        // The circle of unit vectors, as faint dots.
+        const n = Math.max(24, Math.round((TAU * R) / 7));
+        ctx.globalAlpha = 0.6;
+        for (let k = 0; k < n; k++) dot(ctx, cx + R * Math.cos((k / n) * TAU), cy + R * Math.sin((k / n) * TAU), 1, C.ink2);
+        ctx.globalAlpha = 1;
+
+        // The parts: a dotted line through the center for each, bold on the side the part points to, faint on the other.
+        const ps = parts(mode), L = R * 0.74;
+        for (const q of ps) {
+          const [x1, y1] = at(q.deg, R), [x2, y2] = at(q.deg + 180, R);
+          ctx.globalAlpha = 0.35; dotted(cx, cy, x2, y2, 1, C.ink2); ctx.globalAlpha = 1;
+          dotted(cx, cy, x1, y1, 1.5, C.ink);
+          const [lx, ly] = at(q.deg, R + 14);
+          text(q.name, lx, ly, C, C.ink, `700 13px ${mono}`);
+        }
+
+        // Where the arrow's tip drops straight onto each line: a dotted perpendicular and a ring.
+        const [tx, ty] = at(deg, L);
+        for (const q of ps) {
+          const [fx, fy] = at(q.deg, L * foot(deg, q.deg));
+          ctx.globalAlpha = 0.7; dotted(tx, ty, fx, fy, 0.9, C.ink2, 4); ctx.globalAlpha = 1;
+          ctx.fillStyle = C.paper; ctx.strokeStyle = C.signal; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(fx, fy, 4, 0, TAU); ctx.fill(); ctx.stroke();
+        }
+
+        // The state: a solid arrow from the center.
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(tx, ty); ctx.stroke();
+        dot(ctx, tx, ty, 4, C.ink);
+        const [sx, sy] = at(deg + 11, L + 4);
+        text('ψ', sx, sy, C, C.ink, `700 14px ${mono}`);
+        dot(ctx, cx, cy, 2.2, C.ink);
+      };
+
+      const piles = (bx: number, by: number, bw: number, bh: number, C: Pal, mono: string) => {
+        const names = OUTCOMES[mode], pr = p(), strip = mode === 'bigger' ? STRIP : 0;
+        const head = 20, gap = 8, tail = 16;
+        const cw = (bw - 2 * gap) / 3, ph = bh - strip - head - tail;
+        const g = grid(cw - 8, ph - 4, BATCH), r = Math.max(0.8, g.pitch * 0.36);
+        const n = counts(), base = by + strip + head + ph;
+        const col = (k: number) => { const x0 = bx + k * (cw + gap); return { x0, gx: x0 + (cw - g.cols * g.pitch) / 2 }; };
+
+        // Amplitude bars of the bigger system, one above each pile: up is plus, down is minus.
+        if (strip) {
+          const amps = qutritAmps(deg), top = by + 16, bot = by + strip - 4, y0 = (top + bot) / 2, k = (y0 - top - 4) / AMAX;
+          text('amplitudes (they add to 0)', bx, by + 6, C, C.ink2, `500 11px ${mono}`, 'left');
+          for (let i = 0; i < 3; i++) {
+            const { x0 } = col(i), xb = x0 + cw * 0.3, h = amps[i] * k, bw2 = 14;
+            ctx.strokeStyle = C.rule; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+            ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0 + cw, y0); ctx.stroke(); ctx.setLineDash([]);
+            ctx.fillStyle = C.signal; ctx.fillRect(xb - bw2 / 2, Math.min(y0, y0 - h), bw2, Math.max(1.5, Math.abs(h)));
+            text(signed(amps[i]), xb + bw2 / 2 + 6, Math.min(bot - 6, Math.max(top + 6, y0 - h)), C, C.ink, `600 11px ${mono}`, 'left');
+          }
+        }
+
+        names.forEach((s, i) => text(s, col(i).x0 + cw / 2, by + strip + 9, C, C.ink, `700 13px ${mono}`));
+
+        for (let i = 0; i < 3; i++) {
+          const { x0, gx } = col(i), live = i < names.length;
+          ctx.globalAlpha = live ? 0.5 : 0.2;
+          for (let c = 0; c < g.cols; c++) dot(ctx, gx + (c + 0.5) * g.pitch, base + 2.5, 0.8, C.ink2);
+          ctx.globalAlpha = 1;
+          if (!live) continue;
+          // Expected count: shots × chance. Drawn only once a batch is landing.
+          if (shown) {
+            const y = base - ((BATCH * pr[i]) / g.cols) * g.pitch;
+            ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+            ctx.beginPath(); ctx.moveTo(gx - 3, y); ctx.lineTo(gx + g.cols * g.pitch + 3, y); ctx.stroke(); ctx.setLineDash([]);
+          }
+          text(String(n[i]), x0 + cw / 2, base + 11, C, C.ink, `600 11px ${mono}`);
+        }
+
+        // Dots in shot order, so the piles grow together as a batch lands.
+        const placed = [0, 0, 0];
+        for (let i = 0; i < shown; i++) {
+          const k = outcome(pr, shots[i]), j = placed[k]++, { gx } = col(k);
+          dot(ctx, gx + ((j % g.cols) + 0.5) * g.pitch, base - (Math.floor(j / g.cols) + 0.5) * g.pitch, r, C.signal);
+        }
+      };
+
+      const resize = () => { const f = fit(canvas); W = f.w; Hh = f.h; draw(); };
+      onResize(canvas, resize);
+      onTheme(() => draw());
+      onSeen(this, (v) => {
+        seen = v;
+        if (v && !started) { started = true; run(); }
+        else if (v) kick();
+      });
+      update();
+      resize();
+    }
+  }
+  customElements.define('qce-trine-meter', TrineMeter);
+</script>
+
+<style>
+  canvas { height: 36rem }
+  .odds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); margin: 0 }
+  .odds > div { display: grid; align-content: start; gap: var(--s1); min-width: 0 }
+  .odds > div[hidden] { display: none }
+  .odds dt { font: 500 .75rem/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2) }
+  .odds dd { display: grid; gap: .1rem; margin: 0 }
+  .odds b { font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2.25rem); line-height: 1.1; color: var(--ink) }
+  .odds [data-a], .odds [data-n] { min-height: 1.3em; font-size: .8125rem; color: var(--ink-2) }
+  .odds [data-a]:empty { display: none }
+
+  .panel { display: grid; gap: var(--s4) }
+  .angle { display: grid; gap: var(--s2); min-width: 0 }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .row output { font-size: 1.25rem }
+  input[type="range"] { margin: 0 }
+  .hint { font: 500 .9375rem var(--mono); color: var(--ink-2); overflow-wrap: anywhere }
+  fieldset { display: grid; gap: var(--s3); justify-items: start; margin: 0; padding: 0; border: 0; min-width: 0 }
+  legend { padding: 0; margin-bottom: var(--s3) }
+  .presets, .chips { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .presets button, .chips label {
+    position: relative; display: inline-grid; place-items: center; min-width: 3rem; min-height: 2.75rem; padding: 0 .9rem;
+    border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer;
+  }
+  .chips label { font-family: inherit; font-weight: 600 }
+  .chips input { position: absolute; opacity: 0; width: 1px; height: 1px }
+  .presets button:hover, .chips label:hover { border-color: var(--ink) }
+  .presets button[aria-pressed="true"], .chips label:has(:checked) { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .presets button:focus-visible { outline: 3px solid var(--signal); outline-offset: 2px }
+  .chips label:has(:focus-visible) { outline: 3px solid var(--signal); outline-offset: 2px }
+  .tool-readout { min-height: 9em }
+  .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  @media (min-width: 40rem) {
+    canvas { height: 23rem }
+    .panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--s5) }
+    .tool-readout { min-height: 7em }
+  }
+</style>

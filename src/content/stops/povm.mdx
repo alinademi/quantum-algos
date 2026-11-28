@@ -1,0 +1,56 @@
+---
+description: "General measurements (POVMs): positive parts that add up to I. A qubit can give three outcomes, built from a bigger system. Try it live."
+answer: "A general measurement, or POVM, is a list of positive matrices that add up to the identity. Outcome k has chance tr(Eₖρ). Even a qubit can have three outcomes, because every general measurement can be done as a gate on the qubit plus a helper, then a standard measurement of the helper (Naimark's theorem)."
+myth:
+  claim: "A qubit has only two outcomes, 0 and 1, so no measurement of it can have three."
+  truth: "A standard measurement of a qubit has two. A general measurement (POVM) can have three or more: it can be done as a gate on the qubit plus a helper, then a standard measurement of the helper."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import TrineMeter from '../../components/tools/TrineMeter.astro';
+
+<Depth level="kid">
+
+A qubit is like an arrow on a flat sheet of paper. An ordinary measurement asks it a two-way question, like “is it nearer 0 or nearer 1?” Two answers, 0 or 1; the arrow sets the odds.
+
+A general measurement can have three. Put three lamps around the sheet, like the points of a three-pointed star. One lamp lights each time. A lamp is likelier to light when the arrow lies along its line, pointing at it or straight away (an arrow and its reverse are the same state). At right angles to its line, that lamp never lights. The three chances add up to 100%.
+
+How can a two-way thing give three answers? Slip the sheet into a bigger box, tilted just right between three rods at right angles. Do the ordinary three-way measurement on the box. The sheet only gets the shadows of the rods, and those shadows make the star.
+
+Where the picture breaks: you can read a paper arrow. A qubit gives one lamp per try, and the lamp does not show where the arrow pointed.
+
+</Depth>
+
+<Depth level="student">
+
+A projective measurement of a qubit uses two directions at right angles, like 0 and 1, so it has at most two outcomes. A general measurement (a POVM) is a list of parts, one per outcome. The parts must be positive, so no chance is negative, and add up to the identity, so the chances add up to 100%.
+
+The trine has three parts: three directions in a plane, 120° apart, each with weight 2/3. The chance of an outcome is 2/3 × |amplitude of the state along its direction|². A qubit that started as |0⟩ gives A with chance 2/3, and B and C with 1/6 each. For any state, the three |amplitude|² values add up to 3/2, and 2/3 × 3/2 = 1.
+
+Every general measurement can be done as a gate on the qubit plus a helper, then a standard measurement of the helper. For the trine, the helper and qubit together act like a three-level system with amplitudes that add to 0. Amplitude k is √(2/3) × the amplitude along direction k. Started as |0⟩: (0.82, −0.41, −0.41), so the chances are 2/3, 1/6, 1/6.
+
+A third outcome can also mean “not sure”: telling |0⟩ from |+⟩ and never being wrong needs one.
+
+</Depth>
+
+<Depth level="engineer">
+
+A general measurement (POVM) on a $d$-dimensional system is a list $E_1, \dots, E_m$ of [positive semidefinite](/learn/positive-matrices/) matrices with $\sum_k E_k = I$. In the state $\rho$, outcome $k$ has chance
+
+$$
+\Pr(k) = \operatorname{tr}(E_k\rho)
+$$
+
+Positivity keeps each chance at least 0. $\sum_k E_k = I$ and $\operatorname{tr}\rho = 1$ make them add to 1. A [projective](/learn/projectors/) measurement is the case $E_k^2 = E_k$, so it has at most $d$ nonzero parts. A POVM fixes the chances only, not the state left over: that depends on how it is built.
+
+The trine on a qubit has $E_k = \tfrac23|s_k\rangle\langle s_k|$ with $|s_k\rangle = \cos\theta_k|0\rangle + \sin\theta_k|1\rangle$ and $\theta_k = 0^\circ, 120^\circ, 240^\circ$. Since $\sum_k |s_k\rangle\langle s_k| = \tfrac32 I$, the parts sum to $I$. A state with Bloch vector $\vec r$ gives $\Pr(k) = \tfrac13(1 + \vec r\cdot\vec n_k)$, where $\vec n_k = (\sin 2\theta_k, 0, \cos 2\theta_k)$ are unit vectors 120° apart on a great circle. Started as $|0\rangle$, the chances are $2/3, 1/6, 1/6$. Each $E_k$ has eigenvalues $2/3$ and $0$: no part is a projector, and no outcome is ever certain.
+
+Naimark's theorem: every POVM can be done as a gate on the system plus a helper, then a standard measurement of the helper. Let $V = \sum_k |k\rangle\otimes\sqrt{E_k}$. Then $V^\dagger V = I$, so $V$ extends to a unitary $U$ with $U(|0\rangle\otimes|\psi\rangle) = V|\psi\rangle$. Measuring the helper gives $k$ with chance $\lVert\sqrt{E_k}\,|\psi\rangle\rVert^2 = \langle\psi|E_k|\psi\rangle$. For the trine, three levels are enough: $V|\psi\rangle = \sum_k \sqrt{2/3}\,\langle s_k|\psi\rangle\,|k\rangle$, with amplitudes that add to 0.
+
+Why more outcomes help ([telling states apart](/learn/state-discrimination/)): telling $|0\rangle$ from $|+\rangle$ and never being wrong needs a third outcome, “not sure”. Given one of the three trine states, each equally likely, the trine names it right $2/3$ of the time. No two-outcome measurement beats $(1+\sqrt3/2)/3 \approx 62\%$.
+
+</Depth>
+
+<Lab title="Get three outcomes from a qubit" intro="Pick a state, then switch between the standard measurement, the trine and the trine built from a bigger system, and watch the piles of dots.">
+  <TrineMeter />
+</Lab>
