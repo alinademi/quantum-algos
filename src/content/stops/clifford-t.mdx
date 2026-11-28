@@ -1,5 +1,5 @@
 ---
-description: "Clifford+T combines efficiently trackable Clifford operations with the non-Clifford T gate to form an approximately universal quantum gate set."
+description: "Combine repeated T gates, count the remaining non-Clifford operations and connect Clifford+T to universality."
 answer: "Clifford+T combines efficiently trackable Clifford operations with the non-Clifford T gate to form an approximately universal quantum gate set."
 myth:
   claim: "Each T gate makes a circuit necessarily hard to simulate."
@@ -12,13 +12,13 @@ import { lab } from '../../lib/sims/clifford-t.ts';
 
 <Depth level="kid">
 
-The Clifford tool kit is limited. Adding a small new phase turn lets you build much more general transformations. Some repeated turns, however, add up to old ones.
+Imagine drawing shapes with a set of tools that only make quarter turns, together with a new tool that makes an eighth of a turn. Two new turns can be replaced by a single old turn, four make a half turn and eight make a full turn. But used among other tools, the new turn opens a much larger range of possible shapes. Quantum computers can use this extra type of turn to approximate any allowed operation, with suitable connecting tools. Counting the new turns is useful when they are expensive to perform. The drawing picture breaks because the angles describe relative signs and complex amplitudes rather than ordinary lines.
 
 </Depth>
 
 <Depth level="student">
 
-T is the 45-degree phase gate. Two T gates equal S, four equal Z, and eight equal identity. T† reverses T. Count T and T† separately from the other gates when estimating a circuit resource.
+The T gate is a [phase gate](/learn/phase-gates/) of 45°. Two T gates give S, four give Z, and eight give I; T† reverses T. Combining [Clifford gates](/learn/clifford-group/) and T gives an approximately [universal gate set](/learn/universal/), able to approximate any finite-qubit unitary up to global phase. In many fault-tolerant designs T gates need costly resources, so engineers count T and T† separately from Clifford operations. They also count T depth, the number of sequential layers of T gates. Raw T symbols may overstate cost: adjacent powers can be merged into Clifford gates, sometimes removing every T. The lab compares raw and simplified counts.
 
 </Depth>
 
