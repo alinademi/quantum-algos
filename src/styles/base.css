@@ -25,7 +25,7 @@ math[display="block"] { padding-block: var(--s2); font-size: 1.2em }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap }
 
 /* Buttons: used by pages and tools */
-.btn { display: inline-flex; align-items: center; gap: .6em; min-height: 3rem; padding: 0 1.4rem; border: 0; border-radius: var(--r); background: var(--ink); color: var(--paper); font: 600 1rem/1 var(--sans); text-decoration: none; cursor: pointer; transition: background .2s, transform .15s }
+.btn { display: inline-flex; align-items: center; gap: .6em; min-height: 3rem; padding: 0 1.4rem; border: 0; border-radius: var(--r); background: var(--ink); color: var(--paper); font: 600 1rem/1 var(--sans); text-decoration: none; cursor: pointer; transition: background .2s, color .2s, transform .15s }
 .btn:hover { background: var(--signal); color: var(--on-signal) }
 .btn:active { transform: translateY(1px) }
 .btn:disabled { opacity: .45; cursor: not-allowed; background: var(--ink); color: var(--paper) }
