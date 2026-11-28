@@ -81,6 +81,7 @@ Rules:
 | bonillaataides-2021-xzzx | Bonilla Ataides et al. | 2021 | The XZZX surface code | Nature Communications | Paper | Research | 10.1038/s41467-021-22274-1 | arXiv:2009.07851 | - | - |
 | bouchard-2020-hom | Bouchard et al. | 2020 | Two-photon interference: the Hong–Ou–Mandel effect | Reports on Progress in Physics | Review | University | 10.1088/1361-6633/abcd7a | arXiv:2006.09335 | - | - |
 | bouland-2019-rcs | Bouland et al. | 2018 | On the complexity and verification of quantum random circuit sampling | Nature Physics | Paper | Research | 10.1038/s41567-018-0318-2 | arXiv:1803.04402 | https://arxiv.org/abs/1803.04402 | arXiv title: "Quantum Supremacy and the Complexity of Random Circuit Sampling" |
+| boykin-1999-universal | Boykin et al. | 1999 | On Universal and Fault-Tolerant Quantum Computing | arXiv | Paper | Graduate | - | arXiv:quant-ph/9906054 | https://arxiv.org/abs/quant-ph/9906054 | - |
 | boykin-2003-encryption | Boykin and Roychowdhury | 2003 | Optimal encryption of quantum bits | Physical Review A | Paper | Research | 10.1103/PhysRevA.67.042317 | arXiv:quant-ph/0003059 | - | - |
 | brakerski-2021-quantumness | Brakerski et al. | 2021 | A Cryptographic Test of Quantumness and Certifiable Randomness from a Single Quantum Device | Journal of the ACM | Paper | Research | 10.1145/3441309 | arXiv:1804.00640 | https://arxiv.org/abs/1804.00640 | - |
 | brandao-2015-reversible | Brandão and Gour | 2015 | Reversible Framework for Quantum Resource Theories | Physical Review Letters | Paper | Research | 10.1103/PhysRevLett.115.070503 | arXiv:1502.03149 | - | arXiv title: "The general structure of quantum resource theories" |
@@ -90,6 +91,7 @@ Rules:
 | brassard-2004-telepathy | Brassard, Broadbent and Tapp | 2004 | Quantum Pseudo-Telepathy | arXiv | Review | Graduate | - | arXiv:quant-ph/0407221 | - | - |
 | braunstein-2005-cv | Braunstein and van Loock | 2005 | Quantum information with continuous variables | Reviews of Modern Physics | Review | Graduate | 10.1103/RevModPhys.77.513 | arXiv:quant-ph/0410100 | - | - |
 | bravyi-2005-magic | Bravyi and Kitaev | 2005 | Universal quantum computation with ideal Clifford gates and noisy ancillas | Physical Review A | Paper | Research | 10.1103/PhysRevA.71.022316 | arXiv:quant-ph/0403025 | - | - |
+| bravyi-2016-clifford | Bravyi and Gosset | 2016 | Improved classical simulation of quantum circuits dominated by Clifford gates | Physical Review Letters | Paper | Research | 10.1103/PhysRevLett.116.250501 | arXiv:1601.07601 | https://arxiv.org/abs/1601.07601 | - |
 | bravyi-2022-future | Bravyi et al. | 2022 | The future of quantum computing with superconducting qubits | Journal of Applied Physics | Review | University | 10.1063/5.0082975 | arXiv:2209.06841 | - | - |
 | bravyi-2024-gross | Bravyi et al. | 2024 | High-threshold and low-overhead fault-tolerant quantum memory | Nature | Paper | Research | 10.1038/s41586-024-07107-7 | arXiv:2308.07915 | - | - |
 | bremner-2011-iqp | Bremner, Jozsa and Shepherd | 2010 | Classical simulation of commuting quantum computations implies collapse of the polynomial hierarchy | Proceedings of the Royal Society A: Mathematical, Physical and Engineering Sciences | Paper | Research | 10.1098/rspa.2010.0301 | arXiv:1005.1407 | https://arxiv.org/abs/1005.1407 | - |
@@ -796,6 +798,7 @@ Rules:
 | clifford-group | aaronson-2018-qclec | Lecture 28, The Stabilizer Formalism | https://www.scottaaronson.com/qclec.pdf#page=249 |
 | clifford-t | dewolf-notes | Section 20.4, T-gates and magic states | https://homepages.cwi.nl/~rdewolf/qcnotes.pdf#page=188 |
 | clifford-t | childs-notes | Chapter 3, Quantum circuit synthesis over Clifford+T | https://www.cs.umd.edu/~amchilds/qa/qa.pdf#page=19 |
+| clifford-t | boykin-1999-universal | Proof of universality of Hadamard, T and CNOT | https://arxiv.org/abs/quant-ph/9906054 |
 | circuit-cost | watrous-2025-understanding | Measuring computational cost: Circuit size and depth | https://quantum.cloud.ibm.com/learning/en/courses/fundamentals-of-quantum-algorithms/quantum-algorithmic-foundations/measuring-computational-cost#circuit-size-and-depth |
 | circuit-cost | watrous-2025-understanding | Measuring computational cost: Assigning costs to different gates | https://quantum.cloud.ibm.com/learning/en/courses/fundamentals-of-quantum-algorithms/quantum-algorithmic-foundations/measuring-computational-cost#assigning-costs-to-different-gates |
 | native-gates | qiskit-docs | QPU information: Supported instructions | https://quantum.cloud.ibm.com/docs/en/guides/qpu-information#supported-instructions |
