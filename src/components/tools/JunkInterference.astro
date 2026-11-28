@@ -14,10 +14,12 @@
    const canvas=this.querySelector('canvas')!,read=this.querySelector('.tool-readout')!,p=[interference(true),interference(false)];let seen=true,counts=p.map(x=>sample(x,400,Math.random));
    this.querySelector('[data-exact]')!.textContent='Started as |+⟩ |+⟩ |0⟩ |−⟩. Exact P(00): with cleanup '+pct(p[0][0])+', without cleanup '+pct(p[1][0])+'.';
    const draw=()=>{if(!seen)return;const {ctx,w,h}=fit(canvas);if(w<40)return;const pal=palette(),half=w/2;ctx.clearRect(0,0,w,h);
-    counts.forEach((c,i)=>{const width=half-12,pitch=Math.min(6,Math.sqrt(width*(h-54)/400)*.9),cols=Math.max(1,Math.floor(width/pitch));let k=0;
+    counts.forEach((c,i)=>{const width=half-12,rh=(h-24)/2,pitch=Math.min(6,Math.sqrt(width*(rh-26)/400)*.85),cols=Math.max(1,Math.floor(width/pitch));
      ctx.font='12px monospace';ctx.fillStyle=pal.ink;ctx.textAlign='center';ctx.fillText(i?'Junk kept':'Cleared',half*(i+.5),15);
-     c.forEach((n,j)=>{for(let a=0;a<n;a++,k++)dot(ctx,i*half+6+(k%cols+.5)*pitch,h-28-(Math.floor(k/cols)+.5)*pitch,pitch*.32,j===0?pal.signal:pal.ink2);});
-     ctx.fillText('00: '+c[0],half*(i+.5),h-6);
+     [c[0],400-c[0]].forEach((n,j)=>{const bottom=24+(j+1)*rh;
+      for(let k=0;k<n;k++)dot(ctx,i*half+6+(k%cols+.5)*pitch,bottom-22-(Math.floor(k/cols)+.5)*pitch,pitch*.32,j===0?pal.signal:pal.ink2);
+      ctx.fillStyle=pal.ink;ctx.fillText((j?'Other: ':'00: ')+n,half*(i+.5),bottom-5);
+     });
     });
    };
    const report=()=>{read.textContent='Started as |+⟩ |+⟩ |0⟩ |−⟩. Cleared: '+counts[0][0]+' of 400 gave 00. Junk kept: '+counts[1][0]+' gave 00.';draw();};
@@ -26,4 +28,4 @@
  }
  customElements.define('qce-junk-interference',JunkInterference);
 </script>
-<style>qce-junk-interference{display:grid;gap:var(--s3)}canvas{width:100%;height:13rem}.note{font-size:.875rem;color:var(--ink-2)}</style>
+<style>qce-junk-interference{display:grid;gap:var(--s3)}canvas{width:100%;height:19rem}.note{font-size:.875rem;color:var(--ink-2)}</style>
