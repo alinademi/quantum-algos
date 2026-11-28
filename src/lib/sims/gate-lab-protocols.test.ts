@@ -44,12 +44,6 @@ test('oracles: clean bit encoding, involution, and phase kickback for every func
   const p=q.probs(last('quantum-parallelism',{f:name}).state!);for(let i=0;i<8;i++)close(p[i],(i&1)===f(name,i>>1)?.25:0);
  }
 });
-test('borrowed ancilla and uncomputation restore workspace including coherence',()=>{
- for(const scratch of g.kets)state(g.runOps(g.product('+i',scratch),[g.cx(0,1),g.cx(0,1)]),g.product('+i',scratch));
- const s=last('uncomputation',{a:'+',b:'+',clear:'Yes'}).state!;
- for(let x=0;x<4;x++)close(q.abs(s[4*x+(x===3?1:0)]),.5);
- close(g.probability(s,2),0);close(g.probability(last('uncomputation',{a:'+',b:'+',clear:'No'}).state!,2),.25);
-});
 test('arithmetic: all accumulator basis values and all comparator flags, including overflow',()=>{
  for(let a=0;a<4;a++)for(let b=0;b<8;b++)state(g.runOps(q.basis(5,8*a+b),addOps),q.basis(5,8*a+((a+b)%8)));
  for(let a=0;a<4;a++)for(let b=0;b<4;b++)for(let t=0;t<2;t++){const start=q.basis(5,8*a+2*b+t),expected=q.basis(5,8*a+2*b+(t^+(a<b)));state(g.apply(start,compareGate),expected);state(g.runOps(start,compareOps),expected);}

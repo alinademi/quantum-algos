@@ -1,5 +1,5 @@
 ---
-description: "Uncomputation reverses a temporary coherent computation to return its workspace to the required initial state while retaining the desired result."
+description: "Compare interference with and without reversing a temporary computation that leaves a record in a helper."
 answer: "Uncomputation reverses a temporary coherent computation to return its workspace to the required initial state while retaining the desired result."
 myth:
   claim: "Resetting scratch is the same as uncomputing it."
@@ -7,27 +7,29 @@ myth:
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
+import JunkInterference from '../../components/tools/JunkInterference.astro';
 import GateLab from '../../components/tools/GateLab.astro';
 import { lab } from '../../lib/sims/uncomputation.ts';
 
 <Depth level="kid">
 
-Write an answer on scratch paper, transfer the useful part to the result register, then run the scratch instructions backward. Keep the answer and clear the workspace.
+Imagine a puzzle with a temporary note that identifies which route a wave contribution came from. You can use the note to do something useful, but if the routes later join, leaving that distinguishing record behind can spoil their cancellation. Instead undo the instructions that wrote the note, after using the needed information. The workspace returns to its original state while the desired change remains. Now the contributions can combine correctly. In the lab, clearing the note makes the desired result certain, whereas leaving it reduces that chance. The picture breaks because the record is a quantum helper; simply throwing away a real note is not the same as reversing its creation.
 
 </Depth>
 
 <Depth level="student">
 
-Toffoli computes AND into q2. CNOT from q2 into a fresh q3 stores the result. The inverse Toffoli returns q2 to 0. If the inputs were superposed, the desired result can remain entangled with them.
+Compute a Boolean AND of two |+⟩ inputs into a clean [ancilla](/learn/ancillas/) q2 using Toffoli. CNOT into q3, prepared in |−⟩, changes the sign of the 11 contribution by kickback. Apply Toffoli again to clear q2, then CZ and H on both inputs. With q2 restored, the two signs cancel and both input wires end in 0 with certainty. Without the inverse, q2 remains entangled with the inputs, spoiling [interference](/learn/interference/): the chance of 00 is only 5/8. This is the quantum version of [reversible computing](/learn/reversible/): compute, use or copy the result, then undo the temporary work.
 
 </Depth>
 
 <Depth level="engineer">
 
-For a reversible compute $U_f:|x,0\rangle\mapsto|x,f(x)\rangle$, compute, XOR the Boolean basis label into a fresh output, then $U_f^\dagger$ implements $|x,0,0\rangle\mapsto|x,0,f(x)\rangle$. The XOR does not clone arbitrary unknown states. This technique prevents needless garbage entanglement, provided the intervening operation leaves the information needed by the inverse intact.
+Bennett's compute-copy-uncompute construction maps $|x,0,0\rangle$ to $|x,0,f(x)\rangle$ by compute $U_f$, XOR the output label, and apply $U_f^\dagger$. XOR copies orthogonal labels, not arbitrary unknown states. Here q3 starts in |−⟩ instead, so the copy step kicks back $(-1)^{ab}$. After uncomputation CZ cancels that phase and H on each data wire yields 00. Without cleanup the scratch retains the AND record, leaving the reduced input state mixed. After CZ and H, the probability of 00 is $(3/4)^2+(1/4)^2=5/8$, from the two orthogonal scratch records. Discarding the scratch cannot recover interference.
 
 </Depth>
 
-<Lab title="Clear the workspace" intro="Use superposed or definite inputs and choose whether to reverse the Toffoli computation.">
+<Lab title="Clear the workspace" intro="Compare the same interference experiment with and without uncomputation.">
+  <JunkInterference />
   <GateLab id="uncomputation" lab={lab} />
 </Lab>
