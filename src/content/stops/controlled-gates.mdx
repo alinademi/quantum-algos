@@ -30,7 +30,7 @@ Build CZ by H on the target, CNOT and H. Build CY by S†, CNOT and S on the tar
 
 For control-on-one, $C(U)=|0\rangle\langle0|\otimes I+|1\rangle\langle1|\otimes U$. Control-on-zero conjugates by X on the control. $CZ=(I\otimes H)CX(I\otimes H)$ and $CY=(I\otimes S)CX(I\otimes S^\dagger)$. For CP, apply $P(\phi/2)$ to each wire, CNOT, $P(-\phi/2)$ on target, then CNOT. Comparing complete matrices checks the control phase as well.
 
-The ideas used here build on [CNOT](/learn/cnot/), [Phase gates](/learn/phase-gates/), [Rotation gates](/learn/rotations/).
+For general $U=e^{i\gamma}V$ with $V\in SU(2)$, choose single-qubit A, B, C from the [Euler rotations](/learn/rotations/) so $ABC=I$, $AXBXC=V$. Apply C, [CNOT](/learn/cnot/), B, CNOT, A to the target, and the [phase gate](/learn/phase-gates/) $P(\gamma)$ on the control. This gives I when the control is 0 and U when it is 1.
 
 </Depth>
 
