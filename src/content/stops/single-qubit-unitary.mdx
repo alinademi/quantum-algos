@@ -2,8 +2,8 @@
 description: "Build a general one-qubit gate from three rotations and compare the result with its direct matrix."
 answer: "Every one-qubit unitary is a global phase times a sequence of three rotations around Z, Y and Z."
 myth:
-  claim: "Three angles encode three independently measurable bits."
-  truth: "They parameterize a continuous operation, not a way to extract arbitrary classical information from a single qubit."
+  claim: "The U gate and its three Euler rotations always have identical matrices."
+  truth: "Their matrices can differ by a global phase, which does not affect measurements of an unconditional gate."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
