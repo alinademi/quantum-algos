@@ -264,6 +264,20 @@ test('Z ⊗ Z has eigenvalues ±1 with two-dimensional eigenspaces: it reads par
   for (const i of [1, 2]) closeV(q.matVec(ZZ, q.basis(2, i)), q.basis(2, i).map((x) => q.scale(x, -1)));
 });
 
+test('a repeated eigenvalue keeps coherence: A = diag(1, 1, -1) with state (|0> + i|1> + |2>)/√3 gives +1 with chance 2/3 and lands on (|0> + i|1>)/√2, relative phase kept', () => {
+  const psi = q.normalize([q.c(1), q.c(0, 1), q.c(1)]);
+  const P: q.Matrix = [0, 1, 2].map((i) => [0, 1, 2].map((j) => q.c(i === j && i < 2 ? 1 : 0)));
+  const kept = q.matVec(P, psi), p = q.inner(psi, kept).re;
+  close(p, 2 / 3);
+  closeV(kept.map((x) => q.scale(x, 1 / Math.sqrt(p))), [q.c(Math.SQRT1_2), q.c(0, Math.SQRT1_2), q.c(0)]);
+  // Not one eigenvector picked in advance: both |0> and |1> keep weight 1/2, and their phase i survives.
+  close(q.abs2(kept[0]) / p, 0.5); close(q.abs2(kept[1]) / p, 0.5);
+  // The 2x2 identity is the same case: one result, state left exactly as it was, even with a complex phase.
+  const id = { a: 1, b: 0, d: 1 }, st: q.State = [q.c(Math.SQRT1_2), q.c(0, Math.SQRT1_2)];
+  assert.deepEqual(o.after(id, st, 0), st);
+  assert.deepEqual(o.projectors(id)[0], q.I);
+});
+
 // ---- States
 
 test('start states are real unit vectors, exact at the presets', () => {

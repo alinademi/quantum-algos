@@ -1,9 +1,9 @@
 ---
 description: "An observable is a quantity you can measure, written as a Hermitian matrix. Its eigenvalues are the only possible results. Try it live."
-answer: "An observable is a quantity you can measure, like the spin of an atom along one axis, written as a Hermitian matrix. A measurement gives one of the matrix's eigenvalues, with odds set by the Born rule along its eigenvectors."
+answer: "An observable is a quantity you can measure, like the spin of an atom along one axis, written as a Hermitian matrix. An ideal measurement gives one of the matrix's eigenvalues, with odds set by the Born rule along its eigenvectors."
 myth:
   claim: "Measuring an observable means multiplying the state by its matrix."
-  truth: "Multiplying gives a new vector, not a result. A measurement gives one eigenvalue at random and leaves the state in an eigenvector for that value."
+  truth: "Multiplying gives a new vector, not a result. An ideal measurement gives one eigenvalue at random and leaves the state in an eigenvector for that value."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -18,7 +18,7 @@ For a qubit, quantum theory writes each observable as a small grid of numbers, c
 
 Each result has its own state. A qubit in that state gives that result every time. Other states give one of the results at random.
 
-Where the dial picture breaks: a real dial just reads a thing. Measuring a qubit can change it. Afterwards, it sits in the state for the result it gave.
+Where the dial picture breaks: a real dial just reads a thing. Measuring a qubit can change it. After a clean measurement, it sits in the state for the result it gave.
 </Depth>
 
 <Depth level="student">
@@ -26,7 +26,7 @@ An observable is a quantity you can measure, written as a Hermitian matrix $A$, 
 
 - The results are the eigenvalues of $A$: the numbers $\lambda$ with $Av = \lambda v$ for an eigenvector $v$. They are always real.
 - A result's chance is |amplitude|², where the amplitude is the state's part along that result's eigenvector. The eigenvectors are at right angles, so the chances add up to 100%.
-- Afterwards, the state is that eigenvector, so measuring $A$ again right away gives the same result.
+- After an ideal measurement, the state is that eigenvector (when no two eigenvalues are equal), so measuring $A$ again right away gives the same result.
 
 $Z$, with rows (1, 0) and (0, −1), is the usual measurement with new names for the results: |0⟩ has eigenvalue 1 and |1⟩ has −1.
 
@@ -40,7 +40,7 @@ $$
 A = \sum_k \lambda_k \Pi_k, \qquad \sum_k \Pi_k = I,
 $$
 
-with distinct real eigenvalues $\lambda_k$ and orthogonal projectors $\Pi_k$ onto the eigenspaces. Measuring $A$ is the projective measurement $\{\Pi_k\}$ with outcomes labeled $\lambda_k$. Outcome $\lambda_k$ has probability $p_k = \langle\psi|\Pi_k|\psi\rangle$, which is $|\langle v_k|\psi\rangle|^2$ when $\Pi_k = |v_k\rangle\langle v_k|$, and leaves the state
+with distinct real eigenvalues $\lambda_k$ and orthogonal projectors $\Pi_k$ onto the eigenspaces. An ideal (Lüders) measurement of $A$ is the projective measurement $\{\Pi_k\}$ with outcomes labeled $\lambda_k$. Outcome $\lambda_k$ has probability $p_k = \langle\psi|\Pi_k|\psi\rangle$, which is $|\langle v_k|\psi\rangle|^2$ when $\Pi_k = |v_k\rangle\langle v_k|$, and leaves the state
 
 $$
 \frac{\Pi_k|\psi\rangle}{\sqrt{p_k}}.
@@ -48,7 +48,7 @@ $$
 
 Hermiticity makes this a measurement: real eigenvalues, and an orthonormal eigenbasis, so the $p_k$ sum to 1. The non-Hermitian matrix with rows $(1, 1)$ and $(0, 2)$ has eigenvectors $|0\rangle$ and $|{+}\rangle$, not at right angles; for $|0\rangle$ the would-be odds $|\langle v_k|0\rangle|^2$ sum to $3/2$, not 1.
 
-The eigenvalues are labels; the projectors are the measurement. $Z$, $|1\rangle\langle 1| = (I - Z)/2$ and the spin-½ observable $S_z = \tfrac{\hbar}{2} Z$ are one measurement: $|0\rangle$ reads $1$, $0$ or $+\hbar/2$, and $|1\rangle$ reads $-1$, $1$ or $-\hbar/2$. A repeated eigenvalue has a projector of rank above 1: $Z \otimes Z$ reads only the parity of two qubits.
+The eigenvalues are labels; the projectors are the measurement. $Z$, $|1\rangle\langle 1| = (I - Z)/2$ and the spin-½ observable $S_z = \tfrac{\hbar}{2} Z$ are one measurement: $|0\rangle$ reads $1$, $0$ or $+\hbar/2$, and $|1\rangle$ reads $-1$, $1$ or $-\hbar/2$. A repeated eigenvalue has a projector of rank above 1, and the state lands at $\Pi_k|\psi\rangle/\sqrt{p_k}$ in that eigenspace, not at an eigenvector fixed in advance: $Z \otimes Z$ reads only the parity of two qubits, so $a|00\rangle + b|11\rangle$ reads $+1$ and is left unchanged, coherence kept. A real instrument can disturb the state differently; this update is the ideal one.
 
 Every one-qubit observable is $a_0 I + \vec a \cdot \vec\sigma$, with $\vec\sigma = (X, Y, Z)$ and real $a_0$, $\vec a$. For $\vec a \neq 0$ its eigenvalues are $a_0 \pm |\vec a|$, with eigenvectors at the Bloch points $\pm\hat a$: measuring it is [measuring in the basis](/learn/bases/) along $\hat a$, then relabeling. The lab's Surprise matrix has $a_0 = -\tfrac12$ and $\vec a = (2, 0, \tfrac32)$, so $\lambda = -\tfrac12 \pm \tfrac52$.
 
