@@ -1,0 +1,33 @@
+---
+description: "A quantum Turing machine is a quantum model of computation with a tape, head and internal state evolving by a suitable unitary transition rule."
+answer: "A quantum Turing machine is a quantum model of computation with a tape, head and internal state evolving by a suitable unitary transition rule."
+myth:
+  claim: "A quantum Turing machine reads every tape position simultaneously and returns all answers."
+  truth: "It evolves amplitudes over configurations, and measurement still yields limited classical information."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/qtm.ts';
+
+<Depth level="kid">
+
+Imagine a tape reader that may move left or right in superposition. Instead of choosing one path immediately, its possible paths can interfere.
+
+</Depth>
+
+<Depth level="student">
+
+A quantum configuration specifies the internal state, head position and tape symbols. Transition amplitudes can coherently connect configurations. The lab simplifies this to a head on a four-position ring with a two-state direction register and fixed tape symbols. It is a quantum walk, not a universal Turing machine.
+
+</Depth>
+
+<Depth level="engineer">
+
+A QTM has configurations $|q,h,t\rangle$ and a local transition rule whose global evolution must be unitary; arbitrary normalized outgoing amplitudes alone do not ensure this. Uniform circuits and suitably defined QTMs simulate each other with polynomial overhead in standard complexity models ([Yao, 1993](https://doi.org/10.1109/SFCS.1993.366852)). This toy step is H on the internal coin followed by a reversible conditional cyclic shift.
+
+</Depth>
+
+<Lab title="Walk a quantum head" intro="Choose position, coin state and step count. Inspect amplitudes over the finite ring configurations.">
+  <GateLab id="qtm" lab={lab} />
+</Lab>

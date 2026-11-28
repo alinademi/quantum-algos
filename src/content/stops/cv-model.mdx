@@ -1,0 +1,33 @@
+---
+description: "Continuous-variable quantum computation encodes information in modes with continuous observables, rather than only finite-dimensional qubits."
+answer: "Continuous-variable quantum computation encodes information in modes with continuous observables, rather than only finite-dimensional qubits."
+myth:
+  claim: "A continuous observable provides unlimited readable classical information in one measurement."
+  truth: "Quantum measurement uncertainty, finite energy and finite precision limit accessible information."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/cv-model.ts';
+
+<Depth level="kid">
+
+Instead of an arrow with two amplitudes, picture the position and momentum of a quantum oscillator. You can shift, rotate and squeeze its uncertainty pattern.
+
+</Depth>
+
+<Depth level="student">
+
+A vacuum mode has equal uncertainty in both quadratures. Squeezing reduces one variance while increasing the other. Displacing moves the center without changing variances; a rotation turns both the center and uncertainty ellipse.
+
+</Depth>
+
+<Depth level="engineer">
+
+Use dimensionless quadratures with $[x,p]=i$, vacuum covariance $I/2$, and symmetrized covariance $V_{jk}=\langle\{R_j-\bar R_j,R_k-\bar R_k\}\rangle/2$. The pure squeezed vacuum has variances $e^{-2r}/2$ and $e^{2r}/2$. A rotation O maps $V\mapsto OVO^T$ and the displacement similarly. $\det V=1/4$ for this pure Gaussian family, and $\Delta x\Delta p\ge1/2$. Gaussian preparations, operations and Gaussian measurements alone admit efficient classical descriptions; universal CV computation under standard gate-set constructions requires non-Gaussian resources. See [Lloyd and Braunstein](https://arxiv.org/abs/quant-ph/9810082).
+
+</Depth>
+
+<Lab title="Transform a Gaussian mode" intro="Change squeezing, displacement and rotation; inspect the means, covariance and uncertainty product.">
+  <GateLab id="cv-model" lab={lab} />
+</Lab>

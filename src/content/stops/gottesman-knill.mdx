@@ -1,0 +1,33 @@
+---
+description: "The Gottesman–Knill theorem provides efficient classical simulation of stabilizer circuits built using stabilizer preparations, Clifford gates, Pauli."
+answer: "The Gottesman–Knill theorem provides efficient classical simulation of stabilizer circuits built using stabilizer preparations, Clifford gates, Pauli measurements and appropriate classical feed-forward."
+myth:
+  claim: "Any circuit that creates entanglement is hard for a classical computer to simulate."
+  truth: "Clifford circuits can create extensive entanglement while retaining an efficient stabilizer description."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/gottesman-knill.ts';
+
+<Depth level="kid">
+
+Some huge lists of quantum numbers can be replaced by much smaller rules. With the right gates you can update the rules directly, even for many entangled wires.
+
+</Depth>
+
+<Depth level="student">
+
+Start with generators that describe all-zero qubits, conjugate them by Clifford gates, and compute Pauli measurement probabilities from the resulting group. If a signed Pauli observable belongs to the stabilizer group its outcome is fixed; otherwise the two outcomes are equally likely.
+
+</Depth>
+
+<Depth level="engineer">
+
+Represent each signed Pauli by binary X and Z components and phase information. Clifford conjugation updates these in polynomial time. For a pure stabilizer state, a Hermitian Pauli Q has expectation +1 if Q is in S, −1 if −Q is in S, and 0 otherwise. The lab uses binary elimination to test membership with signs, not a dense vector. Full stabilizer simulation also updates the generators after measurements; the lab computes probabilities before a single chosen measurement. See [Aaronson and Gottesman](https://arxiv.org/abs/quant-ph/0406196).
+
+</Depth>
+
+<Lab title="Measure up to 64 stabilizer qubits" intro="Change the Clifford preparation and measured Pauli. Compare polynomial generator storage with the dense amplitude count.">
+  <GateLab id="gottesman-knill" lab={lab} />
+</Lab>

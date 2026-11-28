@@ -1,0 +1,33 @@
+---
+description: "Topological quantum computation encodes information in collective degrees of freedom and can implement gates by braiding suitable non-Abelian anyons."
+answer: "Topological quantum computation encodes information in collective degrees of freedom and can implement gates by braiding suitable non-Abelian anyons."
+myth:
+  claim: "All braiding operations on all types of anyons provide universal quantum computing."
+  truth: "Ising-anyon braids alone are not universal; the available gates depend on the anyon model."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/topological-model.ts';
+
+<Depth level="kid">
+
+Imagine exchanging special particles along paths. The order of exchanges can act on information stored collectively, even if you never read the individual particles.
+
+</Depth>
+
+<Depth level="student">
+
+The lab models a fusion qubit of Ising anyons. Two adjacent braid generators act like 90-degree Z and X rotations, up to a common overall phase. Exchanging in different orders gives different matrices. Three-exchange braid relations still hold.
+
+</Depth>
+
+<Depth level="engineer">
+
+In a conventional four-Ising-anyon fusion basis with fixed total charge, adjacent braid generators can be represented (with common phase removed) by $B_1=R_Z(\pi/2)$ and $B_2=R_X(\pi/2)$, for one handedness and basis convention. They obey $B_1 B_2 B_1=B_2 B_1 B_2$ but do not commute. Topological protection is model- and implementation-dependent; Ising braids generate Clifford operations and need additional resources for universality. This is an ideal fusion-space matrix model, not a simulation of moving physical particles.
+
+</Depth>
+
+<Lab title="Compare braid words" intro="Change the exchange order and input fusion state; inspect the braid relation and reverse-order gap.">
+  <GateLab id="topological-model" lab={lab} />
+</Lab>

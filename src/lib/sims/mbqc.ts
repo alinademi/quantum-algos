@@ -1,0 +1,6 @@
+import { Z, tensor, matVec,H,RZ } from '../quantum.ts';
+import { choice,ket,deg,op,control,apply,rotation,gate,branch,stateStep,distribution,row,fidelity,type Lab } from './gate-lab.ts';
+export const lab:Lab={
+ controls:[choice('input','Input',['+','0','1','+i','−']),choice('angle','Measurement angle (degrees)',['45','0','90','180']),choice('correct','Feed-forward correction',['Yes','No'])],
+ run:v=>{const a=deg(v.angle),input=ket(v.input),s=tensor(input,ket('+')),ent=apply(s,op('CZ',control(Z),0,1)),read=apply(apply(ent,rotation('Z',-Number(v.angle))),gate('H'));const bs=[0,1].map(k=>branch(read,0,k)!);const out=[stateStep('Start','Input on q0, |+⟩ on q1.',s),stateStep('Entangled edge','CZ builds the two-site cluster resource.',ent),stateStep('Rotate measurement basis','RZ(−α), H, then standard measurement on q0.',read),distribution('Measure q0','Result m is a random bit.', ['0','1'],bs.map(b=>b.p))];bs.forEach((b,k)=>{let output=b.state.slice(2*k,2*k+2);if(k&&v.correct==='Yes')output=apply(output,gate('X'));const target=matVec(H,matVec(RZ(-a),input));out.push(stateStep('If result '+k,'q1 carries H RZ(−α)|ψ⟩ up to an X byproduct and global phase.',output,[row('Fidelity to corrected target',fidelity(output,target))]))});return out}
+};

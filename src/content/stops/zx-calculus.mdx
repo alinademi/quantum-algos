@@ -1,0 +1,33 @@
+---
+description: "ZX-calculus represents quantum operations by diagrams with Z and X spiders; valid diagram rewrites preserve their mathematical meaning."
+answer: "ZX-calculus represents quantum operations by diagrams with Z and X spiders; valid diagram rewrites preserve their mathematical meaning."
+myth:
+  claim: "Any rearrangement of a quantum diagram is a valid rewrite."
+  truth: "Only proven rewrite rules and consistent scalar conventions preserve the represented map."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/zx-calculus.ts';
+
+<Depth level="kid">
+
+Instead of writing large matrices, draw colored nodes and wires. Some connected nodes of the same color can be merged, adding their phase labels.
+
+</Depth>
+
+<Depth level="student">
+
+A green spider with one input and one output is P(α). A red spider is its X-basis version H P(α) H. Two spiders of the same color in series fuse by adding angles. H gates change the color of a one-input one-output spider. Diagrams can also have multiple inputs and outputs.
+
+</Depth>
+
+<Depth level="engineer">
+
+In the usual unnormalized convention a Z spider with m inputs and n outputs denotes $|0\rangle^{\otimes n}\langle0|^{\otimes m}+e^{i\alpha}|1\rangle^{\otimes n}\langle1|^{\otimes m}$. X spiders use the X basis. Spider fusion joins connected same-color spiders under its rule; color change conjugates by H on all legs. For the one-to-one examples here the equalities hold exactly, including scalars. General ZX derivations need careful treatment of disconnected scalars. See the [ZX-calculus textbook](https://zxcalculus.com/).
+
+</Depth>
+
+<Lab title="Check a diagram rewrite" intro="Choose green fusion, red fusion or color change. Compare the original and rewritten maps.">
+  <GateLab id="zx-calculus" lab={lab} />
+</Lab>

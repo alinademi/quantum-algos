@@ -1,0 +1,33 @@
+---
+description: "Gate teleportation uses a prepared resource state, entangling operations, measurement and a classical correction to implement a desired gate."
+answer: "Gate teleportation uses a prepared resource state, entangling operations, measurement and a classical correction to implement a desired gate."
+myth:
+  claim: "The target non-Clifford gate appears for free."
+  truth: "Preparing the resource state consumes the desired non-Clifford resource, and the correction matters."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/gate-teleportation.ts';
+
+<Depth level="kid">
+
+Prepare a special helper first. After joining it to the data and reading the helper, you apply a correction based on the result. The data has received the desired operation.
+
+</Depth>
+
+<Depth level="student">
+
+For T injection, prepare a helper in T|+⟩. Apply CNOT from data to helper, then measure the helper. Outcome 0 leaves T on the data. Outcome 1 leaves T† on the data up to global phase, and S fixes it.
+
+</Depth>
+
+<Depth level="engineer">
+
+Write $|\psi\rangle=a|0\rangle+b|1\rangle$ and $\omega=e^{i\pi/4}$. After CNOT, projecting the magic qubit onto 0 gives $(a|0\rangle+\omega b|1\rangle)/\sqrt2$; outcome 1 gives $(\omega a|0\rangle+b|1\rangle)/\sqrt2$. Each has probability 1/2. Since $ST^\dagger=T$, feed-forward yields the target T gate in both branches, up to phase. The resource state is not created by Clifford gates alone. See [Gottesman and Chuang](https://arxiv.org/abs/quant-ph/9908010).
+
+</Depth>
+
+<Lab title="Inject a T gate" intro="Toggle the conditional S correction and inspect the fidelity of each branch to the desired output.">
+  <GateLab id="gate-teleportation" lab={lab} />
+</Lab>

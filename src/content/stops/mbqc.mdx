@@ -1,0 +1,33 @@
+---
+description: "Measurement-based quantum computation performs gates by measuring qubits of an entangled resource state and using classical feed-forward."
+answer: "Measurement-based quantum computation performs gates by measuring qubits of an entangled resource state and using classical feed-forward."
+myth:
+  claim: "Measurements cannot implement any coherent gate because they destroy the measured qubit."
+  truth: "A measurement can transfer the logical state to another resource qubit with a known byproduct correction."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/mbqc.ts';
+
+<Depth level="kid">
+
+Make a connected piece of quantum material first. Asking questions of its parts moves the encoded information through it. Random answers tell you which correction to make.
+
+</Depth>
+
+<Depth level="student">
+
+Entangle an input with a |+⟩ helper using CZ, then measure the input in an angled basis. The helper now carries a rotated input, possibly with an X correction. The input wire itself is consumed. Larger cluster-state patterns can implement universal circuits.
+
+</Depth>
+
+<Depth level="engineer">
+
+For measurement basis $|\pm_\alpha\rangle=(|0\rangle\pm e^{i\alpha}|1\rangle)/\sqrt2$, the two-node cluster gives output $X^m H R_Z(-\alpha)|\psi\rangle$ up to global phase, with equiprobable outcomes m. Measuring via $R_Z(-\alpha)$ then H realizes this basis. Adaptive measurement angles and byproduct tracking enable universal computation on suitable cluster states ([Raussendorf and Briegel](https://doi.org/10.1103/PhysRevLett.86.5188)).
+
+</Depth>
+
+<Lab title="Compute by measuring" intro="Choose the input and angle, then compare the two corrected or uncorrected measurement branches.">
+  <GateLab id="mbqc" lab={lab} />
+</Lab>

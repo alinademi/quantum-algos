@@ -1,0 +1,33 @@
+---
+description: "The Solovay–Kitaev theorem gives efficient approximation of unitary gates from suitable finite universal gate alphabets."
+answer: "The Solovay–Kitaev theorem gives efficient approximation of unitary gates from suitable finite universal gate alphabets."
+myth:
+  claim: "Solovay–Kitaev finds the shortest gate sequence for any target."
+  truth: "It gives an asymptotic approximation guarantee under its assumptions, not generally an optimal word."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/solovay-kitaev.ts';
+
+<Depth level="kid">
+
+If you only have a few types of small turns, you can combine them to get close to a requested turn. More allowed steps can improve the best match.
+
+</Depth>
+
+<Depth level="student">
+
+Choose an angle and search sequences of H, T and T†. The lab tries bounded words and measures the best distance up to global phase. A larger search bound cannot worsen the best distance, but exhaustive search grows quickly.
+
+</Depth>
+
+<Depth level="engineer">
+
+For a fixed dimension and finite inverse-closed alphabet dense in SU(d), Solovay–Kitaev constructs approximations with word length polylogarithmic in $1/\epsilon$. The standard recursive method uses approximations and group commutators; see [Dawson and Nielsen](https://arxiv.org/abs/quant-ph/0505030). For gates defined up to phase, work with appropriate phase representatives. Here the distance for two 2 by 2 unitaries is $\min_\alpha\|U-e^{i\alpha}V\|_F=\sqrt{4-2|\operatorname{Tr}(U^\dagger V)|}$. The lab is a small word search, not the recursive theorem algorithm.
+
+</Depth>
+
+<Lab title="Approximate a rotation" intro="Choose a target and gate budget; compare the best word and its phase-insensitive error.">
+  <GateLab id="solovay-kitaev" lab={lab} />
+</Lab>

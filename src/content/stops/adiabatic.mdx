@@ -1,0 +1,33 @@
+---
+description: "Adiabatic quantum computation slowly changes a Hamiltonian from one with an easy ground state toward one encoding a desired solution."
+answer: "Adiabatic quantum computation slowly changes a Hamiltonian from one with an easy ground state toward one encoding a desired solution."
+myth:
+  claim: "A slow interpolation always guarantees an exact answer in a fixed finite time."
+  truth: "Adiabatic accuracy depends on the path, spectral gap, rate and other conditions; finite-time errors remain possible."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/adiabatic.ts';
+
+<Depth level="kid">
+
+Imagine guiding a ball along a moving lowest point. Move slowly enough and it can stay near the lowest point. A quantum ground state can similarly follow a changing energy operator under suitable conditions.
+
+</Depth>
+
+<Depth level="student">
+
+This example starts with the ground state of −X and changes the Hamiltonian toward −Z. The desired state moves from |+⟩ toward |0⟩. The lab numerically evolves the state, rather than assuming it instantly follows the ground state.
+
+</Depth>
+
+<Depth level="engineer">
+
+With $\hbar=1$, $i\partial_t|\psi\rangle=H(t)|\psi\rangle$ and $H(s)=-(1-s)X-sZ$, where $s=t/T$. Its gap is $2\sqrt{(1-s)^2+s^2}$, never zero. The lab approximates time-ordered evolution by 1000 midpoint constant-H exponentials. Under standard smoothness and nonvanishing-gap assumptions the adiabatic theorem controls error as T grows; accuracy need not improve monotonically at every finite T. Under suitable models and polynomial resource bounds, adiabatic computation and circuit computation are polynomially equivalent ([Aharonov et al.](https://arxiv.org/abs/quant-ph/0405098)). This one-qubit example is not a proof of an optimization speedup.
+
+</Depth>
+
+<Lab title="Follow a moving ground state" intro="Choose the total evolution time, step through the path and inspect ground-state probability.">
+  <GateLab id="adiabatic" lab={lab} />
+</Lab>

@@ -1,0 +1,33 @@
+---
+description: "A pure stabilizer state is the unique common +1 eigenstate of n independent commuting signed Pauli generators on n qubits."
+answer: "A pure stabilizer state is the unique common +1 eigenstate of n independent commuting signed Pauli generators on n qubits."
+myth:
+  claim: "A stabilizer state must be a product of one-qubit states."
+  truth: "Bell and GHZ states are entangled stabilizer states."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/stabilizer-states.ts';
+
+<Depth level="kid">
+
+You can describe some quantum states by a list of questions they answer with certainty, rather than listing every wave amplitude.
+
+</Depth>
+
+<Depth level="student">
+
+For |0⟩ the generator is +Z. For |+⟩ it is +X. For the Bell state (00 + 11)/√2, XX and ZZ both have eigenvalue +1. As Clifford gates act, the corresponding questions change by conjugation.
+
+</Depth>
+
+<Depth level="engineer">
+
+A stabilizer group S is an abelian Pauli subgroup not containing −I. With n independent generators it has size $2^n$ and defines a one-dimensional common +1 eigenspace. $|\psi\rangle\langle\psi|=2^{-n}\sum_{g\in S}g$. If a Clifford U is applied, generators update as $g\mapsto UgU^\dagger$. The signs matter: −Z stabilizes |1⟩, whereas +Z does not.
+
+</Depth>
+
+<Lab title="Track stabilizer generators" intro="Prepare a product, GHZ or signed state. Inspect the generators and their signed expectation values at each step.">
+  <GateLab id="stabilizer-states" lab={lab} />
+</Lab>
