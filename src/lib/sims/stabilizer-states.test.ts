@@ -17,3 +17,5 @@ test('signed stabilizer generators and GF(2) expectation solver agree with dense
  assert.equal(expect(evolveGenerators(2,prep(2,'Signed example')),'ZI'),-1);
 });
 test('generator count grows linearly while dense amplitudes double',()=>{for(let n=2;n<=6;n++){const s=last('stabilizer-states',{n:String(n)});assert.equal(s.state!.length,2**n);assert.equal(value(s,'Independent generators'),n);assert.equal(value(s,'Dense amplitudes'),2**n);for(const row of s.rows!.slice(0,n))assert.equal(row.value,'Signed expectation: 1.000000');}});
+
+test('50-qubit GHZ is tracked by 50 exact generators without a dense vector',()=>{const r=last('stabilizer-states',{n:'50',mode:'GHZ'});assert.equal(r.state,undefined);assert.equal(r.rows!.length,52);assert.equal(r.rows![0].label,'+'+'X'.repeat(50));for(let i=1;i<50;i++)assert.equal(r.rows![i].label,'+'+'I'.repeat(i-1)+'ZZ'+'I'.repeat(49-i));assert.equal(r.rows!.at(-1)!.value,'1125899906842624');});
