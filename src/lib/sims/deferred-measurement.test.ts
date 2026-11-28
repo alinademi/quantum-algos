@@ -14,3 +14,5 @@ test('mid-circuit feed-forward and deferred measurement preserve correct joint s
 test('reusing the measured wire: record and final bits match',()=>{const steps=run('deferred-measurement',{reuse:'Yes'});const expected=[.25,0,0,.25,.25,0,0,.25];for(const i of [1,3])steps[i].distribution!.p.forEach((x,j)=>close(x,expected[j]));});
 
 test('the deferred circuit preserves a Pauli coherence witness absent from the early mixture',()=>{for(const reuse of ['No','Yes']){const s=last('deferred-measurement',{a:'+',b:'0',reuse}),name=reuse==='Yes'?'ZXX':'XX';close(value(s,'Maximum probability gap'),0);close(value(s,name+' expectation after early measurement'),0);close(value(s,name+' expectation before deferred measurement'),1);}});
+
+test('the retained record prevents false interference when q0 is reused',()=>{const s=last('deferred-measurement',{a:'+',b:'+',reuse:'Yes'});close(value(s,'q0 P(0), early measurement'),.5);close(value(s,'q0 P(0), retained helper'),.5);close(value(s,'q0 P(0), omit helper (incorrect alternative)'),1);});

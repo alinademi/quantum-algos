@@ -2,8 +2,8 @@
 description: "Compare early measurement with a quantum-controlled replacement, including when the measured wire is used again."
 answer: "Any intermediate measurement in a circuit can be moved to the end by retaining its quantum record and replacing classical control with quantum control."
 myth:
-  claim: "Deferred and early measurements always leave the same unmeasured quantum state."
-  truth: "They match the relevant classical output statistics when the coherent replacement is made correctly; intermediate coherence can differ."
+  claim: "Deferring measurement leaves exactly the same joint state as measuring early."
+  truth: "Final recorded statistics and the reduced state without the record match; the quantum record can retain joint coherence absent from the early measurement."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -12,22 +12,22 @@ import { lab } from '../../lib/sims/deferred-measurement.ts';
 
 <Depth level="kid">
 
-Imagine a machine that makes a decision using a recorded number. Instead of reading the number immediately, arrange the next instruction to depend on the number held inside the machine. Then read the record at the very end. You can get the same statistics as reading it earlier. If the original number is needed for a new operation in the meantime, first preserve a separate record and use that record to guide the next step. The picture breaks because a quantum record is not a normal written number: keeping it unread preserves relationships that an early reading may destroy. The agreement is about final recorded results.
+Imagine a machine that makes a decision using a recorded number. Instead of reading the number immediately, arrange the next instruction to depend on the number held inside the machine. Then read the record at the very end. You get the same statistics as reading it earlier. If the original number is needed for a new operation in the meantime, first preserve a separate record and use that record to guide the next step. The picture breaks because a quantum record is not a normal written number: keeping it unread preserves relationships that an early reading may destroy. The agreement is about final recorded results.
 
 </Depth>
 
 <Depth level="student">
 
-The [deferred-measurement principle](/learn/mid-circuit/) says intermediate measurements can be moved to the end by replacing classical conditional actions with [quantum controls](/learn/controlled-gates/). If q0 is measured in the standard basis and q1 flipped on outcome 1, a CNOT followed by measuring both yields the same joint statistics. If q0 will be used again, first copy its standard-basis label into a fresh |0⟩ helper using CNOT. Use the helper as the control, let q0 undergo its later gate, and measure the helper at the end. Keeping the record separate prevents later changes to q0 from corrupting it. Intermediate states need not be identical. For |+⟩|0⟩, early measurement removes the XX correlation; the coherent Bell pair retains XX expectation +1.
+The deferred-measurement principle for [mid-circuit measurement](/learn/mid-circuit/) says intermediate measurements can be moved to the end by replacing classical conditional actions with [quantum controls](/learn/controlled-gates/). If q0 is measured in the standard basis and q1 flipped on outcome 1, a CNOT followed by measuring both yields the same joint statistics. If q0 will be used again, first copy its standard-basis label into a fresh |0⟩ helper using CNOT. Use the helper as the control, let q0 undergo its later gate, and measure the helper at the end. The copy also separates the 0 and 1 contributions to q0, as the early measurement would. With no copy, starting both wires in |+⟩ and applying H on q0 after CNOT gives 0 every time, instead of 50/50. For |+⟩|0⟩, early measurement removes the XX correlation; the coherent Bell pair retains XX expectation +1.
 
 </Depth>
 
 <Depth level="engineer">
 
-For $\sum_m|m\rangle|\psi_m\rangle$, coherent control yields $\sum_m|m\rangle U_m|\psi_m\rangle$, so measuring the record gives the same branches as early measurement and feed-forward. If the measured qubit is used again, copy its computational-basis label by CNOT into a fresh helper before the later operation. Control from that preserved record. This is coherent copying of orthogonal labels, not cloning an unknown state. General measurements can be implemented by a unitary dilation with a retained outcome register. Any intermediate measurement in such a circuit can therefore be deferred, with extra workspace if necessary. Equality concerns the relevant final classical outputs, not every measurement on the intermediate states. For example early measurement of |+⟩|0⟩ followed by feed-forward gives an incoherent mixture with zero XX expectation, while CNOT makes a Bell state with XX expectation +1.
+For $\sum_m|m\rangle|\psi_m\rangle$, coherent control yields $\sum_m|m\rangle U_m|\psi_m\rangle$, so measuring the record gives the same branches as early measurement and feed-forward. If the measured qubit is used again, copy its computational-basis label by CNOT into a fresh helper before the later operation. Control from that record. The copying entangles distinct labels with orthogonal states of the helper, so tracing out the record dephases q0 just as unread measurement does. Without the copy, CNOT on |++⟩ leaves |++⟩ and H on q0 gives 0 certainly, not the early protocol’s 50/50. This is not cloning. General measurements can be implemented by a unitary dilation with a retained outcome register. Any intermediate measurement in such a circuit can therefore be deferred, with extra workspace if necessary. Equality concerns the relevant final classical outputs, not every measurement on the intermediate states. For example early measurement of |+⟩|0⟩ followed by feed-forward gives an incoherent mixture with zero XX expectation, while CNOT makes a Bell state with XX expectation +1.
 
 </Depth>
 
-<Lab title="Defer a measurement" intro="Compare early classical feed-forward against coherent CNOT and the final joint distribution.">
+<Lab title="Defer a measurement" intro="Compare final statistics with early feed-forward; set both inputs to |+⟩ and reuse q0 to see why omitting the record fails.">
   <GateLab id="deferred-measurement" lab={lab} />
 </Lab>
