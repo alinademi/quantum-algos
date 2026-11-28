@@ -1,0 +1,285 @@
+---
+// Makes a pure pair of ideal qubits, started as 00, shows the entropy of one half alone, and measures that half in a
+// basis the reader picks with Born rule shots. Honest physics: every number comes from the sim file, the pair is pure,
+// and the average surprise per shot never goes below the entanglement entropy (Aaronson, lecture notes 11.2, eq. 11.6).
+import { pairState, pairKet, reducedA, entropyA, entropyB, wholeEntropy, spread, percent, amp, bits, weightsText, startText, rad } from '../../lib/sims/entanglement-entropy.ts';
+const uid = 'he-' + Math.random().toString(36).slice(2, 8);
+const P0 = 10, A0 = 35, F0 = 0, p0 = P0 / 100, s0 = pairState(p0, rad(A0)), rho0 = reducedA(s0);
+const presets = [[0, 'a product pair, nothing shared'], [10, 'weights 90% and 10%'], [50, 'a Bell pair'], [64, 'weights 36% and 64%, the example in Aaronson’s notes']] as const;
+---
+<qce-half-entropy class="tool">
+  <div class="sliders">
+    <div class="control">
+      <div class="row">
+        <label for={`${uid}-p`}>p, the weight on 11 before the turn</label>
+        <span class="val doto" data-val="p" aria-hidden="true">{percent(p0)}</span>
+      </div>
+      <input id={`${uid}-p`} type="range" min="0" max="100" step="1" value={P0} aria-valuetext={`${percent(p0)} on 11 before the turn`} />
+      <div class="picks" role="group" aria-label="Set p to">
+        {presets.map(([n, said]) => (
+          <button type="button" class="pick" data-p={n} aria-pressed={String(n === P0)}>{n}%<span class="visually-hidden">: {said}</span></button>
+        ))}
+      </div>
+    </div>
+    <div class="control">
+      <div class="row">
+        <label for={`${uid}-a`}>Turn qubit A alone by</label>
+        <span class="val doto" data-val="a" aria-hidden="true">{A0}°</span>
+      </div>
+      <input id={`${uid}-a`} type="range" min="0" max="180" step="5" value={A0} aria-valuetext={`${A0} degrees`} />
+    </div>
+    <div class="control">
+      <div class="row">
+        <label for={`${uid}-f`}>Measure A at angle</label>
+        <span class="val doto" data-val="f" aria-hidden="true">{F0}°</span>
+      </div>
+      <input id={`${uid}-f`} type="range" min="0" max="180" step="5" value={F0} aria-valuetext={`${F0} degrees`} />
+      <div class="picks"><button type="button" class="btn btn-sm btn-line" data-lowest>Jump to the lowest point</button></div>
+    </div>
+  </div>
+
+  <div class="state">
+    <p><code data-ket>|ψ⟩ = {pairKet(p0, rad(A0))}</code></p>
+    <table>
+      <caption>Amplitudes: A's bit by row, B's bit by column</caption>
+      <thead><tr><td></td><th scope="col">B = 0</th><th scope="col">B = 1</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">A = 0</th><td data-amp="0">{amp(s0[0].re)}</td><td data-amp="1">{amp(s0[1].re)}</td></tr>
+        <tr><th scope="row">A = 1</th><td data-amp="2">{amp(s0[2].re)}</td><td data-amp="3">{amp(s0[3].re)}</td></tr>
+      </tbody>
+    </table>
+    <p data-start>{startText(p0, rad(A0))}</p>
+    <p data-weights>{weightsText(s0)}</p>
+  </div>
+
+  <dl class="score">
+    <div><dt class="label">A alone, S(A)</dt><dd><b class="doto" data-m="a">{bits(entropyA(s0))}</b><span>bits</span></dd></div>
+    <div><dt class="label">B alone, S(B)</dt><dd><b class="doto" data-m="b">{bits(entropyB(s0))}</b><span>bits</span></dd></div>
+    <div><dt class="label">The pair as a whole</dt><dd><b class="doto" data-m="w">{bits(wholeEntropy(s0))}</b><span>bits, it is a pure state</span></dd></div>
+    <div><dt class="label">Average surprise per shot at this angle</dt><dd><b class="doto" data-m="h">{bits(spread(rho0, rad(F0)))}</b><span data-note>bits</span></dd></div>
+  </dl>
+
+  <figure>
+    <figcaption><b>Average surprise per shot against the angle you measure A at</b> The dotted line is S(A), the entanglement entropy. The big dot is your angle.</figcaption>
+    <canvas data-curve aria-hidden="true"></canvas>
+  </figure>
+
+  <div class="tool-controls">
+    <button type="button" class="btn btn-sm" data-make="20">Measure A 20 times</button>
+    <button type="button" class="btn btn-sm" data-make="100">Measure A 100 times</button>
+    <button type="button" class="btn btn-sm btn-line" data-clear>Clear</button>
+  </div>
+  <figure>
+    <figcaption><b>Shots on A</b> Each dot is one measurement of A at your angle. B is left alone.</figcaption>
+    <canvas data-shots aria-hidden="true"></canvas>
+  </figure>
+  <p class="key"><span class="k0">first result</span><span class="k1">second result</span></p>
+
+  <p class="tool-readout" aria-live="polite">{`Started as 00. ${weightsText(s0)}`}</p>
+  <p class="note">A simulation of an ideal, noise-free pair. Every shot is a Born rule draw from your browser's random numbers. The average surprise per shot is the Shannon entropy of the results the Born rule allows at this angle, an exact number, not a count from the shots. The tool makes only pairs with real amplitudes, and A is measured in real bases, one great circle of the Bloch sphere. The first result at angle φ is cos(φ/2)|0⟩ + sin(φ/2)|1⟩. Changing any control clears the shots.</p>
+</qce-half-entropy>
+
+<script>
+  import { pairState, pairKet, reducedA, entropyA, entropyB, wholeEntropy, spread, curve, lowestAngle, shoot, fromPercent, percent, amp, bits, weightsText, startText, readout, rad, CAP } from '../../lib/sims/entanglement-entropy.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  /** ms between new shots; ms a new shot stays enlarged. */
+  const STEP = 16, POP = 240;
+  const mono = () => getComputedStyle(document.documentElement).getPropertyValue('--mono').trim() || 'monospace';
+  type Shot = { r: 0 | 1; t: number };
+
+  /** Grid for the shot panel: columns, cell size, dot radius, canvas height. */
+  function layout(w: number) {
+    const cols = [25, 20, 10].find((n) => w / n >= 12) ?? 10, cell = w / cols, r = Math.max(2.5, Math.min(5, cell * 0.3));
+    return { cols, cell, r, h: Math.ceil((CAP / cols) * cell) };
+  }
+
+  class HalfEntropy extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(sel: string) => this.querySelector<T>(sel)!;
+      const [sp, sa, sf] = [...this.querySelectorAll<HTMLInputElement>('input[type="range"]')];
+      const picks = [...this.querySelectorAll<HTMLButtonElement>('[data-p]')];
+      const makes = [...this.querySelectorAll<HTMLButtonElement>('[data-make]')];
+      const cells = [...this.querySelectorAll<HTMLElement>('[data-amp]')];
+      const readoutEl = $('.tool-readout');
+      const cv = $<HTMLCanvasElement>('canvas[data-curve]'), sv = $<HTMLCanvasElement>('canvas[data-shots]');
+      let cctx: CanvasRenderingContext2D | null = null, cw = 0, ch = 0, sctx: CanvasRenderingContext2D | null = null, sw = 0, sh = 0, g = layout(0);
+
+      let p = fromPercent(+sp.value), alpha = +sa.value, phi = +sf.value;
+      let shots: Shot[] = [];
+      let queue = 0, last = 0, raf = 0, seen = false;
+
+      const pair = () => pairState(p, rad(alpha));
+      const counts = () => { const n1 = shots.filter((x) => x.r === 1).length; return [shots.length - n1, n1] as const; };
+
+      function paintCurve() {
+        if (!cctx) return;
+        const pal = palette(), s = pair(), rho = reducedA(s), E = entropyA(s);
+        const L = 40, R = 10, T = 12, B = 26, pw = cw - L - R, ph = ch - T - B;
+        const X = (deg: number) => L + (deg / 180) * pw, Y = (h: number) => T + (1 - h) * ph;
+        cctx.clearRect(0, 0, cw, ch);
+        cctx.font = `500 11px ${mono()}`; cctx.fillStyle = pal.ink2; cctx.textBaseline = 'middle';
+        // Axes: dotted rules at 0 and 1 bit, tick labels.
+        for (const h of [0, 1]) {
+          for (let x = L; x <= L + pw; x += 6) dot(cctx, x, Y(h), 1, pal.rule);
+          cctx.fillStyle = pal.ink2; cctx.textAlign = 'right'; cctx.fillText(h === 0 ? '0' : '1 bit', L - 6, Y(h));
+        }
+        cctx.fillStyle = pal.ink2; cctx.textBaseline = 'top'; cctx.textAlign = 'center';
+        for (const d of [0, 90, 180]) cctx.fillText(`${d}°`, Math.min(Math.max(X(d), L + 8), L + pw - 8), Y(0) + 8);
+        // The entropy S as a dotted line.
+        for (let x = L; x <= L + pw; x += 5) dot(cctx, x, Y(E), 1.4, pal.hot);
+        // The curve, dot by dot.
+        const n = Math.max(30, Math.floor(pw / 4)), c = curve(rho, n);
+        c.forEach((h, i) => dot(cctx!, X((180 * i) / n), Y(h), 1.8, pal.ink2));
+        // Your angle.
+        const h = spread(rho, rad(phi));
+        for (let y = Y(h); y < Y(0); y += 5) dot(cctx, X(phi), y, 1, pal.signal);
+        dot(cctx, X(phi), Y(h), 6.5, pal.signal);
+        dot(cctx, X(phi), Y(h), 2.5, pal.paper);
+      }
+
+      function paintShots(now = performance.now()) {
+        if (!sctx) return;
+        const pal = palette(), { cols, cell, r } = g;
+        sctx.clearRect(0, 0, sw, sh);
+        for (let i = 0; i < CAP; i++) {
+          const x = (i % cols + 0.5) * cell, y = (Math.floor(i / cols) + 0.5) * cell, s = shots[i];
+          if (!s) { dot(sctx, x, y, Math.max(1, r * 0.3), pal.rule); continue; }
+          const age = now - s.t, rr = r * (age < POP ? 1 + 0.5 * (1 - age / POP) : 1);
+          if (s.r === 0) dot(sctx, x, y, rr, pal.signal);
+          else {
+            dot(sctx, x, y, rr, pal.plate);
+            sctx.strokeStyle = pal.ink2; sctx.lineWidth = Math.max(1.25, rr * 0.3);
+            sctx.beginPath(); sctx.arc(x, y, rr - sctx.lineWidth / 2, 0, Math.PI * 2); sctx.stroke();
+          }
+        }
+      }
+
+      function sizeCurve() {
+        cv.style.height = '15rem';
+        ({ ctx: cctx, w: cw, h: ch } = fit(cv)); paintCurve();
+      }
+      function sizeShots() {
+        g = layout(sv.getBoundingClientRect().width);
+        sv.style.height = `${g.h}px`;
+        ({ ctx: sctx, w: sw, h: sh } = fit(sv)); paintShots();
+      }
+
+      const say = () => { const [n0, n1] = counts(); readoutEl.textContent = readout(p, rad(alpha), rad(phi), n0, n1); };
+
+      /** Everything on the page that follows the three controls. Cheap, so it runs on every slider step. */
+      function show() {
+        const s = pair(), rho = reducedA(s), pc = fromPercent(+sp.value);
+        $('[data-val="p"]').textContent = percent(pc);
+        $('[data-val="a"]').textContent = `${alpha}°`;
+        $('[data-val="f"]').textContent = `${phi}°`;
+        sp.setAttribute('aria-valuetext', `${percent(p)} on 11 before the turn`);
+        sa.setAttribute('aria-valuetext', `${alpha} degrees`);
+        sf.setAttribute('aria-valuetext', `${phi} degrees`);
+        picks.forEach((b) => b.setAttribute('aria-pressed', String(fromPercent(+b.dataset.p!) === p)));
+        $('[data-ket]').textContent = `|ψ⟩ = ${pairKet(p, rad(alpha))}`;
+        cells.forEach((td) => { td.textContent = amp(s[+td.dataset.amp!].re); });
+        $('[data-start]').textContent = startText(p, rad(alpha));
+        $('[data-weights]').textContent = weightsText(s);
+        $('[data-m="a"]').textContent = bits(entropyA(s));
+        $('[data-m="b"]').textContent = bits(entropyB(s));
+        $('[data-m="w"]').textContent = bits(wholeEntropy(s));
+        const H = spread(rho, rad(phi)), E = entropyA(s);
+        $('[data-m="h"]').textContent = bits(H);
+        $('[data-note]').textContent = Math.abs(H - E) < 1e-9 ? 'bits, equal to S(A)' : 'bits, above S(A)';
+        paintCurve();
+      }
+
+      function clearShots() {
+        shots = []; queue = 0;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        makes.forEach((b) => b.removeAttribute('aria-disabled'));
+        paintShots();
+      }
+      const reset = () => { clearShots(); show(); };
+
+      const add = (now: number) => {
+        shots.push({ r: shoot(reducedA(pair()), rad(phi), Math.random), t: now });
+        queue--;
+        makes.forEach((b) => b.setAttribute('aria-disabled', String(shots.length + queue >= CAP)));
+      };
+      /** Finish every queued shot at once and draw the end state: for reduced motion, and when off screen. */
+      const flush = () => { while (queue > 0) add(-Infinity); shots.forEach((x) => { x.t = -Infinity; }); paintShots(); say(); };
+      function frame(now: number) {
+        raf = 0;
+        if (!seen) { flush(); return; }
+        if (now - last > 4 * STEP) last = now - STEP;
+        while (queue > 0 && now - last >= STEP) { add(now); last += STEP; }
+        paintShots(now);
+        if (queue > 0 || now < (shots.at(-1)?.t ?? -Infinity) + POP) raf = requestAnimationFrame(frame); else say();
+      }
+      const kick = () => { if (reduceMotion() || !seen) flush(); else if (!raf) raf = requestAnimationFrame(frame); };
+
+      const read = () => { p = fromPercent(+sp.value); alpha = +sa.value; phi = +sf.value; };
+      // Slider steps redraw but do not speak; releasing the slider (change) clears the shots and speaks.
+      for (const sl of [sp, sa, sf]) {
+        sl.addEventListener('input', () => { read(); clearShots(); show(); });
+        sl.addEventListener('change', () => { read(); reset(); say(); });
+      }
+      picks.forEach((b) => b.addEventListener('click', () => { sp.value = b.dataset.p!; read(); reset(); say(); }));
+      $('[data-lowest]').addEventListener('click', () => { sf.value = String(Math.round(lowestAngle(reducedA(pair())) / 5) * 5 % 180); read(); reset(); say(); });
+      makes.forEach((b) => b.addEventListener('click', () => {
+        const room = CAP - shots.length - queue;
+        if (room <= 0) { say(); return; }
+        queue += Math.min(+b.dataset.make!, room); kick();
+      }));
+      $('[data-clear]').addEventListener('click', () => { clearShots(); say(); });
+
+      onResize(cv, sizeCurve);
+      onResize(sv, sizeShots);
+      onTheme(() => { paintCurve(); paintShots(); });
+      onSeen(this, (v) => { seen = v; if (!v && queue > 0) flush(); });
+      // Start from the controls as the page shows them: a browser can restore form values on going back.
+      read(); show(); say();
+    }
+  }
+  customElements.define('qce-half-entropy', HalfEntropy);
+</script>
+
+<style>
+  .sliders { display: grid; gap: var(--s4); min-width: 0 }
+  .control { display: grid; gap: var(--s2); min-width: 0 }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .val { font: 900 2rem/1 var(--dots) }
+  .control input[type="range"] { margin-inline: 0 }
+  .picks { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .pick { min-width: 3.5rem; min-height: 2.75rem; padding: 0 .6rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer }
+  .pick:hover { border-color: var(--ink) }
+  .pick[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+
+  .state { display: grid; gap: var(--s2); min-width: 0; padding: var(--s3); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r); overflow-wrap: anywhere }
+  .state p { max-width: var(--read) }
+  .state code { font-size: 1.0625rem }
+  .state table { width: auto; border-collapse: collapse; font: 500 1rem var(--mono) }
+  .state caption { text-align: left; padding-bottom: var(--s1); font: 500 .875rem var(--sans); color: var(--ink-2) }
+  .state th, .state td { padding: var(--s1) var(--s2); border: 1px solid var(--rule); text-align: center; white-space: nowrap; overflow-wrap: normal }
+  .state th { font-weight: 500; color: var(--ink-2) }
+  .state thead td { border: 0 }
+
+  .score { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(8.5rem, 100%), 1fr)); gap: 1px; margin: 0; background: var(--rule); border: 1px solid var(--rule) }
+  .score > div { display: grid; align-content: start; gap: var(--s1); min-width: 0; padding: var(--s3); background: var(--paper) }
+  .score dd { margin: 0; display: grid; gap: var(--s1); color: var(--ink-2); font-size: .9375rem }
+  .score b { font-size: 1.75rem; line-height: 1; color: var(--ink) }
+
+  figure { display: grid; gap: var(--s2); min-width: 0; margin: 0 }
+  figcaption { font-size: .9375rem; color: var(--ink-2); max-width: var(--read) }
+  figcaption b { display: block; color: var(--ink); font-size: 1.0625rem }
+
+  .key { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); font: 500 .875rem var(--mono); color: var(--ink-2) }
+  .key > span { display: inline-flex; align-items: center; gap: .4rem }
+  .key > span::before { content: ""; flex: none; width: .75rem; height: .75rem; border-radius: 50% }
+  .key > .k0::before { background: var(--signal) }
+  .key > .k1::before { border: 2px solid var(--ink-2) }
+
+  .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  [aria-disabled="true"] { opacity: .45; cursor: not-allowed }
+
+  @media (min-width: 40rem) {
+    .sliders { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+  }
+</style>
