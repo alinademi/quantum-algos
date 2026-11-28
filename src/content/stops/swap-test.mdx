@@ -18,13 +18,13 @@ Imagine two wave shapes entering a device that compares leaving them in place wi
 
 <Depth level="student">
 
-Prepare a helper in |0⟩, apply [H](/learn/hadamard/), perform a controlled [SWAP](/learn/fredkin/) of two independent pure states, then H and measure the helper. If they are identical up to global phase, the helper is always 0. If their [inner product](/learn/inner-product/) is zero, both helper outcomes occur with equal probability. In general twice the fraction of zeros minus one estimates the squared size of their inner product. A 0 result alone proves nothing about equality. Every shot requires a fresh pair of input states and a fresh helper; the test measures the helper, not the individual state descriptions. Try parallel, perpendicular and intermediate Bloch directions.
+Prepare a helper in |0⟩, apply [H](/learn/hadamard/), perform a controlled [SWAP](/learn/fredkin/) of two independent pure states, then H and measure the helper. If they are identical up to global phase, the helper is always 0. If their [inner product](/learn/inner-product/) is zero, both helper outcomes occur with equal probability. In general twice the fraction of zeros minus one estimates the squared size of their inner product. A 0 result alone proves nothing about equality. Every shot requires a fresh pair of input states and a fresh helper; the test measures the helper, not the individual state descriptions. Equal Bloch directions give overlap 1; opposite directions give 0, and perpendicular directions give 1/2. A finite-shot estimate can be slightly negative because of sampling noise.
 
 </Depth>
 
 <Depth level="engineer">
 
-For input $|\psi\rangle|\phi\rangle$, the symmetric and antisymmetric components have weights $p(0)=(1+|\langle\psi|\phi\rangle|^2)/2$ and $p(1)=(1-|\langle\psi|\phi\rangle|^2)/2$. The helper Z expectation is the squared overlap. For independent mixed states the same test estimates $\operatorname{Tr}(\rho\sigma)$, not generally their Uhlmann fidelity.
+For input $|\psi\rangle|\phi\rangle$, the symmetric and antisymmetric components have weights $p(0)=(1+|\langle\psi|\phi\rangle|^2)/2$ and $p(1)=(1-|\langle\psi|\phi\rangle|^2)/2$. The helper Z expectation is the squared overlap. For pure qubits with unit Bloch vectors r and s it is $(1+r\cdot s)/2$. The unbiased finite-shot estimate $2f_0-1$ has standard error $\sqrt{1-|\langle\psi|\phi\rangle|^4}/\sqrt N$ and can be negative. For independent mixed states the same test estimates $\operatorname{Tr}(\rho\sigma)$, not generally their Uhlmann fidelity.
 
 The controlled [SWAP](/learn/toffoli/) is what correlates the symmetric and antisymmetric components with the helper. Only the helper needs to be [measured](/learn/measurement/); repeated runs consume fresh input pairs.
 
