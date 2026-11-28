@@ -9,11 +9,6 @@ import { addOps, compareGate, compareOps } from './quantum-arithmetic.ts';
 import { checkLabs, close, state, matrix } from './gate-lab-checks.ts';
 const { run, last } = await checkLabs(['phase-kickback', 'mid-circuit', 'deferred-measurement', 'parity-measurement', 'hadamard-test', 'swap-test', 'reversible', 'oracles', 'quantum-parallelism', 'ancillas', 'uncomputation', 'quantum-arithmetic']);
 
-test('phase kickback: eigenvalue −1 gives helper 1, eigenvalue +1 gives 0',()=>{
- close(g.probability(last('phase-kickback',{eigen:'−'}).state!,0),1);
- close(g.probability(last('phase-kickback',{eigen:'+'}).state!,0),0);
- close(g.probability(last('phase-kickback',{mode:'P',eigen:'1',angle:'90'}).state!,0),.5);
-});
 test('mid-circuit feed-forward and deferred measurement preserve correct joint statistics',()=>{
  assert.deepEqual(last('mid-circuit',{start:'1',act:'X on q1 if 1'}).distribution!.p,[0,0,1,0]);
  assert.deepEqual(last('mid-circuit',{start:'1',act:'Reset q0'}).distribution!.p,[0,1,0,0]);

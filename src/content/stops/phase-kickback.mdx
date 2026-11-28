@@ -12,19 +12,21 @@ import { lab } from '../../lib/sims/phase-kickback.ts';
 
 <Depth level="kid">
 
-Imagine a switch that sends a wave through one of two routes. One route leaves a second wave alone, while the other turns its peaks into troughs. If the second wave has just the right shape, it comes back with its shape intact, apart from a sign. That sign matters when the two routes join: their contributions can reinforce or cancel each other. The switch's wave has changed even though the second wave has kept its shape. This is the useful trick. Real quantum controls are not switches with definite positions, and the waves in the picture stand for numbers, not water.
+Imagine a switch that sends a wave through one of two routes. One route leaves a second wave alone, while the other swaps the second wave’s two halves. Most shapes change, but if the halves are exact opposites, the swapped shape is just the original flipped upside down. That sign matters when the two routes join: their contributions can reinforce or cancel each other. The switch's wave has changed even though the second wave has kept its shape. This is the useful trick. Real quantum controls are not switches with definite positions, and the waves in the picture stand for numbers, not water.
 
 </Depth>
 
 <Depth level="student">
 
-Start the control in |+⟩ and the target in |−⟩. The [CNOT](/learn/cnot/) applies X to the target only on the control's 1 component. X multiplies |−⟩ by −1, so the control becomes |−⟩ and the target remains |−⟩. With |+⟩ as target, the multiplier is +1 and the control stays |+⟩. A controlled phase gate with target |1⟩ similarly gives a relative phase to the control. Apply [H](/learn/hadamard/) then measure the control to turn these [phase](/learn/phase-gates/) differences into different odds. If the target is not an eigenstate, the two qubits can instead become entangled.
+Start the control in |+⟩ and the target in |−⟩. The [CNOT](/learn/cnot/) applies X to the target only on the control's 1 component. X multiplies |−⟩ by −1, so the control becomes |−⟩ and the target remains |−⟩. With |+⟩ as target, the multiplier is +1 and the control stays |+⟩. A controlled phase gate with target |1⟩ similarly gives a relative phase to the control. Apply [H](/learn/hadamard/) then measure the control to turn these [phase](/learn/phase-gates/) differences into different odds. If the target is not an eigenstate, the qubits may become entangled. This trick underlies [Deutsch](/learn/deutsch/), [Deutsch-Jozsa](/learn/deutsch-jozsa/) and [phase estimation](/learn/phase-estimation/).
 
 </Depth>
 
 <Depth level="engineer">
 
-If $U|u\rangle=e^{i\phi}|u\rangle$, then $C(U)(a|0\rangle+b|1\rangle)|u\rangle=(a|0\rangle+be^{i\phi}|1\rangle)|u\rangle$. H on a control initially in |+⟩ gives $p(1)=\sin^2(\phi/2)$. If the target is not an eigenstate, the control may become entangled with it. This is the mechanism used in phase estimation.
+If $U|u\rangle=e^{i\phi}|u\rangle$, then $C(U)(a|0\rangle+b|1\rangle)|u\rangle=(a|0\rangle+be^{i\phi}|1\rangle)|u\rangle$. H on a control initially in |+⟩ gives $p(1)=\sin^2(\phi/2)$. If the target is not an eigenstate, the control may become entangled with it. Only the control’s 1 term receives the eigenvalue, so it is a relative phase, not a global phase of the joint state. More generally the control's X expectation is $\operatorname{Re}\langle u|U|u\rangle$, even for a non-eigenstate target.
+
+For an oracle $U_f|x,y\rangle=|x,y\oplus f(x)\rangle$, taking the target as |−⟩ gives $U_f|x,-\rangle=(-1)^{f(x)}|x,-\rangle$. The target remains separate while the input amplitudes acquire signs determined by f. Subsequent interference reveals properties of f without reading its individual values, as in [Cleve et al.](https://arxiv.org/abs/quant-ph/9708016). In phase estimation controlled powers of U similarly accumulate multiples of its eigenphase.
 
 </Depth>
 
