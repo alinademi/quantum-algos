@@ -209,6 +209,26 @@ test('the qutrit amplitudes add to 0 for complex qubit states too, since the thr
   }
 });
 
+test('two isometries, same odds: the trine W is 3 x 2, the general V is 6 x 2, and both give the trine chances', () => {
+  const W = pv.trineIsometry(), V = pv.naimark(pv.trine());
+  assert.equal(W.length, 3); assert.equal(V.length, 6); assert.equal(W[0].length, 2); assert.equal(V[0].length, 2);
+  for (const g of [0, 25, 90, 143, 180]) {
+    const psi = pv.ket(g);
+    pv.helperChances(V, psi, 3).forEach((x, k) => close(x, pv.chances('trine', g)[k]));
+    pv.chances('bigger', g).forEach((x, k) => close(x, pv.chances('trine', g)[k]));
+  }
+  assert.match(pv.partsText('bigger'), /the state left over can differ/);
+});
+
+test('same odds, different state left over: X after each √E_k gives the same helper chances but another state after outcome 0', () => {
+  const V = pv.naimark(pv.trine()), V2 = V.map((_, i) => V[i ^ 1]);
+  const psi = pv.ket(0);
+  pv.helperChances(V2, psi, 3).forEach((x, k) => close(x, pv.helperChances(V, psi, 3)[k]));
+  const left = (M: q.Matrix) => { const o = q.matVec(M, psi).slice(0, 2); const n = Math.hypot(...o.map((a) => Math.hypot(a.re, a.im))); return o.map((a) => Math.hypot(a.re, a.im) / n); };
+  left(V).forEach((x, i) => close(x, [1, 0][i]));   // started as |0>: outcome A leaves |0> with V
+  left(V2).forEach((x, i) => close(x, [0, 1][i]));  // and |1> with V2
+});
+
 test('Naimark for any POVM: V†V = I, and the helper reads k with chance <ψ|E_k|ψ>', () => {
   const unsharp = (l: number): q.Matrix[] => [[[q.c((1 + l) / 2), q.c(0)], [q.c(0), q.c((1 - l) / 2)]], [[q.c((1 - l) / 2), q.c(0)], [q.c(0), q.c((1 + l) / 2)]]];
   const sets: q.Matrix[][] = [pv.standard(), pv.trine(), unsharp(0.6), unsharp(1)];

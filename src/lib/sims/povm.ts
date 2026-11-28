@@ -11,8 +11,10 @@
 //   directions are 120° apart on a great circle.
 // - Naimark's theorem: V = sum_k |k> ⊗ sqrt(E_k) has V†V = sum_k E_k = I, so V is an isometry, and it extends to a
 //   unitary U with U(|0> ⊗ |ψ>) = V|ψ>. Measuring the helper in the standard basis gives outcome k with chance <ψ|E_k|ψ>.
-//   For the trine, rank-one parts let a smaller V do it: V|ψ> = sum_k sqrt(2/3) <s_k|ψ> |k>, a state of a three-level
-//   system (a qutrit) whose three amplitudes add to 0.
+//   Same odds, not the same state left over: the parts E_k do not fix what is left (the instrument).
+//   For the trine, rank-one parts let a different, smaller isometry W do it: W|ψ> = sum_k sqrt(2/3) <s_k|ψ> |k>, a state of a
+//   three-level system (a qutrit) whose three amplitudes add to 0. W is 3 x 2, not helper ⊗ qubit (that V is 6 x 2); two
+//   qubits have four levels, so encoding the qutrit in them leaves one outcome that never happens.
 // Sources: Watrous, Understanding Quantum Information and Computation (IBM Quantum Learning), General measurements:
 //   Formulations of measurements (general measurements: the definition and its examples; the trine itself is not one of them) and Naimark's theorem (statement and proof);
 //   de Wolf, Quantum Computing: Lecture Notes (arXiv:1907.09415), Section 1.2.2 (POVM) and footnote 5 (Neumark).
@@ -228,7 +230,7 @@ export function describe(mode: Mode, deg: number, counts: number[] | null): stri
 export function partsText(mode: Mode): string {
   if (mode === 'standard') return 'Two parts, |0⟩⟨0| and |1⟩⟨1|. Each is a projector, and together they add up to I.';
   if (mode === 'trine') return 'Three parts, each 2/3 of a projector onto one direction. None is a projector, and together they add up to I.';
-  return 'The same three parts, now the shadows of three directions at right angles in a bigger space. A standard measurement there gives these chances.';
+  return 'The same three parts, now the shadows of three directions at right angles in a bigger space. A standard measurement there gives the same chances; the state left over can differ.';
 }
 
 /** Slider value text: the angle and the state. */
