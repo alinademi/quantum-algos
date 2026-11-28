@@ -12,7 +12,7 @@ import { lab } from '../../lib/sims/multi-controlled.ts';
 
 <Depth level="kid">
 
-Imagine a safe that needs four keys turned together. You could check two keys, record whether they agree on a spare token, then use that token to check the next key. When the safe opens or stays shut, reverse the checks to clear the spare tokens. With fewer helpers you can reuse the original keys in a longer sequence of checks.
+Imagine a safe that needs four keys turned together. You could check two keys, record whether both are on on a spare token, then use that token to check the next key. When the safe opens or stays shut, reverse the checks to clear the spare tokens. With fewer helpers you can reuse the original keys in a longer sequence of checks.
 
 A quantum operation can do a similar all-keys check without reading the keys. Extra qubits can shorten the sequence if they are returned as promised. The picture breaks because quantum inputs have amplitudes; temporary records must be cleared by reversing the actual operations, not by throwing them away.
 
@@ -22,7 +22,7 @@ A quantum operation can do a similar all-keys check without reading the keys. Ex
 
 A multi-controlled X flips the target only if all k controls are 1. For three controls, use one clean helper: Toffoli computes the AND of the first two, another Toffoli uses the helper and last control to flip the target, and a third clears the helper. In general this ladder uses k−2 clean helpers and 2k−3 Toffolis.
 
-A no-helper construction uses phase gates on parities of subsets of the k+1 wires. It is exact but contains exponentially many terms. Other no-helper constructions take only quadratic gate count. Compare the same task with and without helpers; a single abstract symbol hides its implementation cost.
+A no-helper construction uses phase gates on parities of subsets of the k+1 wires. It is exact but contains exponentially many terms. Other no-helper constructions take only quadratic gate count. Compare the two- to four-control examples. The phase ladder also needs two Hadamards; the clean ladder’s CNOT count excludes its local gates. One abstract symbol hides its implementation cost.
 
 </Depth>
 
