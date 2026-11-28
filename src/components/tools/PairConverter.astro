@@ -1,0 +1,272 @@
+---
+// Pick the pair Alice and Bob share and the pair they want. The tool applies Nielsen's theorem (a majorization test on the
+// Schmidt weights), counts both in ebits, and for an allowed change runs the real one-way LOCC protocol on dots: each dot
+// is one run, with Alice's outcome drawn by the Born rule. Every number comes from src/lib/sims/locc.ts.
+import { STATES, ebits, ebitText } from '../../lib/sims/locc.ts';
+const uid = 'pc-' + Math.random().toString(36).slice(2, 8);
+const options = STATES.map((s) => ({ id: s.id, label: `${s.name}: ${ebitText(ebits(s.w))}` }));
+---
+<qce-pair-converter class="tool">
+  <div class="pick">
+    <div class="field">
+      <label for={`${uid}-from`}>Alice and Bob share</label>
+      <select id={`${uid}-from`} data-from>
+        {options.map((o) => <option value={o.id} selected={o.id === 'bell'}>{o.label}</option>)}
+      </select>
+    </div>
+    <button type="button" class="btn btn-sm btn-line" data-swap>Swap the two</button>
+    <div class="field">
+      <label for={`${uid}-to`}>They want</label>
+      <select id={`${uid}-to`} data-to>
+        {options.map((o) => <option value={o.id} selected={o.id === 'p90'}>{o.label}</option>)}
+      </select>
+    </div>
+  </div>
+
+  <figure>
+    <canvas data-plot aria-hidden="true"></canvas>
+    <figcaption>
+      <span class="key">
+        <span class="kf">Start: filled dots, solid line</span>
+        <span class="kt">Target: rings, dashed line</span>
+      </span>
+      <span>The line is the test: for each k, the k largest weights added up. The start's line must stay on or below the target's. A dotted line marks each k where it pokes above. Under it, one dot is 0.05 ebit. This is a picture of the test, not of a state.</span>
+    </figcaption>
+  </figure>
+
+  <div class="tool-controls">
+    <button type="button" class="btn btn-sm" data-run>Run 100 pairs</button>
+  </div>
+
+  <figure data-runs>
+    <canvas data-pile aria-hidden="true"></canvas>
+    <figcaption>Each dot is one run of the protocol, piled by what Alice got. The chance of each outcome is above its pile. Alice phones Bob her outcome, and in every run the two end up with the target.</figcaption>
+  </figure>
+
+  <p class="tool-readout" aria-live="polite">Pick a start and a target.</p>
+  <p class="note">A simulation of ideal pure states of two parties, with up to four levels each. The weights are the squares of the Schmidt coefficients. Alice and Bob know which state they share. The tool shows one protocol that works (the construction in Nielsen's theorem); a protocol with more rounds cannot do more than the test allows. Mixed states need other tools. Each run's outcome is drawn from your browser's random numbers with the Born rule chances.</p>
+</qce-pair-converter>
+
+<script>
+  import { draw } from '../../lib/quantum.ts';
+  import {
+    MAXD, MAX_E, GAUGE_DOTS, stateById, compare, protocol, chances, shuffleText, describe, verdictText,
+    gaugeFilled, pileGrid, spread, sumsText, ebitText, type Named, type Branch,
+  } from '../../lib/sims/locc.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot, pct } from '../../lib/draw.ts';
+
+  /** Runs per press. Runs per ms while running; ms a new dot stays enlarged. */
+  const BATCH = 100, RATE = 0.08, POP = 300;
+  type Run = { k: number; t: number };
+
+  class PairConverter extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const plot = $<HTMLCanvasElement>('[data-plot]'), pile = $<HTMLCanvasElement>('[data-pile]');
+      const fromSel = $<HTMLSelectElement>('[data-from]'), toSel = $<HTMLSelectElement>('[data-to]');
+      const runBtn = $<HTMLButtonElement>('[data-run]'), runs = $<HTMLElement>('[data-runs]'), readout = $('.tool-readout');
+
+      let from: Named = stateById(fromSel.value), to: Named = stateById(toSel.value);
+      let br: Branch[] | null = null, got: Run[] = [], pending: number[] = [];
+      let pctx: CanvasRenderingContext2D | null = null, pw = 0, ph = 0, qctx: CanvasRenderingContext2D | null = null, qw = 0, qh = 0;
+      let raf = 0, last = 0, credit = 0, seen = false, started = false;
+
+      // ---- The test and the ebit gauge
+      function paintPlot() {
+        if (!pctx) return;
+        const ctx = pctx, col = palette(), mono = token('--mono'), v = compare(from.w, to.w);
+        ctx.clearRect(0, 0, pw, ph);
+        ctx.font = `500 11px ${mono}`; ctx.textBaseline = 'alphabetic';
+        const padL = 40, padR = 16, top = 24, base = ph - 120;
+        const X = (k: number) => padL + (k / MAXD) * (pw - padL - padR), Y = (s: number) => base - s * (base - top);
+
+        ctx.fillStyle = col.ink2; ctx.textAlign = 'left'; ctx.fillText('k largest weights, added up', 4, 12);
+        for (const s of [0, 0.5, 1]) {
+          for (let x = X(0); x <= X(MAXD) + 1; x += 6) dot(ctx, x, Y(s), 0.8, col.rule);
+          ctx.fillStyle = col.ink2; ctx.textAlign = 'right'; ctx.fillText(String(s), padL - 8, Y(s) + 4);
+        }
+        ctx.textAlign = 'center';
+        for (let k = 0; k <= MAXD; k++) { dot(ctx, X(k), base, 1.6, col.ink2); ctx.fillStyle = col.ink2; ctx.fillText(String(k), X(k), base + 15); }
+        ctx.fillText('k', (X(0) + X(MAXD)) / 2, base + 29);
+
+        // A dotted line at each k where the start's sum is above the target's: the places the change is blocked.
+        for (let k = 1; k <= MAXD; k++) {
+          if (v.sumFrom[k - 1] > v.sumTo[k - 1] + 1e-12) for (let y = top - 6; y <= base; y += 4) dot(ctx, X(k), y, 1.4, col.ink);
+        }
+
+        const line = (sums: number[], color: string, dash: number[]) => {
+          ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash(dash);
+          ctx.beginPath(); ctx.moveTo(X(0), Y(0));
+          sums.forEach((s, i) => ctx.lineTo(X(i + 1), Y(s)));
+          ctx.stroke(); ctx.setLineDash([]);
+        };
+        line(v.sumTo, col.hot, [5, 4]);
+        line(v.sumFrom, col.signal, []);
+        v.sumTo.forEach((s, i) => { ctx.strokeStyle = col.hot; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(i + 1), Y(s), 6.5, 0, Math.PI * 2); ctx.stroke(); });
+        v.sumFrom.forEach((s, i) => dot(ctx, X(i + 1), Y(s), 4, col.signal));
+
+        // Ebit gauge: one dot is MAX_E / GAUGE_DOTS ebits.
+        const gx = 12, pitch = (pw - 24) / GAUGE_DOTS, r = Math.min(3.2, pitch * 0.38);
+        const row = (label: string, e: number, y: number, color: string) => {
+          ctx.fillStyle = col.ink; ctx.textAlign = 'left'; ctx.fillText(label, gx, y - 10);
+          const on = gaugeFilled(e);
+          for (let i = 0; i < GAUGE_DOTS; i++) dot(ctx, gx + (i + 0.5) * pitch, y, i < on ? r : Math.max(1, r * 0.4), i < on ? color : col.rule);
+        };
+        row(`start: ${ebitText(v.eFrom)}`, v.eFrom, base + 56, col.signal);
+        row(`target: ${ebitText(v.eTo)}`, v.eTo, base + 88, col.hot);
+        ctx.fillStyle = col.ink2;
+        ctx.textAlign = 'left'; ctx.fillText('0', gx, ph - 2);
+        ctx.textAlign = 'center'; ctx.fillText('1', gx + (pw - 24) / 2, ph - 2);
+        ctx.textAlign = 'right'; ctx.fillText(`${MAX_E} ebits`, pw - gx, ph - 2);
+      }
+
+      // ---- The runs
+          function paintPile(now = performance.now()) {
+        if (!qctx || !br) { qctx?.clearRect(0, 0, qw, qh); return; }
+        const ctx = qctx, col = palette(), mono = token('--mono'), n = br.length;
+        ctx.clearRect(0, 0, qw, qh);
+        ctx.font = `500 11px ${mono}`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+        const cw = Math.min((qw - 16) / n, n === 1 ? 160 : 96), x0 = (qw - cw * n) / 2, top = 28, base = qh - 36;
+        const gw = cw - 6;
+        const piles = br.map((_, k) => got.filter((g) => g.k === k));
+        const grid = pileGrid(gw, base - top, Math.max(BATCH / 4, ...piles.map((p) => p.length)));
+        const rad = grid.pitch * 0.38;
+        piles.forEach((ds, k) => {
+          const cx = x0 + (k + 0.5) * cw, left = cx - (grid.cols * grid.pitch) / 2;
+          ctx.fillStyle = col.ink2; ctx.fillText(pct(br![k].p), cx, 14);
+          ds.forEach((d, i) => {
+            const x = left + ((i % grid.cols) + 0.5) * grid.pitch, y = base - (Math.floor(i / grid.cols) + 0.5) * grid.pitch;
+            const age = now - d.t;
+            dot(ctx, x, y, age < POP ? rad * (1 + 0.6 * (1 - age / POP)) : rad, col.signal);
+          });
+          ctx.fillStyle = col.rule; ctx.fillRect(cx - gw / 2, base + 2, gw, 1);
+          ctx.fillStyle = col.ink2; ctx.fillText(cw >= 72 ? `outcome ${k + 1}` : String(k + 1), cx, base + 16);
+          ctx.fillStyle = col.ink; ctx.fillText(String(ds.length), cx, qh - 6);
+        });
+      }
+
+      function setRun() {
+        const blocked = !br;
+        runBtn.setAttribute('aria-disabled', String(blocked));
+        runBtn.textContent = blocked ? 'No protocol to run' : `Run ${BATCH} pairs`;
+        runs.hidden = blocked;
+      }
+
+      // ---- Words
+      function say() {
+        const v = compare(from.w, to.w), lvl = Math.max(from.w.length, to.w.length);
+        let t = `Start: ${describe(from)}. Target: ${describe(to)}. The k largest weights added up, for k = 1 to ${lvl}: start ${sumsText(from.w, lvl)}; target ${sumsText(to.w, lvl)}. ${verdictText(from, to)}`;
+        if (br) {
+          const rules = br.map((b, k) => `outcome ${k + 1} (chance ${pct(b.p)}): ${shuffleText(b.perm)}`).join('; ');
+          t += ` After Alice's message, both do: ${rules}.${br.length > 1 ? ' Bob uses her message to pick the relabeling.' : ''}`;
+          if (got.length) {
+            const n = got.length, ks = br.map((_, k) => got.filter((g) => g.k === k).length);
+            t += ` In ${n} runs: ${br.map((b, k) => `outcome ${k + 1} on ${ks[k]} (Born rule: ${pct(b.p)})`).join(', ')}. Every run ended with the target pair.`;
+            const p = Math.max(...chances(br));
+            if (br.length > 1) t += ` Chance alone moves a count of ${n} runs by about ${Math.round(spread(n, p))} either way.`;
+          } else t += ' Press the button to run it.';
+        } else if (!v.ok) {
+          t += ' Nothing to run.';
+        }
+        readout.textContent = t;
+        readout.setAttribute('aria-busy', 'false');
+      }
+
+      // ---- Running
+      const add = (k: number, t: number) => got.push({ k, t });
+      const newest = () => got.at(-1)?.t ?? -Infinity;
+      /** Finish every queued run at once and draw the end state: for reduced motion. */
+      const flush = () => { for (const k of pending) add(k, -Infinity); pending = []; credit = 0; paintPile(); say(); };
+
+      function frame(now: number) {
+        raf = 0;
+        const dt = Math.max(0, Math.min(48, now - last)); last = now;
+        credit += dt * RATE;
+        const n = Math.min(pending.length, Math.floor(credit));
+        credit -= n;
+        for (const k of pending.splice(0, n)) add(k, now);
+        if (!pending.length) credit = 0;
+        paintPile(now);
+        if (pending.length || now < newest() + POP) {
+          if (seen) raf = requestAnimationFrame(frame);
+          else if (!pending.length) say();
+        } else say();
+      }
+      const kick = () => { if (!raf && seen && (pending.length || performance.now() < newest() + POP)) { last = performance.now(); raf = requestAnimationFrame(frame); } };
+
+      function run() {
+        if (!br) { say(); return; }
+        stop();
+        const p = chances(br), rand = Math.random;
+        for (let i = 0; i < BATCH; i++) pending.push(draw(p, rand));
+        if (reduceMotion()) { flush(); return; }
+        readout.setAttribute('aria-busy', 'true');
+        readout.textContent = `Running ${BATCH} pairs. Start: ${describe(from)}. Target: ${describe(to)}.`;
+        if (seen) kick(); else flush();
+      }
+
+      function stop() {
+        got = []; pending = []; credit = 0;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      }
+
+      function choose() {
+        from = stateById(fromSel.value); to = stateById(toSel.value);
+        br = protocol(from.w, to.w);
+        stop(); setRun(); paintPlot(); paintPile(); say();
+      }
+
+      const size = () => {
+        ({ ctx: pctx, w: pw, h: ph } = fit(plot)); paintPlot();
+        ({ ctx: qctx, w: qw, h: qh } = fit(pile)); paintPile();
+      };
+
+      fromSel.addEventListener('change', choose);
+      toSel.addEventListener('change', choose);
+      $('[data-swap]').addEventListener('click', () => {
+        const f = fromSel.value; fromSel.value = toSel.value; toSel.value = f; choose();
+      });
+      runBtn.addEventListener('click', run);
+
+      onResize(plot, size);
+      onTheme(() => { paintPlot(); paintPile(); });
+      onSeen(this, (v) => {
+        seen = v;
+        if (v && !started) { started = true; run(); }
+        else if (v) kick();
+      });
+      br = protocol(from.w, to.w);
+      setRun(); size(); say();
+    }
+  }
+  customElements.define('qce-pair-converter', PairConverter);
+</script>
+
+<style>
+  .pick { display: grid; gap: var(--s3); align-items: end }
+  .field { display: grid; gap: var(--s2); min-width: 0 }
+  .field label { font-weight: 600 }
+  select { width: 100%; min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--sans); cursor: pointer }
+  select:hover { border-color: var(--ink) }
+  [aria-disabled="true"] { opacity: .45; cursor: not-allowed }
+
+  figure { display: grid; gap: var(--s2); min-width: 0; margin: 0 }
+  figure[hidden] { display: none }
+  [data-plot] { height: 18rem }
+  [data-pile] { height: 10rem }
+  figcaption { display: grid; gap: var(--s2); max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  .key { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); font: 500 .875rem var(--mono); color: var(--ink) }
+  .key > span { display: inline-flex; align-items: center; gap: .5rem }
+  .key > span::before { content: ""; flex: none; width: .8rem; height: .8rem; border-radius: 50% }
+  .key > .kf::before { background: var(--signal) }
+  .key > .kt::before { border: 2px solid var(--hot) }
+
+  .tool-readout { min-height: 9em }
+  .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+
+  @media (min-width: 40rem) {
+    .pick { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) }
+    [data-plot] { height: 20rem }
+    [data-pile] { height: 10rem }
+  }
+</style>

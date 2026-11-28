@@ -1,0 +1,56 @@
+---
+description: "Alice and Bob act at home and phone each other. See what that can and cannot do to a shared pair, and count the entanglement in ebits."
+answer: "LOCC means local operations and classical communication: each side acts on its own qubits and they send each other ordinary messages. LOCC cannot create entanglement and cannot raise it on average, so entanglement is counted as a resource, in ebits. One Bell pair is one ebit."
+myth:
+  claim: "Alice and Bob can build entanglement just by working at home and talking on the phone."
+  truth: "Local actions and phone calls cannot turn a product state into an entangled one, and they never raise entanglement on average. It must be made by acting on both halves together, or sent by qubits."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import PairConverter from '../../components/tools/PairConverter.astro';
+
+<Depth level="kid">
+
+Alice and Bob live far apart. Each holds one half of an entangled pair. They can each do anything they like with their own half. They can also phone each other. Together this is called LOCC: local actions and classical messages. What they cannot do is bring the two halves together.
+
+We count entanglement in ebits. One Bell pair is one ebit.
+
+LOCC can use up entanglement, or turn a strong pair into a weaker one. It cannot make entanglement from nothing. A lucky try might end with a stronger pair, but over many tries the average never goes up.
+
+Think of a water tank that a phone call cannot fill. The picture breaks here: having more ebits does not always let you make a pair with fewer. The shape of the link matters too, and the Lab shows examples.
+
+</Depth>
+
+<Depth level="student">
+
+Start two qubits as 00, then apply a Hadamard gate and a CNOT. This makes a Bell pair (1 ebit), with equal amplitudes for 00 and 11. Alice and Bob each hold one half.
+
+A partly entangled pair has unequal amplitudes, say $\sqrt{0.9}$ for 00 and $\sqrt{0.1}$ for 11. Its weights are 0.9 and 0.1, and it has about 0.47 ebits.
+
+LOCC can turn the Bell pair into this pair every time: Alice measures her half gently, phones Bob what she got, and each relabels 0 and 1 if needed. The way back cannot work every time, since that would raise the entanglement.
+
+To change a pair every time, add up the biggest weights: one, then two, and so on. In such a change no sum can fall. Take (0.4, 0.4, 0.2) and (0.5, 0.25, 0.25). The two biggest add to 0.8 and 0.75, so the first cannot become the second, yet it has more ebits: 1.52 against 1.5. Ebits alone do not decide.
+
+</Depth>
+
+<Depth level="engineer">
+
+LOCC: each side applies any local operation, measurements included, and sends the other its results. Write a pure state in [Schmidt form](/learn/schmidt/), $|\psi\rangle = \sum_i \sqrt{\lambda_i}\,|i\rangle|i\rangle$ with $\lambda_1 \ge \lambda_2 \ge \dots$. Its entanglement in ebits is the [entropy of entanglement](/learn/entanglement-entropy/), $E(\psi) = -\sum_i \lambda_i \log_2 \lambda_i$. A Bell pair has $E = 1$.
+
+Nielsen's theorem: $|\psi\rangle \to |\varphi\rangle$ by LOCC with certainty exactly when $\lambda(\psi)$ is majorized by $\lambda(\varphi)$:
+
+$$
+\sum_{i \le k} \lambda_i(\psi) \le \sum_{i \le k} \lambda_i(\varphi) \quad \text{for every } k.
+$$
+
+One message from Alice to Bob is enough. Since $E$ is Schur-concave, such a conversion never raises $E$. A product state, $\lambda = (1, 0, \dots)$, is majorized only by itself, so it stays a product state. The uniform $\lambda$ over $d$ levels is majorized by every $\lambda$ with at most $d$ nonzero entries. "$E$ falls" is not enough: $(0.4, 0.4, 0.2)$ has $E \approx 1.52$ and $(0.5, 0.25, 0.25)$ has $E = 1.5$, yet the $k=2$ sums are 0.8 and 0.75, and the $k=1$ sums run the other way, so neither converts to the other.
+
+Without certainty, a lucky outcome can gain; the average cannot. From $\lambda = (0.9, 0.1)$, Alice measures her half with $M_0 = \mathrm{diag}(\tfrac13, 1)$ and $M_1 = \mathrm{diag}(\tfrac{\sqrt8}{3}, 0)$. Outcome 0, chance 0.2, leaves a Bell pair. Outcome 1 leaves a product state. The average is 0.2 ebits, below 0.47. From a pure state, the expected $E$ never rises under LOCC. Luck cannot raise the number of nonzero weights (the Schmidt rank): a product state stays a product state on every outcome. Here 0.2 is the best possible chance.
+
+Teleporting a qubit costs one ebit and two classical bits. For pure states, many copies convert to $E$ ebits per copy and back, in the limit ([entanglement concentration and dilution](/learn/entanglement-distillation/)).
+
+</Depth>
+
+<Lab title="Turn one pair into another" intro="Pick the pair Alice and Bob share and the pair they want. See if local actions and phone calls can do it, then run the protocol and count the ebits.">
+  <PairConverter />
+</Lab>
