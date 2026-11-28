@@ -1,0 +1,62 @@
+---
+description: "A qubit fully entangled with one partner has none left for a third. Pass a link from Bob to Carol and see their two shares add up to at most 1."
+answer: "Monogamy of entanglement says a qubit cannot be fully entangled with two others: the more it is entangled with one partner, the less is left for another. For two partners, their tangles add up to at most 1."
+myth:
+  claim: "A qubit can be entangled with as many partners as you like, each as strongly as the first."
+  truth: "No. A qubit has a limited amount of entanglement to share. If it forms a Bell pair with one partner, nothing is left for a third. With two partners, the two tangles add up to at most 1."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import PassTheLink from '../../components/tools/PassTheLink.astro';
+
+<Depth level="kid">
+
+Alice, Bob and Carol each hold one qubit. Alice and Bob make a Bell pair, the strongest link two qubits can have. Then Carol's qubit has no link to Alice at all: when both measure the same way, Carol's results match Alice's only half the time, like coin flips.
+
+Alice's link can be passed on, though. A gate on Bob and Carol, which never touches Alice, moves part of it to Carol: less with Bob, more with Carol. Think of one pizza: Bob's slice and Carol's slice never add up to more than the whole pizza.
+
+A plain list of bits is different. Three friends can each hold the same list, all 0s or all 1s. That is a copy, not a link. A real link shows in two different kinds of test, not just one.
+
+The pizza picture breaks here: the qubit is not cut into pieces. What is limited is how strongly it can be linked.
+
+</Depth>
+
+<Depth level="student">
+
+Start three qubits as 000. A Hadamard gate on Alice, then a CNOT from Alice to Bob, gives them the [Bell pair](/learn/entanglement/) (|00⟩ + |11⟩)/√2, Carol still 0. If all three measure 0/1, or all three measure +/− (a Hadamard gate, then 0/1), Bob matches Alice every time in both tests. Carol matches half the time in both: nothing links her to Alice.
+
+Add a gate on Bob and Carol only, moving Bob's 1 toward Carol. At the halfway angle, 45°, each matches Alice 75% of the time in 0/1 and about 85% in +/−.
+
+The tangle scores a pair from 0 to 1, a Bell pair. Alice's two tangles add up to at most 1: first 1 and 0, then 0.5 and 0.5, then 0 and 1.
+
+In the [GHZ state](/learn/ghz-w/), (|000⟩ + |111⟩)/√2, Bob and Carol both match Alice every time in 0/1, but only half the time in +/−. Each pair looks like a shared list, which any number can hold: every pair tangle is 0. Yet GHZ is entangled. Its link needs all three: in +/−, the three results always hold an even number of −.
+
+</Depth>
+
+<Depth level="engineer">
+
+Call the qubits A, B and C. For two qubits in state $\rho$, let $\tilde\rho = (\sigma_y\otimes\sigma_y)\rho^*(\sigma_y\otimes\sigma_y)$, and let $\lambda_1\ge\dots\ge\lambda_4$ be the square roots of the eigenvalues of $\rho\tilde\rho$. The [tangle](/learn/entanglement-measures/) is the squared concurrence, $\tau = \max(0,\lambda_1-\lambda_2-\lambda_3-\lambda_4)^2$.
+
+For a pure state of ABC, Coffman, Kundu and Wootters proved
+
+$$
+\tau_{AB}+\tau_{AC}+\tau_{ABC} = 4\det\rho_A \le 1,
+$$
+
+with $\tau_{ABC}\ge 0$ the three-way tangle, the same for any qubit as focus. So $\tau_{AB}+\tau_{AC}\le 1$. For a mixed state, CKW Eq. 14 gives $\tau_{AB}+\tau_{AC}\le\tau^{\min}_{A(BC)}\le 1$. The equality with $\tau_{ABC}$ holds for pure states only. If $\tau_{AB}=1$, then $\rho_{AB}$ is pure, so $\rho_{ABC}=\rho_{AB}\otimes\rho_C$: Carol shares no correlation of any kind with Alice.
+
+The tool starts as $|000\rangle$, then $H$ on A, a CNOT from A to B, and a rotation by $t$ on B and C that turns $|10\rangle$ into $\cos t\,|10\rangle+\sin t\,|01\rangle$:
+
+$$
+|\psi\rangle=\tfrac{1}{\sqrt2}\big(|000\rangle+\cos t\,|110\rangle+\sin t\,|101\rangle\big).
+$$
+
+An $X$ on A, a local unitary that changes no tangle, gives the family $\alpha|100\rangle+\beta|010\rangle+\gamma|001\rangle$, where $\tau_{AB}=4|\alpha|^2|\beta|^2$ and $\tau_{AC}=4|\alpha|^2|\gamma|^2$. Here $\tau_{AB}=\cos^2 t$, $\tau_{AC}=\sin^2 t$, $\tau_{ABC}=0$, and $\rho_A=I/2$ throughout. For these three tangles, in order, GHZ gives $0,0,1$ and W, $(|100\rangle+|010\rangle+|001\rangle)/\sqrt3$, gives $\tfrac49,\tfrac49,0$.
+
+The square matters. Entanglement of formation does not add this way: at $t=45^\circ$ each pair has $E\approx0.601$ ebit, and $2\times0.601>1$. At $45^\circ$ the concurrences add up to $\sqrt2>1$.
+
+</Depth>
+
+<Lab title="Pass a link from Bob to Carol" intro="Turn the gate and run copies. See how often Bob, then Carol, matches Alice in two tests, and watch their two tangles trade off.">
+  <PassTheLink />
+</Lab>

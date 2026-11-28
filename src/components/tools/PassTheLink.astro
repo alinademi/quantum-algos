@@ -1,0 +1,283 @@
+---
+// Alice, Bob and Carol share an ideal three-qubit state from monogamy.ts. The bar is Alice's exact tangle budget from the
+// formulas; each dot is one run (a fresh copy measured by all three) drawn with the Born rule, so the strips show shot noise
+// around the exact match chances printed beside them.
+import { PRESETS, PARTNERS, NAME, BOB, CAROL, budget, ketLine, num, readout, sliderText, type Kind } from '../../lib/sims/monogamy.ts';
+const uid = 'mg-' + Math.random().toString(36).slice(2, 8);
+const K0: Kind = 'pass', D0 = 0;
+const b0 = budget(K0, D0);
+const tests = ['Z', 'X'] as const;
+const testName = { Z: '0/1', X: '+/−' };
+const presetName: Record<number, string> = { 0: '0° Bob', 45: '45° split', 90: '90° Carol' };
+---
+<qce-pass-the-link class="tool">
+  <div class="setup">
+    <fieldset class="kind">
+      <legend>Alice, Bob and Carol share</legend>
+      <div class="opts">
+        <label><input type="radio" name={`${uid}-kind`} value="pass" checked /><b>A Bell pair, passed on</b> <span>Alice and Bob, then a gate on Bob and Carol</span></label>
+        <label><input type="radio" name={`${uid}-kind`} value="ghz" /><b>GHZ</b> <code>(|000⟩ + |111⟩)/√2</code></label>
+      </div>
+    </fieldset>
+    <div class="gate">
+      <div class="row"><label for={`${uid}-deg`}>Bob and Carol's gate</label><span class="out" data-out aria-hidden="true">{D0}°</span></div>
+      <input id={`${uid}-deg`} type="range" min="0" max="90" step="1" value={D0} aria-valuetext={sliderText(D0)} aria-describedby={`${uid}-gate-hint`} />
+      <div class="presets" role="group" aria-label="Preset gate angles">
+        {PRESETS.map((d) => <button type="button" class="btn btn-sm btn-line" data-deg={d} aria-pressed={String(d === D0)}>{presetName[d]}</button>)}
+      </div>
+      <p class="hint" id={`${uid}-gate-hint`} data-gate-hint>The gate turns Bob's 1 toward Carol and never touches Alice. At 0° Alice and Bob are a Bell pair. At 90° Alice and Carol are.</p>
+    </div>
+  </div>
+
+  <p class="state"><code data-ket>{ketLine(K0, D0)}</code></p>
+  <p class="hint">Kets list Alice, Bob and Carol, left to right. To measure in +/−, apply a Hadamard gate, then measure 0/1: 0 reads as +, 1 as −.</p>
+
+  <div class="budget">
+    <p class="label">Alice's tangle, out of 1</p>
+    <div class="bar" aria-hidden="true">
+      <span class="s-bob" data-seg="bob" style={`width:${b0.bob * 100}%`}></span><span class="s-carol" data-seg="carol" style={`width:${b0.carol * 100}%`}></span><span class="s-three" data-seg="three" style={`width:${b0.three * 100}%`}></span>
+    </div>
+    <ul class="key">
+      <li class="k-bob">Alice and Bob <b data-val="bob">{num(b0.bob)}</b></li>
+      <li class="k-carol">Alice and Carol <b data-val="carol">{num(b0.carol)}</b></li>
+      <li class="k-three">Three-way <b data-val="three">{num(b0.three)}</b></li>
+    </ul>
+    <p class="hint">Tangle scores a pair of qubits from 0, no entanglement, to 1, a Bell pair. The bar is exact, worked out from the state, not counted from dots. Three-way is entanglement that needs all three qubits.</p>
+  </div>
+
+  <div class="tool-controls">
+    <button type="button" class="btn btn-sm" data-run="1">Run 1</button>
+    <button type="button" class="btn btn-sm" data-run="10">Run 10</button>
+    <button type="button" class="btn btn-sm" data-run="100">Run 100</button>
+    <button type="button" class="btn btn-sm btn-line" data-clear>Clear</button>
+  </div>
+
+  <div class="boxes">
+    {PARTNERS.map((who) => (
+      <figure data-box={who}>
+        <figcaption>
+          <span class="who">{NAME[who]} against Alice</span>
+          <span data-tangle>Tangle {num(who === BOB ? b0.bob : b0.carol)}</span>
+        </figcaption>
+        {tests.map((t) => (
+          <div class="strip">
+            <p><span class="label">All three measure {testName[t]}</span> <span data-count={t}></span></p>
+            <canvas data-strip={t} aria-hidden="true"></canvas>
+          </div>
+        ))}
+      </figure>
+    ))}
+  </div>
+
+  <p class="key2"><span class="k-same">Matched Alice</span><span class="k-diff">differed from Alice</span></p>
+  <p class="legend">Each dot is one run: a fresh copy of the state, measured by all three. The runs take turns: one in which all three measure 0/1, the next in which all three measure +/−. A Bell pair matches in both tests, so both of its rows fill with solid dots. A plain shared list of bits matches in 0/1 only. Turn the gate or switch the state and the same runs are drawn again, so dots flip instead of being re-rolled.</p>
+
+  <p class="tool-readout" aria-live="polite">{readout(K0, D0, [])}</p>
+  <p class="note">A simulation of ideal, noise-free qubits. It offers two states: the Bell pair of Alice and Bob passed on by a gate on Bob and Carol, and GHZ. Both have real amplitudes, and the tests are only 0/1 and +/−. Other three-qubit states, such as W, (|100⟩ + |010⟩ + |001⟩)/√3, obey the same limit. Each result is a Born rule draw from your browser's random numbers. The picture is Alice's tangle budget, not a drawing of the qubits.</p>
+</qce-pass-the-link>
+
+<script>
+  import { PARTNERS, BOB, MAX, STRIP, budget, ketLine, num, readout, results, sliderText, countText, matchChance, newRun, type Kind, type Basis, type Bit, type Partner, type Run } from '../../lib/sims/monogamy.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  /** ms between runs when only a few are queued; ms a new dot stays enlarged. */
+  const STEP = 80, POP = 280;
+  type Shot = Run & { t: number };
+  type Strip = { who: Partner; basis: Basis; canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D | null; w: number; h: number };
+
+  /** Dot grid for a strip width: dots per line (a divisor of STRIP, so lines fill evenly), spacing, radius and height. */
+  function layout(w: number) {
+    const per = [50, 25, 20, 10].find((n) => w / n >= 9) ?? 10;
+    const cell = w / per, r = Math.max(2.2, Math.min(4, cell * 0.34)), pad = r + 3;
+    return { per, cell, r, pad, h: Math.ceil(2 * pad + (Math.ceil(STRIP / per) - 1) * cell) };
+  }
+
+  class PassTheLink extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string, el: ParentNode = this) => el.querySelector<T>(s)!;
+      const radios = [...this.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+      const slider = $<HTMLInputElement>('input[type="range"]');
+      const presets = [...this.querySelectorAll<HTMLButtonElement>('[data-deg]')];
+      const goes = [...this.querySelectorAll<HTMLButtonElement>('[data-run]')];
+      const figs = PARTNERS.map((who) => $<HTMLElement>(`[data-box="${who}"]`));
+      const strips: Strip[] = figs.flatMap((f, i) => (['Z', 'X'] as Basis[]).map((basis) => ({ who: PARTNERS[i], basis, canvas: $<HTMLCanvasElement>(`[data-strip="${basis}"]`, f), ctx: null, w: 0, h: 0 })));
+      const out = $('.tool-readout');
+      const gateHint = $('[data-gate-hint]');
+      const PASS_HINT = gateHint.textContent ?? '';
+
+      let kind: Kind = 'pass', deg = 0, shots: Shot[] = [], bits: Bit[][] = [], queue = 0, last = 0, raf = 0, seen = false;
+
+      function paint(now = performance.now()) {
+        const pal = palette();
+        for (const s of strips) {
+          if (!s.ctx) continue;
+          const g = layout(s.w), mine = shots.map((x, i) => i).filter((i) => shots[i].basis === s.basis);
+          s.ctx.clearRect(0, 0, s.w, s.h);
+          for (let k = 0; k < STRIP; k++) {
+            const x = (k % g.per + 0.5) * g.cell, y = g.pad + Math.floor(k / g.per) * g.cell, i = mine[k];
+            if (i === undefined) { dot(s.ctx, x, y, Math.max(1, g.r * 0.3), pal.rule); continue; }
+            const age = now - shots[i].t, rr = g.r * (age < POP ? 1 + 0.5 * (1 - age / POP) : 1);
+            if (bits[i][s.who] === bits[i][0]) dot(s.ctx, x, y, rr, pal.signal);
+            else {
+              dot(s.ctx, x, y, rr, pal.paper);
+              s.ctx.strokeStyle = pal.ink2; s.ctx.lineWidth = Math.max(1.25, rr * 0.3);
+              s.ctx.beginPath(); s.ctx.arc(x, y, rr - s.ctx.lineWidth / 2, 0, Math.PI * 2); s.ctx.stroke();
+            }
+          }
+        }
+      }
+
+      function size() {
+        for (const s of strips) {
+          const g = layout(s.canvas.getBoundingClientRect().width);
+          s.canvas.style.height = `${g.h}px`;
+          const f = fit(s.canvas);
+          s.ctx = f.ctx; s.w = f.w; s.h = f.h;
+        }
+        paint();
+      }
+
+      /** The bar, its numbers, the ket and the gate label for the current state. */
+      function showState() {
+        const b = budget(kind, deg), ghz = kind === 'ghz';
+        for (const k of ['bob', 'carol', 'three'] as const) {
+          $<HTMLElement>(`[data-seg="${k}"]`).style.width = `${b[k] * 100}%`;
+          $(`[data-val="${k}"]`).textContent = num(b[k]);
+        }
+        $('[data-ket]').textContent = ketLine(kind, deg);
+        $('[data-out]').textContent = ghz ? 'not used' : `${deg}°`;
+        slider.value = String(deg); slider.disabled = ghz;
+        slider.setAttribute('aria-valuetext', ghz ? 'Not used by GHZ' : sliderText(deg));
+        presets.forEach((p) => { p.disabled = ghz; p.setAttribute('aria-pressed', String(!ghz && +p.dataset.deg! === deg)); });
+        gateHint.textContent = ghz ? 'GHZ is made with CNOTs only, so the gate does not apply.' : PASS_HINT;
+        figs.forEach((f, i) => {
+          const who = PARTNERS[i];
+          $('[data-tangle]', f).textContent = `Tangle with Alice ${num(who === BOB ? b.bob : b.carol)}`;
+        });
+      }
+
+      /** The words around the strips: how many runs matched, against the exact chance. */
+      function count() {
+        const cells = { 1: { Z: { runs: 0, same: 0 }, X: { runs: 0, same: 0 } }, 2: { Z: { runs: 0, same: 0 }, X: { runs: 0, same: 0 } } };
+        shots.forEach((s, i) => PARTNERS.forEach((who) => { const c = cells[who][s.basis]; c.runs++; if (bits[i][who] === bits[i][0]) c.same++; }));
+        figs.forEach((f, i) => {
+          for (const basis of ['Z', 'X'] as Basis[]) $(`[data-count="${basis}"]`, f).textContent = countText(cells[PARTNERS[i]][basis], matchChance(kind, deg, basis, PARTNERS[i]));
+        });
+        const full = shots.length + queue >= MAX;
+        goes.forEach((x) => x.setAttribute('aria-disabled', String(full)));
+      }
+
+      /** Draw every run again for the current state: each keeps its own random number. */
+      const refresh = () => { bits = results(kind, deg, shots); count(); paint(); };
+      const view = () => { showState(); refresh(); };
+
+      const say = () => { out.textContent = readout(kind, deg, shots); };
+      const add = (t: number) => { shots.push({ ...newRun(shots.length, Math.random), t }); queue--; bits = results(kind, deg, shots); count(); };
+      /** Finish every queued run at once and draw the end state: for reduced motion, and when the tool is off screen. */
+      const flush = () => { while (queue > 0) add(-Infinity); shots.forEach((s) => { s.t = -Infinity; }); paint(); say(); };
+      const busy = (now: number) => queue > 0 || (shots.length > 0 && now < shots[shots.length - 1].t + POP);
+
+      function frame(now: number) {
+        raf = 0;
+        if (!seen) { flush(); return; }
+        if (queue > 0 && now - last >= (queue > 10 ? 0 : STEP)) { add(now); last = now; }
+        paint(now);
+        if (busy(now)) raf = requestAnimationFrame(frame); else say();
+      }
+      const kick = () => { if (reduceMotion() || !seen) flush(); else if (!raf) raf = requestAnimationFrame(frame); };
+
+      function clear() {
+        shots = []; bits = []; queue = 0;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        paint(); count();
+      }
+
+      /** Read the choices as the page shows them (a browser can restore form values on going back), then start fresh. */
+      function setup() {
+        kind = (radios.find((x) => x.checked)?.value ?? 'pass') as Kind;
+        deg = Math.max(0, Math.min(90, Math.round(+slider.value || 0)));
+        clear(); view(); say();
+      }
+
+      radios.forEach((x) => x.addEventListener('change', () => {
+        if (!x.checked) return;
+        kind = x.value as Kind; view(); say();
+      }));
+      // The live text waits for the slider to be let go: a drag must not make the screen reader speak at every step.
+      slider.addEventListener('input', () => { deg = +slider.value; view(); });
+      slider.addEventListener('change', () => { deg = +slider.value; view(); say(); });
+      presets.forEach((p) => p.addEventListener('click', () => { deg = +p.dataset.deg!; view(); say(); }));
+      goes.forEach((x) => x.addEventListener('click', () => {
+        const room = MAX - shots.length - queue;
+        if (room <= 0) { say(); return; }
+        queue += Math.min(+x.dataset.run!, room);
+        count(); kick();
+      }));
+      $('[data-clear]').addEventListener('click', () => { clear(); say(); });
+
+      onResize(strips[0].canvas, size);
+      onTheme(() => paint());
+      onSeen(this, (v) => { seen = v; if (!v && queue > 0) flush(); });
+      setup();
+    }
+  }
+  customElements.define('qce-pass-the-link', PassTheLink);
+</script>
+
+<style>
+  .setup { display: grid; gap: var(--s4) }
+  fieldset { display: grid; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  .opts { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s2) }
+  .opts label { position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0 var(--s2); min-height: 2.75rem; padding: var(--s1) .75rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); text-align: center; font-weight: 500; cursor: pointer }
+  .opts label:hover { border-color: var(--ink) }
+  .opts input { position: absolute; opacity: 0; width: 1px; height: 1px }
+  .opts label:has(:checked) { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .opts label:has(:focus-visible) { outline: 3px solid var(--signal); outline-offset: 2px }
+  .opts code { font-weight: 500; overflow-wrap: anywhere }
+  .opts b { font-weight: 600 }
+
+  .gate { display: grid; gap: var(--s2); min-width: 0 }
+  .row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0 var(--s3) }
+  .out { flex: none; font: 500 1.25rem var(--mono); white-space: nowrap }
+  .presets { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .presets button { min-width: 2.75rem }
+  .presets button[aria-pressed="true"] { background: var(--ink); color: var(--paper) }
+  .presets button:disabled { opacity: .45; cursor: not-allowed }
+  input[type="range"]:disabled { opacity: .45; cursor: not-allowed }
+
+  .state { font-size: 1.0625rem; overflow-wrap: anywhere }
+  .hint, .legend, .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  [aria-disabled="true"] { opacity: .45; cursor: not-allowed }
+
+  .budget { display: grid; gap: var(--s2); min-width: 0 }
+  .bar { display: flex; width: 100%; height: 1.75rem; border: 1.5px solid var(--ink-2); border-radius: var(--r); overflow: hidden; background: var(--paper) }
+  .bar span { flex: none; height: 100% }
+  .s-bob, .k-bob::before { background: var(--signal) }
+  .s-carol, .k-carol::before { background: repeating-linear-gradient(135deg, var(--hot) 0 3px, var(--paper) 3px 6px); box-shadow: inset 0 0 0 1.5px var(--hot) }
+  .s-three, .k-three::before { background: radial-gradient(circle, var(--ink) 1.4px, transparent 1.6px) 0 0 / 6px 6px, var(--paper); box-shadow: inset 0 0 0 1.5px var(--ink) }
+  .key { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); margin: 0; padding: 0; list-style: none; font-size: .9375rem }
+  .key li { display: inline-flex; align-items: center; gap: .4rem }
+  .key li::before { content: ""; flex: none; width: 1rem; height: 1rem; border-radius: 3px }
+  .key b { font: 600 1rem var(--mono) }
+
+  .boxes { display: grid; gap: var(--s3) }
+  figure { display: grid; gap: var(--s3); min-width: 0; margin: 0; padding: var(--s3); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r) }
+  figcaption { display: grid; gap: var(--s1); overflow-wrap: anywhere }
+  .who { font-size: 1.125rem; font-weight: 600 }
+  [data-tangle] { font: 500 .9375rem var(--mono); color: var(--ink-2) }
+  .strip { display: grid; gap: var(--s1); min-width: 0 }
+  .strip p { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0 var(--s3); font-size: .9375rem; color: var(--ink-2) }
+  .strip canvas { height: 3rem }
+
+  .key2 { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); font: 500 .875rem var(--mono); color: var(--ink-2) }
+  .key2 > span { display: inline-flex; align-items: center; gap: .4rem }
+  .key2 > span::before { content: ""; flex: none; width: .75rem; height: .75rem; border-radius: 50% }
+  .key2 > .k-same::before { background: var(--signal) }
+  .key2 > .k-diff::before { border: 2px solid var(--ink-2) }
+
+  @media (min-width: 40rem) {
+    .setup { grid-template-columns: 3fr 2fr; column-gap: var(--s5); align-items: start }
+    .boxes { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  }
+</style>
