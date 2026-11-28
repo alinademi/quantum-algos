@@ -2,8 +2,8 @@
 description: "Try exchange and interaction gates used to build real quantum processors, and undo their ideal actions."
 answer: "Two-qubit gate families include exchange, interaction rotations, controlled gates and hardware-inspired entanglers."
 myth:
-  claim: "Any two-qubit gate entangles every input."
-  truth: "Some product inputs remain product; SWAP never creates entanglement from product inputs."
+  claim: "A gate that changes only computational-basis phases cannot create entanglement."
+  truth: "RZZ at 90° turns |++⟩ into an entangled state without changing any 0/1 measurement probability."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -20,7 +20,7 @@ Ideal quantum gates describe a family of these interactions. Some exchange the f
 
 <Depth level="student">
 
-There are several two-qubit gate families. iSWAP exchanges 01 and 10 and attaches i. √SWAP is a partial exchange that squares to SWAP. RXX and RZZ are interaction rotations; RZZ changes phases and can entangle a |++⟩ input. fSim can put 01 into a superposition of 01 and 10, and adds a phase to 11. Here MS(θ) uses the RXX(θ) convention, with the usual maximally entangling MS at 90°. ECR is an echoed cross-resonance entangler.
+There are several two-qubit gate families. iSWAP exchanges 01 and 10 and attaches i. √SWAP is a partial exchange that squares to SWAP. RXX and RZZ are interaction rotations; RZZ changes phases and can entangle a |++⟩ input. fSim can put 01 into a superposition of 01 and 10, and adds a phase to 11. Here MS(θ) uses the RXX(θ) convention, with the usual maximally entangling MS at 90°. ECR is an echoed cross-resonance entangler: on 00 it gives a product state, but on |+⟩|0⟩ it creates entanglement.
 
 Different hardware makes different interactions natural: trapped ions use MS-like gates, cross-resonance superconducting devices use ECR, and tunable couplers support exchange and fSim-like operations. The lab models ideal matrices, not actual pulse errors.
 
@@ -30,7 +30,7 @@ Different hardware makes different interactions natural: trapped ions use MS-lik
 
 In basis order 00, 01, 10, 11, iSWAP sends 01 to $i|10\rangle$ and 10 to $i|01\rangle$. For √SWAP the symmetric subspace has eigenvalue 1 and antisymmetric eigenvalue i; squaring gives SWAP. $R_{PP}(\theta)=e^{-i\theta P\otimes P/2}$, with $P=X,Z$. Here MS(θ)=RXX(θ); physical phase conventions vary.
 
-The fSim odd-parity block has rows $(\cos\theta,-i\sin\theta)$ and $(-i\sin\theta,\cos\theta)$, with diagonal factors 1 on 00 and $e^{-i\phi}$ on 11. ECR uses IBM's [matrix convention](https://quantum.cloud.ibm.com/docs/en/api/qiskit/qiskit.circuit.library.ECRGate), reordered to q0-first. See [Krantz et al.](https://arxiv.org/abs/1904.06560), section IV, for exchange and cross-resonance interactions. MS is used in trapped-ion systems; exact native implementations depend on hardware. Not every input is entangled by each gate.
+The fSim odd-parity block has rows $(\cos\theta,-i\sin\theta)$ and $(-i\sin\theta,\cos\theta)$, with diagonal factors 1 on 00 and $e^{-i\phi}$ on 11. ECR is $(XI-YX)/\sqrt2$ in this q0-left convention. It uses IBM’s [matrix convention](https://quantum.cloud.ibm.com/docs/en/api/qiskit/qiskit.circuit.library.ECRGate), reordered to q0-first. See [Krantz et al.](https://arxiv.org/abs/1904.06560), section IV, for exchange and cross-resonance interactions. MS is used in trapped-ion systems; exact native implementations depend on hardware. Not every input is entangled by each gate: RZZ on 00 adds only a global phase, whereas on |++⟩ at 90° its concurrence is 1.
 
 Unlike a block-diagonal [controlled gate](/learn/controlled-gates/), the exchange families act within the odd-parity subspace. Their relation to [SWAP](/learn/toffoli/) is visible on the basis inputs 01 and 10.
 

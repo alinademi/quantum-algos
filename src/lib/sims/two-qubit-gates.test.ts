@@ -21,3 +21,7 @@ test('ECR is echoed opposite ZX rotations with an X echo on q0',()=>{const zx=q.
 test('lab repeats √SWAP to exchange the states, or inverts it to restore them',()=>{state(last('two-qubit-gates',{name:'√SWAP',start:'01',second:'Same gate'}).state!,q.basis(2,2));state(last('two-qubit-gates',{name:'√SWAP',start:'01',second:'Inverse'}).state!,q.basis(2,1));});
 
 test('lab distinguishes product and entangled outputs of the same interaction',()=>{const concurrence=(name:string,start:string)=>value(run('two-qubit-gates',{name,start,theta:'90'})[1],'Concurrence (0 product, 1 maximal)');close(concurrence('RZZ','++'),1);close(concurrence('RZZ','00'),0);close(concurrence('√SWAP','01'),1);close(concurrence('SWAP','01'),0);});
+
+test('ECR matches the independent XI−YX expression; phase-only fSim can entangle',()=>{const a=q.kron(q.X,q.I),b=q.kron(q.Y,q.X);matrix(family('ECR',0,0),a.map((r,i)=>r.map((z,j)=>q.scale(q.sub(z,b[i][j]),Math.SQRT1_2))));const s=run('two-qubit-gates',{name:'fSim',start:'++',theta:'0',phi:'180'})[1];close(value(s,'Concurrence (0 product, 1 maximal)'),1);q.probs(s.state!).forEach(p=>close(p,.25));});
+
+test('ECR leaves 00 product but entangles +0',()=>{for(const [start,k] of [['00',0],['+0',1]] as const)close(value(run('two-qubit-gates',{name:'ECR',start})[1],'Concurrence (0 product, 1 maximal)'),k);});
