@@ -1,28 +1,32 @@
 <qce-spider-rewrite class="tool">
- <div class="tool-controls"><label>Diagram <select><option>Fusion</option><option>CNOT</option><option>Fuse through CNOT</option></select></label><button type="button" class="btn">Rewrite diagram</button></div>
+ <div class="tool-controls"><label>Diagram <select data-rule><option>Green fusion</option><option>Red fusion</option><option>H changes color</option><option>CNOT as spiders</option><option>Fuse through CNOT</option></select></label><label>Phase α <select data-a><option>45</option><option>90</option><option>180</option><option>0</option></select></label><label>Phase β <select data-b><option>90</option><option>45</option><option>180</option><option>0</option></select></label><button type="button" class="btn">Rewrite diagram</button></div>
  <canvas aria-hidden="true"></canvas>
  <p class="tool-readout" aria-live="polite"></p>
  <p class="note">These dots are tensor-network nodes, not measurement shots. Z and X labels distinguish the spider types without relying on color.</p>
 </qce-spider-rewrite>
 <script>
- import {spiderCX,controlFusion} from '../../lib/sims/zx-calculus.ts';
- import {matrixGap,control} from '../../lib/sims/gate-lab.ts';
- import {P,X,matMul} from '../../lib/quantum.ts';
+ import {lab} from '../../lib/sims/zx-calculus.ts';
  import {fit,palette,dot,onResize,onTheme,onSeen} from '../../lib/draw.ts';
  class SpiderRewrite extends HTMLElement{
   connectedCallback(){
-   const select=this.querySelector('select')!,button=this.querySelector('button')!,canvas=this.querySelector('canvas')!,read=this.querySelector('.tool-readout')!;let simplified=false,seen=true;
+   const select=this.querySelector<HTMLSelectElement>('[data-rule]')!,alpha=this.querySelector<HTMLSelectElement>('[data-a]')!,beta=this.querySelector<HTMLSelectElement>('[data-b]')!,button=this.querySelector('button')!,canvas=this.querySelector('canvas')!,read=this.querySelector('.tool-readout')!;let simplified=false,seen=true;
    const draw=()=>{if(!seen)return;const {ctx,w,h}=fit(canvas);if(w<40)return;const p=palette(),x=w/2,a=w*.3,b=w*.7,y=h/2;ctx.clearRect(0,0,w,h);
     const line=(x1:number,y1:number,x2:number,y2:number)=>{ctx.strokeStyle=p.ink;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();};
     const node=(x:number,y:number,label:string,kind:string)=>{dot(ctx,x,y,18,kind==='Z'?p.signal:p.hot);ctx.font='bold 13px monospace';ctx.textAlign='center';ctx.fillStyle=p.paper;ctx.fillText(kind,x,y+4);ctx.fillStyle=p.ink;ctx.font='12px monospace';ctx.fillText(label,x,y+34);};
-    if(select.value==='Fusion'){line(12,y,w-12,y);if(simplified)node(x,y,'135°','Z');else {node(a,y,'45°','Z');node(b,y,'90°','Z');}}
-    else if(select.value==='Fuse through CNOT'){const y1=h*.28,y2=h*.68;line(12,y1,w-12,y1);line(12,y2,w-12,y2);line(x,y1,x,y2);node(x,y1,simplified?'135°':'0°','Z');node(x,y2,'merge','X');if(!simplified){node(w*.18,y1,'45°','Z');node(w*.82,y1,'90°','Z');}}
+    const rule=select.value,alphaLabel=alpha.value+'°',betaLabel=beta.value+'°',sumLabel=(+alpha.value + +beta.value)+'°';
+    if(rule==='Green fusion'||rule==='Red fusion'){const kind=rule==='Green fusion'?'Z':'X';line(12,y,w-12,y);if(simplified)node(x,y,sumLabel,kind);else {node(a,y,alphaLabel,kind);node(b,y,betaLabel,kind);}}
+    else if(rule==='H changes color'){line(12,y,w-12,y);node(x,y,alphaLabel,simplified?'X':'Z');if(!simplified){for(const bx of [w*.2,w*.8]){ctx.fillStyle=p.paper;ctx.strokeStyle=p.ink;ctx.fillRect(bx-13,y-13,26,26);ctx.strokeRect(bx-13,y-13,26,26);ctx.fillStyle=p.ink;ctx.font='bold 13px monospace';ctx.textAlign='center';ctx.fillText('H',bx,y+5);}}}
+    else if(select.value==='Fuse through CNOT'){const y1=h*.28,y2=h*.68;line(12,y1,w-12,y1);line(12,y2,w-12,y2);line(x,y1,x,y2);node(x,y1,simplified?sumLabel:'0°','Z');node(x,y2,'merge','X');if(!simplified){node(w*.18,y1,alphaLabel,'Z');node(w*.82,y1,betaLabel,'Z');}}
     else {const y1=h*.28,y2=h*.67;line(12,y1,w-12,y1);line(12,y2,w-12,y2);line(x,y1,x,y2);if(simplified){dot(ctx,x,y1,5,p.ink);ctx.strokeStyle=p.ink;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y2,13,0,Math.PI*2);ctx.stroke();line(x-13,y2,x+13,y2);line(x,y2-13,x,y2+13);}else{node(x,y1,'copy','Z');node(x,y2,'merge','X');}}
    };
-   const report=()=>{const cx=select.value==='CNOT',through=select.value==='Fuse through CNOT';const gap=through?controlFusion(Math.PI/4,Math.PI/2).gap:cx?matrixGap(spiderCX(),control(X)):matrixGap(matMul(P(Math.PI/2),P(Math.PI/4)),P(3*Math.PI/4));read.textContent=(simplified?'Showing rewritten: ':'Showing original: ')+(through?'For every two-qubit input: the two control phases fuse into the CNOT Z spider at 135°. Max entry difference '+gap.toExponential(1)+'.':cx?'For every two-qubit input: normalized Z copy joined to X merge equals CNOT; max entry difference '+gap.toExponential(1)+'.':'For every one-qubit input: Z spiders at 45° and 90° fuse to 135°; max entry difference '+gap.toExponential(1)+'.');button.textContent=simplified?'Show original diagram':'Rewrite diagram';draw();};
-   button.addEventListener('click',()=>{simplified=!simplified;report();});select.addEventListener('change',()=>{simplified=false;report();});onResize(this,draw);onTheme(draw);onSeen(this,v=>{seen=v;if(v)draw();});report();
+   const report=()=>{const rule=select.value,cx=rule==='CNOT as spiders',through=rule==='Fuse through CNOT',h=rule==='H changes color',kind=rule==='Red fusion'?'X':'Z';alpha.closest('label')!.hidden=cx;beta.closest('label')!.hidden=cx||h;
+    const step=lab.run({rule,a:alpha.value,b:beta.value,start:'+'}).at(-1)!;
+    const gap=step.rows!.find(r=>r.label.toLowerCase().includes('gap'))!.value;
+    const explanation=through?'The two control phases fuse into the CNOT Z spider at '+(+alpha.value + +beta.value)+'°.':cx?'Normalized Z copy joined to X merge equals CNOT.':h?'H on both legs changes a Z spider into an X spider with the same phase.':kind+' spiders fuse by adding '+alpha.value+'° and '+beta.value+'°.';
+    read.textContent=(simplified?'Showing rewritten: ':'Showing original: ')+(cx||through?'For every two-qubit input: ':'For every one-qubit input: ')+explanation+' Maximum matrix entry difference: '+gap+'.';button.textContent=simplified?'Show original diagram':'Rewrite diagram';draw();};
+   button.addEventListener('click',()=>{simplified=!simplified;report();});for(const input of [select,alpha,beta])input.addEventListener('change',()=>{simplified=false;report();});onResize(this,draw);onTheme(draw);onSeen(this,v=>{seen=v;if(v)draw();});report();
   }
  }
  customElements.define('qce-spider-rewrite',SpiderRewrite);
 </script>
-<style>qce-spider-rewrite{display:grid;gap:var(--s3)}canvas{width:100%;height:12rem}select{min-height:2.75rem;background:var(--paper);color:var(--ink);font:inherit}.note{font-size:.875rem;color:var(--ink-2)}</style>
+<style>qce-spider-rewrite{display:grid;gap:var(--s3)}canvas{width:100%;height:12rem}.tool-controls{display:flex;flex-wrap:wrap;gap:var(--s2)}label{display:grid;flex:1 1 6rem}label[hidden]{display:none}select{min-width:0;min-height:2.75rem;background:var(--paper);color:var(--ink);font:inherit}.note{font-size:.875rem;color:var(--ink-2)}</style>

@@ -19,7 +19,8 @@ export const lab:Lab={
 // Phase labels on a Z spider commute through its control branch.
 export function controlFusion(a:number,b:number){
  const cx=op('CNOT',spiderCX(),0,1);
- const left=[op('Z spider',P(a),0),cx,op('Z spider',P(b),0)];
- const right=[cx,op('Z spider',P(a+b),0)];
+ const name=(t:number)=>'Z spider '+Math.round(t*180/Math.PI)+'°';
+ const left=[op(name(a),P(a),0),cx,op(name(b),P(b),0)];
+ const right=[cx,op(name(a+b),P(a+b),0)];
  return {left,right,gap:matrixGap(fullMatrix(2,left),fullMatrix(2,right))};
 }

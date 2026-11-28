@@ -1,5 +1,5 @@
 ---
-description: "Simplify spider diagrams by fusion or color change, and build a CNOT from connected multi-leg spiders."
+description: "Fuse spiders through a CNOT, change their color, and build CNOT from connected multi-leg spiders."
 answer: "ZX-calculus represents quantum operations by diagrams with Z and X spiders; valid diagram rewrites preserve their mathematical meaning."
 myth:
   claim: "Changing the position of a spider changes the represented circuit."
@@ -8,8 +8,6 @@ myth:
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
 import SpiderRewrite from '../../components/tools/SpiderRewrite.astro';
-import GateLab from '../../components/tools/GateLab.astro';
-import { lab } from '../../lib/sims/zx-calculus.ts';
 
 <Depth level="kid">
 
@@ -19,17 +17,16 @@ Imagine replacing a long circuit drawing with dots and connecting lines. Each do
 
 <Depth level="student">
 
-ZX diagrams use two kinds of spiders: Z and X. A one-input one-output Z spider is the phase gate P(α); an X spider is its version in the X basis. Two connected same-type spiders fuse by adding their angles. Applying H on all legs changes a spider's type. A multi-leg Z spider with zero angle copies standard-basis labels, and a multi-leg X spider similarly uses the X basis. Connect a Z copy to an X merge to obtain CNOT, with a normalization scalar. A phase on a CNOT control fuses with its Z spider, so two phases on either side can become one. These [circuit identities](/learn/circuit-identities/) preserve the represented maps when their scalar conventions are respected, so they can simplify circuits, including [Clifford](/learn/clifford-group/) circuits.
+ZX diagrams use two kinds of spiders: Z and X. A one-input one-output Z spider is the phase gate P(α); an X spider is its version in the X basis. Two connected same-type spiders fuse by adding their angles. Applying H on all legs changes a spider's type. A multi-leg Z spider with zero angle copies standard-basis labels, and a multi-leg X spider similarly uses the X basis. Connect a Z copy to an X merge to obtain CNOT, with a normalization scalar. A phase on a CNOT control fuses with its Z spider, so two phases on either side can become one. These [rewrite rules](/learn/circuit-identities/) preserve the represented maps when their scalar conventions are respected, so they can simplify circuits, including [Clifford](/learn/clifford-group/) circuits.
 
 </Depth>
 
 <Depth level="engineer">
 
-In the unnormalized convention a Z spider with m inputs and n outputs is $|0\rangle^{\otimes n}\langle0|^{\otimes m}+e^{i\alpha}|1\rangle^{\otimes n}\langle1|^{\otimes m}$. X spiders use |+⟩ and |−⟩ instead. Connected same-type spiders fuse by summing phases. H on every leg changes color. Joining a 1-to-2 Z spider on the control with a 2-to-1 X spider on the target gives CNOT divided by √2; multiplying by √2 restores its exact matrix. Scalar-free diagrams commonly omit that scalar, but quantitative probabilities require normalization. Since the control label is copied, $P(\beta)_0\,CX\,P(\alpha)_0= P(\alpha+\beta)_0\,CX$. This is spider fusion through a multi-leg Z spider, not just an isolated one-wire identity. Other standard rules include π-copy, bialgebra and Hopf; they simplify networks of interacting Z and X spiders when their scalar conventions are respected. The examples test the independently defined maps against their rewrites. See [van de Wetering's review](https://arxiv.org/abs/2012.13966).
+In the unnormalized convention a Z spider with m inputs and n outputs is $|0\rangle^{\otimes n}\langle0|^{\otimes m}+e^{i\alpha}|1\rangle^{\otimes n}\langle1|^{\otimes m}$. X spiders use |+⟩ and |−⟩ instead. Connected same-type spiders fuse by summing phases. H on every leg changes color. Joining a 1-to-2 Z spider on the control with a 2-to-1 X spider on the target gives CNOT divided by √2; multiplying by √2 restores its exact matrix. Scalar-free diagrams commonly omit that scalar, but quantitative probabilities require normalization. Since the control label is copied, $P(\beta)_0\,CX\,P(\alpha)_0= P(\alpha+\beta)_0\,CX$. This is spider fusion through a multi-leg Z spider, not just an isolated one-wire identity. Other standard rules include π-copy, bialgebra and Hopf; they simplify networks of interacting Z and X spiders when their scalar conventions are respected. See [van de Wetering's review](https://arxiv.org/abs/2012.13966).
 
 </Depth>
 
-<Lab title="Check a diagram rewrite" intro="Choose a rewrite or a multi-leg CNOT example and compare the original and simplified maps.">
+<Lab title="Check a diagram rewrite" intro="Choose angles and a rewrite, then toggle the diagram and check the difference between the complete matrices.">
   <SpiderRewrite />
-  <GateLab id="zx-calculus" lab={lab} />
 </Lab>
