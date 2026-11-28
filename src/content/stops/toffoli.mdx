@@ -3,7 +3,7 @@ description: "Try reversible AND with Toffoli and exchange two qubits using thre
 answer: "The Toffoli gate flips a target if both controls are 1. It is a reversible three-qubit gate."
 myth:
   claim: "Toffoli alone is universal for arbitrary quantum computation."
-  truth: "Toffoli implements reversible classical computation with extra bits, but cannot create general quantum amplitudes by itself."
+  truth: "Toffoli implements reversible classical computation with extra bits, but cannot create superpositions from basis states by itself. With Hadamard and an appropriate real-amplitude encoding, it is universal for quantum computation."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -28,7 +28,7 @@ SWAP exchanges two qubits. Three [CNOTs](/learn/cnot/) make it: first control a 
 
 <Depth level="engineer">
 
-Toffoli acts as $|a,b,t\rangle\mapsto |a,b,t\oplus ab\rangle$. It is a self-inverse permutation matrix. With target 0 it embeds AND; with target 1 it embeds NAND. It is universal for reversible classical computation with suitable extra bits, not for arbitrary quantum unitaries on its own.
+Toffoli acts as $|a,b,t\rangle\mapsto |a,b,t\oplus ab\rangle$. It is a self-inverse permutation matrix. With target 0 it embeds AND; with target 1 it embeds NAND. It is universal for reversible classical computation with suitable extra bits, not for arbitrary quantum unitaries on its own. Together with Hadamard, it can approximate universal quantum computation using a real-amplitude encoding with an extra qubit ([Aharonov 2003](https://arxiv.org/abs/quant-ph/0301040)).
 
 The SWAP decomposition on two wires is
 $(a,b)\to(a,a\oplus b)\to(b,a\oplus b)\to(b,a)$,
