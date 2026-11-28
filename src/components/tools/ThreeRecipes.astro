@@ -1,0 +1,222 @@
+---
+// Makes ideal qubits by three recipes, a superposition and two coin mixes, and sends fresh copies through three tests with
+// Born rule draws from sims/mixed-states.ts: one test tells the superposition from the mixes, and none tells the two mixes apart.
+import { RECIPES, TESTS, NAME, TEST_NAME, TEST_HOW, ZERO, CAP, recipeText, chance0, percent, readout, empty, valueText } from '../../lib/sims/mixed-states.ts';
+const uid = 'tr-' + Math.random().toString(36).slice(2, 8);
+const P0 = 50, p = P0 / 100;
+const PICKS = [25, 50, 75];
+---
+<qce-three-recipes class="tool">
+  <div class="control">
+    <div class="row">
+      <label for={`${uid}-p`}>p, the chance of 1 in the 0/1 test</label>
+      <output for={`${uid}-p`} class="doto">{percent(p)}</output>
+    </div>
+    <input id={`${uid}-p`} type="range" min="0" max="100" step="1" value={P0} aria-valuetext={valueText(p)} />
+    <div class="picks" role="group" aria-label="Set p to">
+      {PICKS.map((n) => <button type="button" class="pick" data-p={n} aria-pressed={String(n === P0)}>{n}%</button>)}
+    </div>
+  </div>
+
+  <dl class="tests">
+    {TESTS.map((t) => <div><dt>{TEST_NAME[t]}</dt><dd>{TEST_HOW[t]}</dd></div>)}
+  </dl>
+
+  <div class="tool-controls">
+    <button type="button" class="btn btn-sm" data-run="10">Run 10 shots</button>
+    <button type="button" class="btn btn-sm" data-run="100">Run 100 shots</button>
+    <button type="button" class="btn btn-sm btn-line" data-clear>Clear</button>
+  </div>
+  <p class="hint">One shot makes a fresh qubit by each recipe for each test: one new dot in all nine boxes. Shots in each box: <b data-made>0</b> of {CAP}.</p>
+
+  <div class="recipes">
+    {RECIPES.map((r) => (
+      <figure>
+        <figcaption><b>{NAME[r]}</b> <span data-text={r}>{recipeText(r, p)}</span></figcaption>
+        <div class="boxes">
+          {TESTS.map((t) => (
+            <div class="box">
+              <p class="test">{TEST_NAME[t]}</p>
+              <canvas data-box={`${r}-${t}`} aria-hidden="true"></canvas>
+              <p class="count"><b class="doto" data-n={`${r}-${t}`}>–</b><span>gave {ZERO[t]}</span><span data-e={`${r}-${t}`}>chance {percent(chance0(r, p, t))}</span></p>
+            </div>
+          ))}
+        </div>
+      </figure>
+    ))}
+  </div>
+  <p class="key"><span class="k0">gave 0, + or +i</span><span class="k1">gave 1, − or −i</span></p>
+
+  <p class="tool-readout" aria-live="polite">{readout(p, empty())}</p>
+  <p class="note">A simulation of ideal, noise-free qubits. Every shot makes a fresh qubit. In a coin recipe the coin picks a state first, with plain odds, and then the test's result is a Born rule draw for that state. The boxes show only results, never the coin's picks. Every amplitude here is real, so the +i/−i test gives 50/50 for all three recipes; complex amplitudes could change that. For one qubit, the odds in these three tests fix the odds of every other test. Changing p clears the boxes.</p>
+</qce-three-recipes>
+
+<script>
+  import { RECIPES, TESTS, CAP, chance0, percent, readout, recipeText, shoot, tally, fromPercent, valueText, type Recipe, type Test, type Bit } from '../../lib/sims/mixed-states.ts';
+  import { fit, palette, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  /** ms between shots; ms a new dot stays enlarged. */
+  const STEP = 30, POP = 260;
+  type Shot = { bit: Bit; t: number };
+  type Box = { r: Recipe; t: Test; canvas: HTMLCanvasElement; n: HTMLElement; e: HTMLElement; ctx: CanvasRenderingContext2D | null; w: number; h: number; shots: Shot[] };
+
+  /** Grid for a box width: dots per line, cell size, dot radius and canvas height. Square cells, CAP dots. */
+  function layout(w: number) {
+    const cols = [25, 20, 10].find((k) => w / k >= 9) ?? 10;
+    const cell = w / cols;
+    return { cols, cell, r: Math.max(2.2, Math.min(4.5, cell * 0.34)), h: Math.ceil(Math.ceil(CAP / cols) * cell) };
+  }
+
+  /** Set text, keeping each ket like |+i⟩ on one line (a line may break after "|"). */
+  const put = (el: Element, text: string) => el.replaceChildren(...text.split(/(\|[^|⟩\s]{1,3}⟩)/).map((part, i) =>
+    i % 2 ? Object.assign(document.createElement('span'), { className: 'ket', textContent: part }) : part));
+
+  class ThreeRecipes extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const slider = $<HTMLInputElement>('input[type="range"]'), out = $<HTMLOutputElement>('output');
+      const picks = [...this.querySelectorAll<HTMLButtonElement>('[data-p]')];
+      const runs = [...this.querySelectorAll<HTMLButtonElement>('[data-run]')];
+      const readoutEl = $('.tool-readout'), madeEl = $('[data-made]');
+      const boxes: Box[] = RECIPES.flatMap((r) => TESTS.map((t) => ({
+        r, t, canvas: $<HTMLCanvasElement>(`canvas[data-box="${r}-${t}"]`), n: $<HTMLElement>(`[data-n="${r}-${t}"]`),
+        e: $<HTMLElement>(`[data-e="${r}-${t}"]`), ctx: null, w: 0, h: 0, shots: [],
+      })));
+      const box = (r: Recipe, t: Test) => boxes[RECIPES.indexOf(r) * TESTS.length + TESTS.indexOf(t)];
+
+      let g = layout(0), p = fromPercent(+slider.value), queue = 0, last = 0, raf = 0, seen = false;
+      const made = () => boxes[0].shots.length;
+
+      function paint(b: Box, now = performance.now()) {
+        const { ctx, w, h } = b;
+        if (!ctx) return;
+        const pal = palette(), { cols, cell, r } = g;
+        ctx.clearRect(0, 0, w, h);
+        for (let i = 0; i < CAP; i++) {
+          const x = (i % cols + 0.5) * cell, y = (Math.floor(i / cols) + 0.5) * cell, s = b.shots[i];
+          if (!s) { dot(ctx, x, y, Math.max(0.9, r * 0.3), pal.rule); continue; }
+          const age = now - s.t, rr = r * (age < POP ? 1 + 0.5 * (1 - age / POP) : 1);
+          // Result 0 is a solid dot, result 1 a ring: shape tells them apart, not color alone.
+          if (s.bit === 0) dot(ctx, x, y, rr, pal.signal);
+          else {
+            ctx.strokeStyle = pal.ink2; ctx.lineWidth = Math.max(1, rr * 0.32);
+            ctx.beginPath(); ctx.arc(x, y, rr - ctx.lineWidth / 2, 0, Math.PI * 2); ctx.stroke();
+          }
+        }
+      }
+      const paintAll = (now?: number) => boxes.forEach((b) => paint(b, now));
+
+      function sizeAll() {
+        g = layout(boxes[0].canvas.getBoundingClientRect().width);
+        for (const b of boxes) { b.canvas.style.height = `${g.h}px`; ({ ctx: b.ctx, w: b.w, h: b.h } = fit(b.canvas)); }
+        paintAll();
+      }
+
+      /** Counts and button states. Cheap, so it runs on every shot. */
+      function count() {
+        const x = tally(Object.fromEntries(RECIPES.map((r) => [r, Object.fromEntries(TESTS.map((t) => [t, box(r, t).shots.map((s) => s.bit)]))])) as Record<Recipe, Record<Test, Bit[]>>);
+        for (const b of boxes) b.n.textContent = x.shots ? String(x.zeros[b.r][b.t]) : '–';
+        madeEl.textContent = String(x.shots);
+        const full = made() + queue >= CAP;
+        runs.forEach((b) => b.setAttribute('aria-disabled', String(full)));
+        return x;
+      }
+      const say = () => put(readoutEl, readout(p, count()));
+
+      const step = (now: number) => {
+        for (const b of boxes) b.shots.push({ bit: shoot(b.r, p, b.t, Math.random), t: now });
+        queue--; count();
+      };
+      /** Finish every queued shot at once and draw the end state: for reduced motion, and when the tool is off screen. */
+      const flush = () => {
+        while (queue > 0) step(-Infinity);
+        boxes.forEach((b) => b.shots.forEach((s) => { s.t = -Infinity; }));
+        paintAll(); say();
+      };
+
+      function frame(now: number) {
+        raf = 0;
+        if (!seen) { flush(); return; }
+        if (queue > 0 && now - last >= STEP) { step(now); last = now; }
+        paintAll(now);
+        if (queue > 0 || now < (boxes[0].shots.at(-1)?.t ?? -Infinity) + POP) raf = requestAnimationFrame(frame); else say();
+      }
+      const kick = () => { if (reduceMotion() || !seen) flush(); else if (!raf) raf = requestAnimationFrame(frame); };
+
+      function clear() {
+        boxes.forEach((b) => { b.shots = []; }); queue = 0;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        paintAll(); count();
+      }
+
+      /** New p means new recipes, so the boxes start empty. Visible text only: the live readout speaks on release or on a press. */
+      function show() {
+        out.textContent = percent(p);
+        slider.setAttribute('aria-valuetext', valueText(p));
+        picks.forEach((b) => b.setAttribute('aria-pressed', String(fromPercent(+b.dataset.p!) === p)));
+        RECIPES.forEach((r) => put($(`[data-text="${r}"]`), recipeText(r, p)));
+        boxes.forEach((b) => { b.e.textContent = `chance ${percent(chance0(b.r, p, b.t))}`; });
+        clear();
+      }
+
+      slider.addEventListener('input', () => { p = fromPercent(+slider.value); show(); });
+      slider.addEventListener('change', say);
+      picks.forEach((b) => b.addEventListener('click', () => { slider.value = b.dataset.p!; p = fromPercent(+b.dataset.p!); show(); say(); }));
+      runs.forEach((b) => b.addEventListener('click', () => {
+        const room = CAP - made() - queue;
+        if (room <= 0) { say(); return; }
+        queue += Math.min(+b.dataset.run!, room);
+        count(); kick();
+      }));
+      $('[data-clear]').addEventListener('click', () => { clear(); say(); });
+
+      onResize(boxes[0].canvas, sizeAll);
+      onTheme(() => paintAll());
+      onSeen(this, (v) => { seen = v; if (!v && queue > 0) flush(); });
+      // Start from the slider as the page shows it: a browser can restore form values on going back.
+      show(); say();
+    }
+  }
+  customElements.define('qce-three-recipes', ThreeRecipes);
+</script>
+
+<style>
+  .control { display: grid; gap: var(--s3) }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .row output { font: 900 2rem/1 var(--dots) }
+  .picks { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .pick { min-width: 3.5rem; min-height: 2.75rem; padding: 0 .6rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer }
+  .pick:hover { border-color: var(--ink) }
+  .pick[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+
+  .tests { display: grid; gap: var(--s2); margin: 0; max-width: var(--read) }
+  .tests div { display: grid; gap: 0 var(--s3) }
+  .tests dt { font: 500 1rem var(--mono) }
+  .tests dd { margin: 0; color: var(--ink-2); font-size: .9375rem }
+
+  .hint, .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  .hint b { color: var(--ink) }
+  [aria-disabled="true"] { opacity: .45; cursor: not-allowed }
+
+  .recipes { display: grid; gap: var(--s4) }
+  figure { display: grid; gap: var(--s2); min-width: 0; margin: 0 }
+  figcaption { max-width: var(--read); font-size: .9375rem; color: var(--ink-2); overflow-wrap: break-word }
+  figcaption b { display: block; color: var(--ink); font-size: 1.0625rem }
+  .boxes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s3) var(--s2) }
+  .box { display: grid; align-content: start; gap: var(--s1); min-width: 0 }
+  .test { font: 600 .8125rem/1.3 var(--sans); color: var(--ink) }
+  .count { display: grid; font-size: .8125rem; line-height: 1.3; color: var(--ink-2) }
+  .count b { font-size: 1.5rem; line-height: 1.1; color: var(--ink) }
+  .tool-readout :global(.ket), figcaption :global(.ket) { white-space: nowrap }
+
+  .key { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); font: 500 .875rem var(--mono); color: var(--ink-2) }
+  .key > span { display: inline-flex; align-items: center; gap: .4rem }
+  .key > span::before { content: ""; flex: none; width: .75rem; height: .75rem; border-radius: 50% }
+  .key > .k0::before { background: var(--signal) }
+  .key > .k1::before { border: 2px solid var(--ink-2) }
+
+  @media (min-width: 40rem) {
+    .tests div { grid-template-columns: 7rem minmax(0, 1fr) }
+    .boxes { gap: var(--s3) }
+  }
+</style>
