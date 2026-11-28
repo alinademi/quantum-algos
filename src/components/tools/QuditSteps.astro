@@ -121,14 +121,14 @@ const uid = 'qd-' + Math.random().toString(36).slice(2, 8);
 
       /** One pile: the copies that gave result k, filled row by row from the base, and the Born-rule prediction. */
       const pile = (k: number, n: number, p: number) => {
-        const g = L!.piles, x0 = g.x[k], wide = g.cols * g.pitch, r = Math.max(0.9, g.pitch * 0.36);
-        for (let j = 0; j < n; j++) dot(ctx, x0 + ((j % g.cols) + 0.5) * g.pitch, g.base - (Math.floor(j / g.cols) + 0.5) * g.pitch, r, col.signal);
-        ctx.fillStyle = col.rule; ctx.fillRect(x0, g.base + 1, wide, 1);
-        const y = g.base - ((SHOTS * p) / g.cols) * g.pitch;
+        const g = L!.piles, x0 = g.x[k], wide = g.cols * g.pitch, r = Math.max(0.9, g.pitch * 0.36), base = g.base + g.dy[k];
+        for (let j = 0; j < n; j++) dot(ctx, x0 + ((j % g.cols) + 0.5) * g.pitch, base - (Math.floor(j / g.cols) + 0.5) * g.pitch, r, col.signal);
+        ctx.fillStyle = col.rule; ctx.fillRect(x0, base + 1, wide, 1);
+        const y = base - ((SHOTS * p) / g.cols) * g.pitch;
         ctx.strokeStyle = col.ink; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
         ctx.beginPath(); ctx.moveTo(x0 - 3, y); ctx.lineTo(x0 + wide + 3, y); ctx.stroke(); ctx.setLineDash([]);
-        text(String(k), x0 + wide / 2, g.labelY, col.ink, 600);
-        text(String(n), x0 + wide / 2, g.labelY + 16, col.ink2);
+        text(String(k), x0 + wide / 2, g.labelY + g.dy[k], col.ink, 600);
+        text(String(n), x0 + wide / 2, g.labelY + g.dy[k] + 16, col.ink2);
       };
 
       const paint = () => {
@@ -231,6 +231,6 @@ const uid = 'qd-' + Math.random().toString(36).slice(2, 8);
 
   figure { display: grid; gap: var(--s2); margin: 0; min-width: 0 }
   canvas { height: 20rem; max-width: 44rem }
-  figcaption { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  figcaption { margin-top: var(--s3); max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
   [data-new] { justify-self: start }
 </style>

@@ -298,8 +298,8 @@ test('layout: rings and piles fit the width at every d, piles hold every shot, n
     rings.at.forEach(([x, y]) => { assert.ok(x - rings.R >= 0 && x + rings.R <= w); assert.ok(y - rings.R >= 0 && y + rings.R < piles.top); });
     assert.ok(piles.cols * piles.rows >= s.SHOTS);
     const wide = piles.cols * piles.pitch;
-    piles.x.forEach((x, k) => { assert.ok(x >= 0 && x + wide <= w); if (k) assert.ok(x - piles.x[k - 1] >= wide); });
-    assert.ok(piles.pitch >= 3 && piles.base > piles.top && L.h > piles.labelY);
+    piles.x.forEach((x, k) => { assert.ok(x >= 0 && x + wide <= w); if (k && piles.dy[k] === piles.dy[k - 1]) assert.ok(x - piles.x[k - 1] >= wide); });
+    assert.ok(piles.pitch >= 3 && piles.base > piles.top && L.h > piles.labelY + piles.dy[d - 1]);
     assert.ok(rings.rows <= 3);
     if (w < 300) assert.ok(rings.R > 50); // big enough to see each contribution on a phone
     // One row of rings: each pile sits right under its ring.

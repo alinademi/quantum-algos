@@ -161,8 +161,8 @@ export type Layout = {
   w: number; h: number;
   /** Rings: one per result, in a grid of cols by rows. Centers, and R, the radius for an amplitude of size 1. */
   rings: { cols: number; rows: number; cell: number; R: number; at: [number, number][]; labelY: number[] };
-  /** Piles: one per result, side by side. x is each pile's left edge; dots fill rows from the base up. */
-  piles: Grid & { x: number[]; width: number; base: number; top: number; labelY: number };
+  /** Piles: one per result, side by side (two rows of piles when d is large and the canvas narrow). x is each pile's left edge, dy its row's drop below the first row; dots fill rows from the base up. */
+  piles: Grid & { x: number[]; dy: number[]; width: number; base: number; top: number; labelY: number };
 };
 
 /** Biggest dot pitch, from max down to min px, that fits n dots in a box w wide and h tall, filled row by row. */
@@ -186,12 +186,17 @@ export function layout(w: number, d: number, n = SHOTS): Layout {
     at.push([x0 + ((k % cols) + 0.5) * cell, r * rowH + cell / 2]);
     labelY.push(r * rowH + cell + LABEL / 2);
   }
-  const slot = rows === 1 ? cell : w / d, left = (w - slot * d) / 2;
+  const pr = rows > 1 && w / d < 50 ? 2 : 1, pc = Math.ceil(d / pr); // rows of piles, piles per row
+  const slot = rows === 1 ? cell : w / pc;
   const width = Math.min(slot - 8, 110), top = rows * rowH + GAP;
   const g = pileGrid(width, w < 400 ? 132 : 156, n);
-  const base = top + g.rows * g.pitch;
-  const x = Array.from({ length: d }, (_, k) => left + (k + 0.5) * slot - (g.cols * g.pitch) / 2);
-  return { w, h: base + 2 * LABEL + 4, rings: { cols, rows, cell, R, at, labelY }, piles: { ...g, x, width, base, top, labelY: base + 4 + LABEL / 2 } };
+  const base = top + g.rows * g.pitch, drop = g.rows * g.pitch + 2 * LABEL + 4 + GAP;
+  const x: number[] = [], dy: number[] = [];
+  for (let k = 0; k < d; k++) {
+    const r = Math.floor(k / pc), inRow = Math.min(pc, d - r * pc), left = (w - slot * inRow) / 2;
+    x.push(left + ((k % pc) + 0.5) * slot - (g.cols * g.pitch) / 2); dy.push(r * drop);
+  }
+  return { w, h: base + (pr - 1) * drop + 2 * LABEL + 4, rings: { cols, rows, cell, R, at, labelY }, piles: { ...g, x, dy, width, base, top, labelY: base + 4 + LABEL / 2 } };
 }
 
 // ---- Words
