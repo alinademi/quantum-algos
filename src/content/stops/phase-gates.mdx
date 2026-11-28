@@ -22,13 +22,13 @@ A quantum phase operation does something similar to the two amplitudes of an ide
 
 Z, S and T change the [relative phase](/learn/phase/) of the 1 amplitude by 180°, 90° and 45°. The more general P(φ) changes it by any chosen angle φ. These gates do not change either amplitude's size, so the 0/1 measurement odds stay the same.
 
-Start in |+⟩, with equal amplitudes for 0 and 1. After Z the state is |−⟩, with the same 0/1 odds. Apply a [Hadamard](/learn/hadamard/) then measure: the original gives 0, whereas the phase-changed state gives 1. Other phase angles give intermediate odds. If the qubit started in 0 or 1 alone, the phase is only global and this test cannot see it.
+Start in |+⟩, with equal amplitudes for 0 and 1. After Z the state is |−⟩, with the same 0/1 odds. Apply a [Hadamard](/learn/hadamard/) then measure: the original gives 0, whereas the phase-changed state gives 1. For |+⟩, angles strictly between 0° and 180° give intermediate odds. If the qubit started in 0 or 1 alone, the phase is only global and this test cannot see it.
 
 </Depth>
 
 <Depth level="engineer">
 
-The phase gate is $P(\phi)=\operatorname{diag}(1,e^{i\phi})$. $Z=P(\pi)$, $S=P(\pi/2)$, $T=P(\pi/4)$. $P(\phi)=e^{i\phi/2}R_Z(\phi)$. On $|+\rangle$, measuring after $HP(\phi)$ gives $p(0)=\cos^2(\phi/2)$ and $p(1)=\sin^2(\phi/2)$. The phase relating P and RZ is global for an unconditional gate but can matter when the operation is controlled.
+The phase gate is $P(\phi)=\operatorname{diag}(1,e^{i\phi})$. $Z=P(\pi)$, $S=P(\pi/2)$, $T=P(\pi/4)$. $P(\phi)=e^{i\phi/2}R_Z(\phi)$. On an arbitrary pure input $(a,b)^T$, the output is $(a,e^{i\phi}b)^T$. Since the phase factor has magnitude 1, the probabilities $|a|^2$ and $|b|^2$ are unchanged. On $|+\rangle$, measuring after $HP(\phi)$ gives $p(0)=\cos^2(\phi/2)$ and $p(1)=\sin^2(\phi/2)$. The phase relating P and RZ is global for an unconditional gate but can matter when the operation is controlled.
 
 </Depth>
 
