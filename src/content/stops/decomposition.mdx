@@ -24,10 +24,10 @@ A two-level unitary changes just two computational-basis amplitudes. Use such ro
 
 <Depth level="engineer">
 
-Complex Givens rotations mix rows of a unitary U to produce an upper-triangular unitary, necessarily diagonal. If $G_m\cdots G_1 U=D$, then $U=G_1^\dagger\cdots G_m^\dagger D$. A dimension-d matrix needs at most $d(d-1)/2$ such eliminations. The lab decomposes 4 by 4 matrices into two-level factors; each factor is still abstract and may itself require elementary gates. A Gray-code path connects any two basis strings by single-bit changes. Conjugate the two-level operation by basis-state transpositions along that path until the two strings differ at just one bit, then use a multi-controlled one-qubit gate and undo the transpositions. This explains how two-level factors reduce to smaller gates. Up to global phase an n-qubit unitary has $4^n-1$ real parameters. Each one- or two-qubit gate supplies at most 15. For fixed n and gate count the possible wire choices are finite, so almost every exact unitary needs at least $(4^n-1)/15$ gates.
+Complex Givens rotations mix rows of a unitary U to produce an upper-triangular unitary, necessarily diagonal. If $G_m\cdots G_1 U=D$, then $U=G_1^\dagger\cdots G_m^\dagger D$. A dimension-d matrix needs at most $d(d-1)/2$ such eliminations. The lab decomposes 4 by 4 matrices into two-level factors, then into single-qubit gates and CNOTs. For two wires, X gates and a CNOT relabel any two basis states so they differ in one bit; the resulting controlled operation uses two CNOTs and local rotations. A Gray-code path connects any two basis strings by single-bit changes. Conjugate the two-level operation by basis-state transpositions along that path until the two strings differ at just one bit, then use a multi-controlled one-qubit gate and undo the transpositions. This explains how two-level factors reduce to smaller gates. Up to global phase an n-qubit unitary has $4^n-1$ real parameters. Each one- or two-qubit gate supplies at most 15. For fixed n and gate count the possible wire choices are finite, so almost every exact unitary needs at least $(4^n-1)/15$ gates.
 
 </Depth>
 
-<Lab title="Reconstruct a unitary" intro="Select a two-qubit example and step through the inverse elimination. Compare the complete matrices.">
+<Lab title="Reconstruct a unitary" intro="Choose two-level or elementary factors. Compare their counts and the reconstructed full matrix.">
   <GateLab id="decomposition" lab={lab} />
 </Lab>

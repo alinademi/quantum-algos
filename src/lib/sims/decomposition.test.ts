@@ -12,3 +12,5 @@ test('complex Givens decomposition reconstructs arbitrary example matrices with 
   const dec=twoLevel(target);assert.ok(dec.length<=7);for(const f of dec)close(unitaryError(f.matrix),0);matrix(g.fullMatrix(2,dec),target);}
 });
 test('Givens factors are identity outside two basis states and parameter lower bound grows exponentially',()=>{const u=q.kron(q.H,q.H);for(const f of twoLevel(u).slice(1)){const changed=f.matrix.filter((r,i)=>r.some((z,j)=>q.abs(q.sub(z,q.c(+(i===j))))>1e-10));assert.equal(changed.length,2);}assert.equal(parameterBound(2),1);assert.ok(parameterBound(8)>4000);});
+
+test('elementary synthesis reconstructs full complex matrices using only one-wire gates and CNOTs',async()=>{const {elementary}=await import('./decomposition.ts');for(let k=0;k<10;k++){const u=g.fullMatrix(2,[g.rotation('Y',31+k*17),g.rotation('X',17+k*11,1),g.cx(1,0),g.rotation('Z',77-k*9),g.rotation('Y',43,1),g.cx(0,1)]);const ops=elementary(twoLevel(u));assert.ok(ops.every(o=>o.wires.length===1||o.name.startsWith('CNOT')));matrix(g.fullMatrix(2,ops),u);}matrix(g.fullMatrix(2,elementary(twoLevel(g.SWAP))),g.SWAP);});
