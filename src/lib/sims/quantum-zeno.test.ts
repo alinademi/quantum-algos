@@ -153,6 +153,14 @@ test('the Zeno limit: both leftover chances fall like pi^2/(4n), and never reach
   close(endOneChance(100) / endOneChance(50), 0.5, 0.02);
 });
 
+test('a history can visit 1 and still end at 0: reading 0 at the end has more chance than reading 0 at every check', () => {
+  for (const n of [2, 4, 10, 64]) {
+    const endZero = 1 - endOneChance(n), always = allZeroChance(n);
+    assert.ok(endZero > always + 1e-12, `n=${n}`);
+  }
+  assert.equal(1 - endOneChance(1), allZeroChance(1)); // one check: no room to go back
+});
+
 test('no drive, nothing to stop: every check reads 0', () => {
   const rand = q.rng(9);
   for (const n of [1, 5, 40]) {

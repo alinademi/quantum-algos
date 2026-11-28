@@ -1,9 +1,9 @@
 ---
 description: "Measure a slowly turning qubit often and it barely changes. That is the quantum Zeno effect. Run 50 simulated qubits and count."
-answer: "The quantum Zeno effect is the slowing of a quantum change by frequent measurement. A qubit that slowly turns from 0 to 1, measured often, almost always reads 0, and each such result puts it back at 0, so it stays near where it started."
+answer: "The quantum Zeno effect is the slowing of a quantum change by frequent projective measurement. A qubit that slowly turns from 0 to 1, checked often with 0 or 1 measurements, almost always reads 0, and each such result puts it back at 0, so it stays near where it started."
 myth:
   claim: "A qubit freezes because someone is watching it."
-  truth: "No eyes or minds are needed: any interaction that records 0 or 1, often enough, does it. Even then, a small chance to change remains."
+  truth: "No eyes or minds are needed: any interaction that records 0 or 1, often enough, does it. Even then, a small chance to change remains, and in some systems, checks can speed change up instead (the anti-Zeno effect)."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -14,7 +14,7 @@ Picture an arrow that slowly turns from pointing up to pointing down. Up is 0, d
 
 Now check it again and again. A check can only answer "up" or "down", nothing in between. Between two quick checks the arrow has barely moved, so the answer is almost always "up". And that answer snaps it back to up, so its turning starts over.
 
-Check often enough and it almost never gets to down. This is the quantum Zeno effect: checking a slowly changing qubit often almost always keeps it where it started.
+Check often enough and it almost never gets to down. This is the quantum Zeno effect: checking a slowly changing qubit often, this way, almost always keeps it where it started.
 
 The arrow is only a picture. A real arrow points somewhere in between, and you could see where. A qubit only gives answers, 0 or 1, at random, with odds set by its amplitudes. And no eyes are needed: anything that records the answer does it.
 </Depth>
@@ -24,7 +24,7 @@ A qubit starts as 0. A steady drive turns it on the [Bloch sphere](/learn/bloch/
 
 Now [measure](/learn/measurement/) it at n checks along the way, evenly spaced, the last at the end. Between two checks it turns only 180°/n. A small turn gives a small amplitude of 1, and the chance of reading 1 is |amplitude|², far smaller still. With 100 checks, each turn is 1.8° on the Bloch sphere, and the amplitude of 1 is sin(0.9°), half that angle: about 0.016 and the chance about 0.00025. A check that reads 0 puts the qubit back at 0, so the turn starts over.
 
-The share of qubits that end at 1 is all of them with 1 check (at the end), half with 2, about 20% with 10, and about 2.4% with 100. The checks slow the change a lot, but never stop it fully.
+The share of qubits that end at 1 is all of them with 1 check (at the end), half with 2, about 20% with 10, and about 2.4% with 100. These evenly spaced 0 or 1 checks slow this turn a lot, but never stop it fully. Other kinds of checks can even speed change up.
 </Depth>
 
 <Depth level="engineer">
@@ -46,6 +46,8 @@ $$
 For the second: averaged over results, each projection wipes the Bloch vector's $x$ and $y$ parts, so its $z$ part shrinks by a factor $\cos(\pi/n)$ per step. This gives $1, \tfrac12, \tfrac38$ for $n = 1, 2, 4$, and about $0.037$ at $n = 64$.
 
 Misra and Sudarshan (1977) showed that in the limit of ever more frequent ideal measurements, a system stays in its initial state. Itano, Heinzen, Bollinger and Wineland (1990) saw $\Pr(\text{end at } 1)$ fall with $n$, close to the formula (closer still once the pulse length is counted), using trapped beryllium ions, an rf π pulse, and $n = 1, 2, 4, \dots, 64$ short laser pulses as the measurements. No detector counted the light from those pulses; what matters is that each acts like a projection.
+
+Freezing holds for these repeated projective checks and this drive, not for every system: in some decaying systems, frequent checks speed decay instead (the anti-Zeno effect, which depends on the system's details).
 
 Aaronson's notes call this freezing the "watched pot effect", and use the Zeno name for its twin: measuring in a basis that turns a little each time drags the qubit along.
 </Depth>
