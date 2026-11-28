@@ -12,3 +12,5 @@ test('universality examples and native basis: exact global phase, including CX',
  matrix(g.fullMatrix(1,[g.gate('SX'),g.gate('SX')]),q.X);
 });
 test('ECR basis exactly implements CNOT',()=>matrix(g.fullMatrix(2,ecrCX()),g.control(q.X)));
+
+test('X needs two SX in CZ example but is native in ECR example',async()=>{const {lab}=await import('./native-gates.ts');for(const [basis,n] of [['CZ',2],['ECR',1]] as const){const s=lab.run({basis,gate:'X',a:'0',b:'0'});if(s.length!==n+1||s.at(-1)!.state![2].re<.9999)throw Error('wrong X implementation');}});
