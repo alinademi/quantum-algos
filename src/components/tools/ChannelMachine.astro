@@ -87,7 +87,7 @@ const ops0 = krausOps(K0, V0)!, js0 = jumps(K0, V0, T0), ve0 = pairVerdict(K0, V
 
       function drawDisk() {
         if (!dctx || !dw) return;
-        const g = dctx, cx = dw / 2, cy = dh / 2, R = Math.min(dw, dh) / 2 - 32;
+        const g = dctx, cx = dw / 2, cy = dh / 2, R = Math.min(dw, dh) / 2 - 38;
         g.clearRect(0, 0, dw, dh);
         // The circle and the two axes: drawing only.
         for (let i = 0; i < 120; i++) dot(g, cx + R * Math.cos((i * Math.PI) / 60), cy + R * Math.sin((i * Math.PI) / 60), 1.1, col.ink2);
@@ -110,9 +110,9 @@ const ops0 = krausOps(K0, V0)!, js0 = jumps(K0, V0, T0), ve0 = pairVerdict(K0, V
         g.strokeStyle = col.ink; g.lineWidth = 1.75; g.beginPath(); g.arc(sx, sy, 8.5, 0, Math.PI * 2); g.stroke();
         // Labels for the four states at the ends of the axes.
         g.font = `500 12px ${token('--mono')}`; g.fillStyle = col.ink; g.textBaseline = 'middle';
-        g.textAlign = 'center'; g.fillText('|0⟩', cx, cy - R - 14); g.fillText('|1⟩', cx, cy + R + 14);
-        g.textAlign = 'left'; g.fillText('|+⟩', cx + R + 6, cy);
-        g.textAlign = 'right'; g.fillText('|−⟩', cx - R - 6, cy);
+        g.textAlign = 'center'; g.fillText('|0⟩', cx, cy - R - 20); g.fillText('|1⟩', cx, cy + R + 20);
+        g.textAlign = 'left'; g.fillText('|+⟩', cx + R + 14, cy);
+        g.textAlign = 'right'; g.fillText('|−⟩', cx - R - 14, cy);
       }
 
       function drawBars() {
