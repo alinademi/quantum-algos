@@ -1,0 +1,71 @@
+---
+description: "Any noise can be built as a unitary on a qubit plus a helper that is then dropped (Stinespring). One matrix, the Choi matrix, stores a channel."
+answer: "A Stinespring form writes any quantum channel as a unitary on the qubit and a helper system that starts as 0, then drops the helper. The Choi matrix stores the same channel as one matrix: the channel applied to the second qubit of (|00⟩+|11⟩)/√2, times 2."
+myth:
+  claim: "Noise breaks quantum rules: gates are reversible, so a noisy step that cannot be undone needs new physics."
+  truth: "Standard quantum mechanics needs nothing new. Every channel can be built as a reversible unitary on the qubit plus a helper, and then the helper is dropped. The record of what happened sits in the helper, so the qubit alone cannot undo a noisy step."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import ChannelThreeWays from '../../components/tools/ChannelThreeWays.astro';
+
+<Depth level="kid">
+
+Noise can look like magic: a qubit goes in, and a blurry one comes out. Here is where the blur comes from.
+
+Give your qubit a helper (one or two qubits) that starts as 0. The two make one clean, reversible move together. Then the helper walks away with its notes, and you never see it again.
+
+The notes record what happened, such as whether a bit flip took place. Without them, your qubit looks fuzzy. The fuzz is just the part you stopped tracking.
+
+You can also keep the whole noise machine as one table. Send the second qubit of a Bell pair (an entangled pair) through it, then write down the two qubits' state. Double that table: it is the Choi matrix. It tells you what the machine does to anything you send in later.
+
+Where the picture breaks: this is a model. A real helper is the world around the qubit, and it does not start as a tidy 0.
+
+</Depth>
+
+<Depth level="student">
+
+A [channel](/learn/channels/) is any physical change of a qubit's state, noise included.
+
+**A channel is a clean step with a helper.** Add a helper of one or two qubits that starts as 0, do one reversible step (a unitary) on both, then drop the helper. Every one-qubit channel can be built this way; two helper qubits are always enough. For a bit flip with chance p, the helper records whether the flip happened: measured, it says "flipped" with chance p.
+
+**One table stores a channel.** Apply the channel to the second qubit of the Bell pair (|00⟩+|11⟩)/√2, write the two qubits' state as a 4 by 4 table, and double every entry. That is the Choi matrix. Doing nothing gives 1s in the four corners. A bit flip with p = 0.2 gives 0.8 in the corners and 0.2 in the four middle entries. Started as 0, it gives 0 again with chance 80%: the top left block shows 0.8 and 0.2.
+
+One channel has one table, even though many helpers can build it. So two channels are the same exactly when their tables match.
+
+</Depth>
+
+<Depth level="engineer">
+
+Three descriptions of a [channel](/learn/channels/) $\Phi$ from one qubit $X$ to one qubit $Y$ agree.
+
+**Stinespring.** There is a unitary $U$ from a workspace $W$ and $X$ to a discarded part $G$ and $Y$, with $\dim W = \dim G$, such that
+
+$$
+\begin{aligned}
+\Phi(\rho) &= \operatorname{Tr}_G\bigl[U\sigma U^\dagger\bigr],\\
+\sigma &= |0\rangle\langle 0|_W \otimes \rho.
+\end{aligned}
+$$
+
+Put $A = U(|0\rangle_W \otimes I)$, an isometry. A workspace with as many levels as the Choi rank, at most 4, is enough. Two isometries for the same $\Phi$ with the same $\dim G$ differ by a unitary $V$ on $G$: $A' = (V \otimes I)A$.
+
+**Kraus.** The blocks $A_k = (\langle k|_G \otimes I)\,A$ give $\Phi(\rho) = \sum_k A_k \rho A_k^\dagger$ and $\sum_k A_k^\dagger A_k = I$. Turning $G$ gives $A'_j = \sum_k V_{jk} A_k$, the same $\Phi$.
+
+**Choi.** With input first (as in the IBM course; Watrous's TQI puts the output first, so swap the factors),
+
+$$
+J(\Phi) = \sum_{a,b} |a\rangle\langle b| \otimes \Phi(|a\rangle\langle b|).
+$$
+
+It equals $2\,(\mathrm{id}\otimes\Phi)(|\Phi^+\rangle\langle\Phi^+|)$ with $|\Phi^+\rangle = (|00\rangle + |11\rangle)/\sqrt2$, and $\Phi(\rho) = \operatorname{Tr}_X[(\rho^T \otimes I)\,J]$. So $J$ labels $\Phi$ one to one, whatever Kraus list built it. $\Phi$ is a channel exactly when $J \succeq 0$ and $\operatorname{Tr}_Y J = I$. The transpose map sends states to states, yet its $J$ is the swap, with eigenvalue $-1$: no channel.
+
+Back to Kraus: write $J = \sum_k |\psi_k\rangle\langle\psi_k|$ and unstack $|\psi_k\rangle = \sum_a |a\rangle \otimes A_k|a\rangle$.
+
+Example: phase flip with $p = \tfrac12$ has $J = |00\rangle\langle 00| + |11\rangle\langle 11|$. The lists $\{I, Z\}/\sqrt2$ and $\{|0\rangle\langle 0|, |1\rangle\langle 1|\}$ differ by a 45° turn of the workspace, up to a sign.
+
+</Depth>
+
+<Lab title="Turn the workspace, keep the matrix" intro="Pick a noise, then drag the workspace turn: the unitary changes, but the Choi matrix and the chance of the start state stay put.">
+  <ChannelThreeWays />
+</Lab>

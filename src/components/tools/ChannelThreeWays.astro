@@ -1,0 +1,273 @@
+---
+// One noise channel stored two ways at once: a Stinespring circuit (workspace at 0, a unitary, drop the workspace) and its Choi matrix,
+// read off that same circuit. 100 shots of the circuit use Born-rule odds from the 2N by 2N unitary. Ideal qubits, exact math.
+import { CHANNELS, STARTS, SHOTS, STRENGTH, TURN, kraus, stinespring, turned, turn, choiFromCircuit, choiRank, outcomes, keepFromOutcomes, keepFromChoi, describe, valueText, cnum, strength, degrees, type Channel } from '../../lib/sims/channel-representations.ts';
+import { pct } from '../../lib/draw.ts';
+const uid = 'ct-' + Math.random().toString(36).slice(2, 8);
+const CH0: Channel = 'bit', S0 = 0, P0 = STRENGTH.start / 100;
+const U0 = stinespring(kraus(CH0, P0)), J0 = choiFromCircuit(U0);
+const BITS = ['00', '01', '10', '11'];
+---
+<qce-channel-three-ways class="tool">
+  <div class="cols">
+    <canvas aria-hidden="true"></canvas>
+    <p class="key">A picture of one channel, two matrices and a batch of shots. Top left: the unitary U that acts on a workspace and the qubit together (U′ once you turn the workspace). Each dot is one entry of U and its width is the size of the entry; signs and phases are not drawn. U is 4 by 4 when the workspace is one qubit, and 8 by 8 when it is two. Only the left two columns, the filled dots under W=0, say what U does when the workspace starts as 0. They hold the Kraus operators A0, A1, … one above the other, in the rows marked on the left. The rings are free fill that only keeps U unitary; other fills give the same channel. Top right: the Choi matrix J, found by running the circuit on each of |0⟩⟨0|, |0⟩⟨1|, |1⟩⟨0| and |1⟩⟨1| and dropping the workspace. A filled dot is a positive entry, a ring is a negative one, and the dotted cross cuts J into its four blocks. Bottom: each of the {SHOTS} dots is one shot. The qubit starts as the start state and the workspace as 0. U, with the turn you set built in, acts, the workspace is measured (its result is the column), and the qubit is measured in the start state's basis. Filled gave the start state, open gave the opposite one. Each shot keeps its own random draw, so moving a slider moves dots instead of re-rolling them. You can start only from the six states at the ends of the axes, and the turn is a real rotation. Numbers are rounded.</p>
+
+    <div class="tool-controls">
+      <fieldset>
+        <legend class="label">The noise</legend>
+        <div class="choices">
+          {(Object.keys(CHANNELS) as Channel[]).map((ch) => (
+            <label><input type="radio" name={`${uid}-ch`} value={ch} data-ch checked={ch === CH0} />{CHANNELS[ch].name}</label>
+          ))}
+        </div>
+        <p class="what" data-what>{CHANNELS[CH0].what}</p>
+        <div class="slider">
+          <div class="row"><label for={`${uid}-p`} data-plabel>{CHANNELS[CH0].slider}</label><output for={`${uid}-p`} data-out="p">{strength(P0)}</output></div>
+          <input id={`${uid}-p`} name="p" type="range" min={STRENGTH.min} max={STRENGTH.max} step={STRENGTH.step} value={STRENGTH.start} aria-valuetext={valueText(CH0, P0, S0)} />
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend class="label">Start state</legend>
+        <div class="choices starts">
+          {STARTS.map((s, i) => (
+            <label><input type="radio" name={`${uid}-st`} value={i} data-st checked={i === S0} /><span>{s.name}</span></label>
+          ))}
+        </div>
+      </fieldset>
+
+      <div class="slider">
+        <div class="row"><label for={`${uid}-a`}>Turn the workspace</label><output for={`${uid}-a`} data-out="a">{degrees(TURN.start)}</output></div>
+        <input id={`${uid}-a`} name="turn" type="range" min={TURN.min} max={TURN.max} step={TURN.step} value={TURN.start} aria-valuetext={`${TURN.start} degrees`} />
+        <p class="hint">Turns the workspace basis in each pair of workspace levels, as a real rotation. The Kraus operators change. Watch the Choi matrix.</p>
+      </div>
+
+      <table>
+        <caption class="label">Choi matrix <var>J</var>, from the circuit</caption>
+        <thead><tr><td></td>{BITS.map((b) => <th scope="col">{b}</th>)}</tr></thead>
+        <tbody>
+          {BITS.map((b, i) => (
+            <tr><th scope="row">{b}</th>{BITS.map((_, j) => <td data-e={`${i}${j}`}>{cnum(J0[i][j])}</td>)}</tr>
+          ))}
+        </tbody>
+      </table>
+      <p class="hint">Rows and columns are named by two bits: the input bit, then the output bit. Each 2 by 2 block is what the channel does to one of |0⟩⟨0|, |0⟩⟨1|, |1⟩⟨0|, |1⟩⟨1|.</p>
+
+      <dl class="views">
+        <div><dt class="label">Fewest workspace levels (Choi rank)</dt><dd data-v="rank">{choiRank(J0)}</dd></div>
+        <div><dt class="label">Chance a shot gives the start state, from the circuit</dt><dd data-v="circuit">{pct(keepFromOutcomes(outcomes(U0, S0)))}</dd></div>
+        <div><dt class="label">The same chance, from the Choi matrix</dt><dd data-v="choi">{pct(keepFromChoi(J0, S0))}</dd></div>
+      </dl>
+
+      <button type="button" class="btn btn-sm btn-line again">Run {SHOTS} new shots</button>
+    </div>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">{describe(CH0, P0, S0, TURN.start)}</p>
+  <p class="note">A simulation of ideal qubits: the workspace starts exactly as 0 and every gate is perfect. It shows that a standard circuit exists for each channel, not that a real device has this workspace. Each shot is drawn from your browser's random numbers with Born rule odds from U.</p>
+</qce-channel-three-ways>
+
+<script>
+  import {
+    CHANNELS, SHOTS, kraus, stinespring, turned, turn, choiFromCircuit, choiRank, outcomes, keepFromOutcomes, keepFromChoi,
+    shots, tally, keptCount, describe, valueText, cnum, strength, degrees, type Channel,
+  } from '../../lib/sims/channel-representations.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot, pct } from '../../lib/draw.ts';
+  import type { Matrix } from '../../lib/quantum.ts';
+
+  const FILL = 700; // ms for a new batch to arrive
+  type Slot = { j: number; kind: number; slot: number };
+
+  class ChannelThreeWays extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const canvas = $<HTMLCanvasElement>('canvas');
+      const pIn = $<HTMLInputElement>('input[name="p"]'), aIn = $<HTMLInputElement>('input[name="turn"]');
+      const pOut = $('[data-out="p"]'), aOut = $('[data-out="a"]'), pLabel = $('[data-plabel]'), what = $('[data-what]');
+      const rankEl = $('[data-v="rank"]'), circEl = $('[data-v="circuit"]'), choiEl = $('[data-v="choi"]');
+      const cells = [...this.querySelectorAll<HTMLElement>('[data-e]')];
+      const readout = $('.tool-readout'), again = $<HTMLButtonElement>('.again');
+      const chs = [...this.querySelectorAll<HTMLInputElement>('[data-ch]')], sts = [...this.querySelectorAll<HTMLInputElement>('[data-st]')];
+
+      let ctx: CanvasRenderingContext2D | null = null, w = 0, h = 0, col = palette();
+      let ch = (chs.find((r) => r.checked)?.value ?? 'bit') as Channel, st = Number(sts.find((r) => r.checked)?.value ?? 0);
+      let k = Number(pIn.value), alpha = Number(aIn.value);
+      // One fixed uniform draw per shot, so the batch stays the same batch while the settings move.
+      let us = Array.from({ length: SHOTS }, () => Math.random());
+      let U: Matrix = [], J: Matrix = [], n = 2, outs: number[] = [], slots: Slot[] = [], counts: [number, number][] = [];
+      let shown = SHOTS, seen = false, anim = 0, pending = 0;
+      const p = () => k / 100;
+
+      // Dotted line, the site's rule: dots a few pixels apart.
+      const rule = (g: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number) => {
+        const m = Math.max(2, Math.round(Math.hypot(x2 - x1, y2 - y1) / 4));
+        for (let i = 0; i <= m; i++) dot(g, x1 + ((x2 - x1) * i) / m, y1 + ((y2 - y1) * i) / m, 0.7, col.rule);
+      };
+
+      function draw() {
+        if (!ctx || !w || !U.length) return;
+        const g = ctx, fs = 11, mono = token('--mono');
+        g.clearRect(0, 0, w, h);
+        g.font = `500 ${fs}px ${mono}`; g.textBaseline = 'middle';
+        const gap = 14, sw = (w - gap) / 2, lm = 24, dim = U.length, top = 38;
+
+        // Titles and column labels.
+        g.fillStyle = col.ink; g.textAlign = 'left';
+        g.fillText(alpha === 0 ? 'Unitary U' : 'U′ (with turn)', 0, 8); g.fillText('Choi matrix J', sw + gap, 8);
+
+        // U: magnitudes only. Left two columns (workspace at 0) are filled; the rest are free fill, drawn as rings.
+        const cu = (sw - lm) / dim, ru = cu * 0.46;
+        g.fillStyle = col.ink2; g.textAlign = 'center';
+        g.fillText('W=0', lm + cu, 24); g.fillText('fill', lm + cu * (2 + (dim - 2) / 2), 24);
+        for (let r = 0; r < dim; r++) for (let c = 0; c < dim; c++) {
+          const x = lm + (c + 0.5) * cu, y = top + (r + 0.5) * cu, m = Math.hypot(U[r][c].re, U[r][c].im);
+          if (m < 1e-9) { dot(g, x, y, 1, col.rule); continue; }
+          const rad = Math.max(1.3, ru * m);
+          if (c < 2) dot(g, x, y, rad, col.signal);
+          else { g.lineWidth = Math.max(1, cu * 0.07); g.strokeStyle = col.ink2; g.beginPath(); g.arc(x, y, Math.max(0.8, rad - g.lineWidth / 2), 0, Math.PI * 2); g.stroke(); }
+        }
+        rule(g, lm + 2 * cu, top - 2, lm + 2 * cu, top + dim * cu + 2);
+        for (let b = 1; b < n; b++) rule(g, lm - 2, top + 2 * b * cu, lm + dim * cu, top + 2 * b * cu);
+        g.fillStyle = col.ink2; g.textAlign = 'left';
+        const prime = alpha === 0 ? '' : '′';
+        for (let b = 0; b < n; b++) g.fillText(`A${prime}${b}`, 0, top + (2 * b + 1) * cu);
+
+        // J: sizes and signs. Entries are real for these channels; a ring is a negative entry.
+        const x0 = sw + gap, cc = sw / 4, rc = cc * 0.46;
+        for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
+          const x = x0 + (c + 0.5) * cc, y = top + (r + 0.5) * cc, v = J[r][c].re;
+          if (Math.abs(v) < 1e-9) { dot(g, x, y, 1, col.rule); continue; }
+          const rad = Math.max(1.5, rc * Math.abs(v));
+          if (v > 0) dot(g, x, y, rad, col.signal);
+          else { g.lineWidth = 2; g.strokeStyle = col.hot; g.beginPath(); g.arc(x, y, Math.max(3, rad - 1), 0, Math.PI * 2); g.stroke(); }
+        }
+        rule(g, x0 + 2 * cc, top - 2, x0 + 2 * cc, top + sw + 2); rule(g, x0 - 2, top + 2 * cc, x0 + sw + 2, top + 2 * cc);
+
+        // Shots, grouped by the workspace result j. Filled gave the start state; open gave the opposite one.
+        const mats = top + Math.max(dim * cu, sw), sy = mats + 20;
+        g.fillStyle = col.ink; g.textAlign = 'left'; g.fillText('Shots, by workspace result', 0, sy);
+        const area0 = sy + 10, avail = h - area0 - 20, colw = w / n;
+        const most = Math.max(...counts.map(([a, b]) => a + b));
+        let pitch = 12, per = 1;
+        for (; pitch > 5; pitch -= 1) { per = Math.max(1, Math.floor((colw - 8) / pitch)); if (Math.ceil(most / per) * pitch <= avail) break; }
+        per = Math.max(1, Math.floor((colw - 8) / pitch));
+        const r = pitch * 0.36, gw = per * pitch;
+        g.lineWidth = Math.max(1, pitch * 0.12); g.strokeStyle = col.ink2;
+        slots.forEach((s, i) => {
+          const gx = s.j * colw + (colw - gw) / 2, x = gx + ((s.slot % per) + 0.5) * pitch, y = area0 + (Math.floor(s.slot / per) + 0.5) * pitch;
+          if (i >= shown) dot(g, x, y, Math.max(0.6, r * 0.3), col.rule);
+          else if (s.kind === 0) dot(g, x, y, r, col.signal);
+          else { g.beginPath(); g.arc(x, y, r - g.lineWidth / 2, 0, Math.PI * 2); g.stroke(); }
+        });
+        g.fillStyle = col.ink2; g.textAlign = 'center';
+        for (let j = 0; j < n; j++) { if (j > 0) rule(g, j * colw, area0, j * colw, h - 18); g.fillStyle = col.ink2; g.fillText(colw >= 76 ? `result ${j}` : `${j}`, (j + 0.5) * colw, h - 8); }
+      }
+
+      const redraw = () => { if (!pending) pending = requestAnimationFrame(() => { pending = 0; draw(); }); };
+      const say = () => { readout.textContent = describe(ch, p(), st, alpha, shown === SHOTS ? keptCount(counts) : undefined); };
+      const stop = () => { if (anim) { cancelAnimationFrame(anim); anim = 0; } shown = SHOTS; };
+
+      // Where each shot's dot sits: kept ones first in its column, then the open ones.
+      const place = () => {
+        const seenKind = counts.map(() => [0, 0]), base = counts.map(([a]) => a);
+        slots = outs.map((o) => {
+          const j = o >> 1, kind = o & 1;
+          return { j, kind, slot: kind === 0 ? seenKind[j][0]++ : base[j] + seenKind[j][1]++ };
+        });
+      };
+
+      // New settings: rebuild the circuit, its Choi matrix, the numbers and the batch. The spoken readout is left to say().
+      const show = () => {
+        stop();
+        const ks = kraus(ch, p());
+        n = ks.length;
+        U = turned(stinespring(ks), turn(n, alpha));
+        J = choiFromCircuit(U);
+        const chances = outcomes(U, st);
+        outs = shots(us, chances); counts = tally(outs, n); place();
+        pIn.value = String(k); pOut.textContent = strength(p());
+        pIn.setAttribute('aria-valuetext', valueText(ch, p(), st));
+        aIn.value = String(alpha); aOut.textContent = degrees(alpha); aIn.setAttribute('aria-valuetext', `${alpha} degrees`);
+        pLabel.textContent = CHANNELS[ch].slider; what.textContent = CHANNELS[ch].what;
+        cells.forEach((el) => { const [i, j] = el.dataset.e!.split('').map(Number); el.textContent = cnum(J[i][j]); });
+        rankEl.textContent = String(choiRank(J));
+        circEl.textContent = pct(keepFromOutcomes(chances)); choiEl.textContent = pct(keepFromChoi(J, st));
+        draw();
+      };
+
+      // A new batch arrives shot by shot, unless the reader asked for less motion or the tool is off screen.
+      const measure = () => {
+        stop();
+        us = us.map(() => Math.random());
+        outs = shots(us, outcomes(U, st)); counts = tally(outs, n); place();
+        if (reduceMotion() || !seen) { draw(); say(); return; }
+        shown = 0;
+        const t0 = performance.now();
+        const step = (now: number) => {
+          shown = Math.min(SHOTS, Math.floor(((now - t0) / FILL) * SHOTS));
+          draw();
+          if (shown < SHOTS) anim = requestAnimationFrame(step); else { anim = 0; say(); }
+        };
+        anim = requestAnimationFrame(step);
+      };
+
+      chs.forEach((r) => r.addEventListener('change', () => { if (r.checked) { ch = r.value as Channel; show(); say(); } }));
+      sts.forEach((r) => r.addEventListener('change', () => { if (r.checked) { st = Number(r.value); show(); say(); } }));
+      // Sliders: the picture follows every step; the spoken readout waits until the reader lets go.
+      pIn.addEventListener('input', () => { k = Number(pIn.value); show(); });
+      pIn.addEventListener('change', say);
+      aIn.addEventListener('input', () => { alpha = Number(aIn.value); show(); });
+      aIn.addEventListener('change', say);
+      again.addEventListener('click', measure);
+
+      const size = () => { ({ ctx, w, h } = fit(canvas)); draw(); };
+      onResize(canvas, size);
+      onTheme(() => { col = palette(); draw(); });
+      // Off screen, a batch in flight lands at once and is read out.
+      onSeen(this, (v) => { seen = v; if (!v && anim) { stop(); draw(); say(); } });
+      size(); show(); say();
+    }
+  }
+  customElements.define('qce-channel-three-ways', ChannelThreeWays);
+</script>
+
+<style>
+  qce-channel-three-ways { display: grid; container-type: inline-size; gap: var(--s3) }
+  /* Narrow: the picture, then the controls, then the key, so the picture stays near the sliders. Wide: the key under the picture. */
+  .cols { display: grid; gap: var(--s4); min-width: 0; grid-template-areas: "pic" "ctl" "key" }
+  canvas { grid-area: pic; aspect-ratio: 4 / 5; max-width: 26rem; justify-self: center }
+  .key { grid-area: key; font-size: .875rem; color: var(--ink-2); max-width: var(--read) }
+  .tool-controls { grid-area: ctl; display: grid; gap: var(--s4); align-content: start; align-items: start; min-width: 0 }
+  fieldset { display: grid; gap: var(--s3); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { padding: 0; margin-bottom: var(--s2) }
+  .choices { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .choices label { display: inline-flex; align-items: center; gap: var(--s2); min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font-weight: 500; cursor: pointer }
+  .choices label:hover { border-color: var(--ink) }
+  .choices label:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink) }
+  .choices input { flex: none; width: 1.125rem; height: 1.125rem; margin: 0; accent-color: var(--signal) }
+  .starts span { font: 500 1rem var(--mono) }
+  .what, .hint, .note { font-size: .875rem; color: var(--ink-2); max-width: var(--read) }
+  .what { min-height: 3em }
+  .slider { display: grid; gap: var(--s1); min-width: 0 }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2) }
+  .row output { flex: none; font-size: 1.25rem }
+  table { justify-self: start; border-collapse: collapse; font: 500 .875rem var(--mono); max-width: 100% }
+  var { font-style: normal; text-transform: none }
+  caption { padding-bottom: var(--s2); text-align: left }
+  th, td { padding: .25rem .3rem; text-align: right }
+  thead th { color: var(--ink-2); font-weight: 500 }
+  tbody th { color: var(--ink-2); font-weight: 500; text-align: left; padding-left: 0 }
+  tbody td { border: 1px solid var(--rule); background: var(--paper) }
+  .views { display: grid; gap: var(--s3); margin: 0 }
+  .views div { display: grid; gap: var(--s1); min-width: 0 }
+  dd { margin: 0; font-size: 1.0625rem; overflow-wrap: anywhere }
+  .again { justify-self: start }
+  .tool-readout { min-height: 14em }
+  @container (min-width: 38rem) {
+    .cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "pic ctl" "key ctl"; column-gap: var(--s5); align-items: start }
+    canvas { max-width: none }
+    th, td { padding: .3rem .6rem }
+    .tool-readout { min-height: 9em }
+  }
+</style>
