@@ -1,0 +1,239 @@
+---
+// Two stories, one toy measurement (a qubit, a one-qubit pointer, n air molecules): each dot is one simulated run drawn with
+// the Born rule from the odds that story predicts, so the reader sees which tests could tell "collapse" from "only gates" apart.
+import { SHOTS, AIR, PER, TESTS, TEST_NAME, STORY_NAME, testSteps, chanceTexts, gapText, overlapText, report, valueText } from '../../lib/sims/measurement-problem.ts';
+const uid = 'um-' + Math.random().toString(36).slice(2, 8);
+const n0 = AIR.start, ov = overlapText(n0), [a0, b0] = chanceTexts('read', n0);
+---
+<qce-undo-measure class="tool">
+  <ol class="steps">
+    <li>The qubit started as 0, then a Hadamard gate: equal amplitudes for 0 and 1.</li>
+    <li>A pointer, started at 0, records the qubit with a CNOT gate: it reads 0 where the qubit is 0 and 1 where it is 1.</li>
+    <li data-step-air>No air molecules bump into the pointer.</li>
+    <li data-step-test>{testSteps.read}</li>
+  </ol>
+
+  <div class="air">
+    <div class="row">
+      <label for={`${uid}-n`}>Air molecules that bump into the pointer</label>
+      <output for={`${uid}-n`} class="doto">{n0}</output>
+    </div>
+    <input id={`${uid}-n`} type="range" min={AIR.min} max={AIR.max} step={AIR.step} value={n0} aria-valuetext={valueText(n0)} />
+    <p class="hint">Each molecule keeps a weak record of the reading: its two possible states overlap {PER}. The overlaps multiply.</p>
+  </div>
+
+  <fieldset class="tests">
+    <legend>Final test: gates, then a measurement</legend>
+    {TESTS.map((t) => <label><input type="radio" name={`${uid}-test`} value={t} checked={t === 'read'} /> {TEST_NAME[t]}</label>)}
+  </fieldset>
+
+  <dl class="stories">
+    <div><dt>{STORY_NAME.collapse}</dt><dd>The pointer's record is a collapse: the state jumps to one reading, with Born odds.</dd></div>
+    <div><dt>{STORY_NAME.unitary}</dt><dd>Only gates act until the final test. Its measurement is the first time the Born rule is used.</dd></div>
+  </dl>
+
+  <dl class="stats">
+    <div><dt>The air's two possible records overlap</dt><dd data-ov>{n0 === 0 ? '1 (no records)' : `${ov.eq} ${ov.value}`}</dd></div>
+    <div><dt>Story A predicts</dt><dd data-pa>{a0} read 0</dd></div>
+    <div><dt>Story B predicts</dt><dd data-pb>{b0} read 0</dd></div>
+    <div><dt>Largest gap any test of the qubit and pointer alone can show</dt><dd data-gap>{gapText(n0)}</dd></div>
+  </dl>
+
+  <figure>
+    <canvas aria-hidden="true"></canvas>
+    <figcaption>
+      Each dot is one simulated run of steps 1 to 4 in that story, its result drawn at random with the story's Born rule odds.
+      In each story, the top row holds the runs that gave 0 and the bottom row the runs that gave 1. The short upright line marks the count the story predicts.
+      A new setting starts a new batch.
+    </figcaption>
+  </figure>
+
+  <div class="tool-controls">
+    <button class="btn btn-line" type="button" data-run>Run {SHOTS} new runs of each story</button>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">{report('read', n0)}</p>
+  <p class="note">
+    A toy model with ideal, noise-free parts, one start state and real amplitudes only. The pointer is one qubit standing in for a meter made of many atoms,
+    and each air molecule is one qubit. A collapse after the air instead of at the pointer gives the same odds as story A.
+    The tool shows what each story predicts. It does not say which one is true.
+  </p>
+</qce-undo-measure>
+
+<script>
+  import {
+    SHOTS, PER, STORIES, STORY_NAME, testSteps, chances, chanceTexts, gapText, overlapText, report, valueText, rowLabel, shot, rate, layout, cell, tickX,
+    type Layout, type Story, type Test, type Bit,
+  } from '../../lib/sims/measurement-problem.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  /** How long a new dot stays large and blue, in ms. */
+  const FRESH = 450;
+
+  class UndoMeasure extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const canvas = $<HTMLCanvasElement>('canvas'), slider = $<HTMLInputElement>('input[type="range"]'), out = $<HTMLOutputElement>('output');
+      const radios = [...this.querySelectorAll<HTMLInputElement>('input[type="radio"]')], readout = $('.tool-readout');
+
+      let ctx = canvas.getContext('2d')!, L: Layout | null = null, pal = palette(), mono = token('--mono');
+      let n = Number(slider.value), test: Test = (radios.find((r) => r.checked)?.value ?? 'read') as Test;
+      // Every run of this batch, by story and result: the time it landed (for the fade).
+      const piles: Record<Story, [number[], number[]]> = { collapse: [[], []], unitary: [[], []] };
+      let queue = 0, acc = 0, raf = 0, last = 0, seen = false, done = false, lastLand = -Infinity, speak = true;
+
+      // ---- Drawing
+
+      /** Text on one line at (x, y), shrunk from 12 px down to 9 px if it would not fit in maxW. */
+      const text = (s: string, x: number, y: number, maxW: number, color: string, weight = 500) => {
+        let px = 12;
+        ctx.font = `${weight} ${px}px ${mono}`;
+        while (px > 9 && ctx.measureText(s).width > maxW) { px -= 0.5; ctx.font = `${weight} ${px}px ${mono}`; }
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = color;
+        ctx.fillText(s, x, y, maxW);
+      };
+
+      const story = (k: number, s: Story, now: number) => {
+        const b = L!.blocks[k], p = chances(test, s, n);
+        text(STORY_NAME[s], b.x, b.y + 9, b.w, pal.ink, 600);
+        b.grids.forEach((g, r) => {
+          const pile = piles[s][r], rad = g.pitch * 0.36;
+          text(`${rowLabel(test, r as Bit)}: ${pile.length}`, g.x, g.y - 9, g.w, pal.ink2);
+          for (let i = pile.length; i < SHOTS; i++) dot(ctx, ...cell(g, i), Math.max(0.6, rad * 0.4), pal.rule);
+          pile.forEach((t, i) => {
+            const age = (now - t) / FRESH;
+            if (age < 1) dot(ctx, ...cell(g, i), rad * (2.2 - 1.2 * Math.max(0, age)), pal.signal);
+            else dot(ctx, ...cell(g, i), rad, pal.ink);
+          });
+          const x = tickX(g, p[r] * SHOTS);
+          ctx.strokeStyle = pal.signal; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(x, g.y - 3); ctx.lineTo(x, g.y + g.rows * g.pitch + 3); ctx.stroke();
+        });
+      };
+
+      const paint = (now = performance.now()) => {
+        if (!L) return;
+        ctx.clearRect(0, 0, L.w, L.h);
+        STORIES.forEach((s, k) => story(k, s, now));
+      };
+
+      const size = () => {
+        const w = canvas.getBoundingClientRect().width;
+        if (!w) return;
+        L = layout(w);
+        canvas.style.height = `${L.h}px`;
+        ({ ctx } = fit(canvas));
+        pal = palette(); mono = token('--mono');
+        paint();
+      };
+
+      // ---- Words
+
+      const got = () => ({
+        collapse: [piles.collapse[0].length, piles.collapse[1].length] as const,
+        unitary: [piles.unitary[0].length, piles.unitary[1].length] as const,
+      });
+      const say = () => { readout.textContent = report(test, n, done ? got() : undefined); };
+
+      /** The steps, the stats and the slider's spoken value, for the current setting. Not live: the readout speaks. */
+      const show = () => {
+        out.textContent = String(n);
+        slider.setAttribute('aria-valuetext', valueText(n));
+        $('[data-step-air]').textContent = n === 0 ? 'No air molecules bump into the pointer.'
+          : `${n} air ${n === 1 ? 'molecule bumps' : 'molecules bump'} into the pointer. Each keeps a weak record of the reading.`;
+        $('[data-step-test]').textContent = testSteps[test];
+        const o = overlapText(n), ov = $('[data-ov]');
+        ov.replaceChildren();
+        if (n === 0) ov.textContent = '1 (no records)';
+        else {
+          const sup = document.createElement('sup'), hid = document.createElement('span');
+          hid.className = 'visually-hidden'; hid.textContent = ' to the power ';
+          sup.append(hid, String(n));
+          ov.append(String(PER), sup, ` ${o.eq} ${o.value}`);
+        }
+        const verb = test === 'read' ? 'read 0' : 'give 0';
+        const [ta, tb] = chanceTexts(test, n);
+        $('[data-pa]').textContent = `${ta} ${verb}`;
+        $('[data-pb]').textContent = `${tb} ${verb}`;
+        $('[data-gap]').textContent = gapText(n);
+      };
+
+      // ---- Runs
+
+      const land = (t: number) => {
+        for (const s of STORIES) piles[s][shot(test, s, n, Math.random)].push(t);
+        lastLand = t;
+      };
+
+      // Runs land at rate(landed) per second: one by one at first, then faster. Off screen, wait.
+      // With reduced motion, the whole batch lands at once and the end state is drawn.
+      const step = (now: number) => {
+        raf = 0;
+        const dt = last ? Math.min(now - last, 50) : 16;
+        last = now;
+        if (queue > 0) {
+          const still = reduceMotion();
+          let k = queue;
+          if (!still) { acc += (rate(SHOTS - queue) * dt) / 1000; k = Math.min(queue, Math.floor(acc)); acc -= k; }
+          for (let i = 0; i < k; i++) land(still ? -Infinity : now);
+          queue -= k;
+          if (queue === 0) { done = true; if (speak) say(); }
+        }
+        paint(now);
+        if (seen && (queue > 0 || now - lastLand < FRESH)) raf = requestAnimationFrame(step); else last = 0;
+      };
+      const kick = () => { if (!raf && seen) raf = requestAnimationFrame(step); };
+
+      // A new setting is a new experiment: empty the rows and send a fresh batch.
+      const reset = () => {
+        for (const s of STORIES) { piles[s][0].length = 0; piles[s][1].length = 0; }
+        queue = SHOTS; acc = 0.75; done = false; lastLand = -Infinity;
+        show(); paint(); kick();
+      };
+
+      // While a slider is dragged, update the picture but stay quiet; speak once it is let go.
+      slider.addEventListener('input', () => { n = Number(slider.value); speak = false; reset(); });
+      slider.addEventListener('change', () => { speak = true; say(); });
+      radios.forEach((r) => r.addEventListener('change', () => {
+        if (!r.checked) return;
+        test = r.value as Test; speak = true; reset(); say();
+      }));
+      $('[data-run]').addEventListener('click', () => { speak = true; reset(); say(); });
+
+      onResize(canvas, size);
+      onTheme(size);
+      onSeen(canvas, (v) => { seen = v; if (v) kick(); });
+      // Start from the controls as the page shows them: a browser can restore form values on going back.
+      reset(); say();
+    }
+  }
+  customElements.define('qce-undo-measure', UndoMeasure);
+</script>
+
+<style>
+  .steps { display: grid; gap: var(--s2); max-width: var(--read); padding-left: 1.4rem; list-style: decimal }
+  .steps li::marker { font: 500 .9375rem var(--mono); color: var(--ink-2) }
+
+  .air { display: grid; gap: var(--s1); max-width: 32rem }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .row output { font: 900 2rem/1 var(--dots) }
+  .hint, .note, figcaption { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+
+  .tests { display: grid; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  .tests legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  .tests label { display: flex; align-items: center; gap: var(--s2); min-height: 2.75rem; padding: var(--s1) var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); font-weight: 500; cursor: pointer }
+  .tests label:hover { border-color: var(--ink) }
+  .tests label:has(:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink) }
+  .tests input { flex: none; width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--signal) }
+
+  .stories, .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule) }
+  .stories > div, .stats > div { display: grid; align-content: start; gap: var(--s1); min-width: 0; padding: var(--s3); background: var(--paper) }
+  .stories dt { font-weight: 600 }
+  .stories dd, .stats dd { margin: 0 }
+  .stories dd { font-size: .9375rem; color: var(--ink-2) }
+  .stats dt { font-size: .875rem; color: var(--ink-2) }
+  .stats dd { font: 500 1.125rem var(--mono); overflow-wrap: anywhere }
+
+  figure { display: grid; gap: var(--s2); margin: 0; min-width: 0 }
+  canvas { background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r) }
+</style>
