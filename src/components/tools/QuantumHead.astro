@@ -1,0 +1,50 @@
+---
+import { lab } from '../../lib/sims/qtm.ts';
+---
+<qce-quantum-head class="tool">
+  <canvas aria-hidden="true"></canvas>
+  <div class="tool-controls">
+    {lab.controls.map(c=><label>{c.label}<select data-key={c.key}>{c.options.map(o=><option value={o.value}>{o.label}</option>)}</select></label>)}
+    <button class="btn btn-sm" type="button" data-run>Run 100 fresh shots</button>
+  </div>
+  <p class="tool-readout" aria-live="polite"></p>
+  <p class="note">Each dot is one head position measured after a fresh walk. Positions 0 to 3 form a ring; the direction bit is not measured. This finite quantum walk does not simulate a full quantum Turing machine.</p>
+</qce-quantum-head>
+<script>
+  import { lab,headDistribution } from '../../lib/sims/qtm.ts';
+  import { sample } from '../../lib/quantum.ts';
+  import { fit,palette,dot,pct,onResize,onTheme,onSeen } from '../../lib/draw.ts';
+  class QuantumHead extends HTMLElement {
+    connectedCallback(){
+      const canvas=this.querySelector('canvas')!,inputs=[...this.querySelectorAll<HTMLSelectElement>('select')];
+      let counts:number[]=[],p:number[]=[],seen=true;
+      const draw=()=>{
+        if(!seen||!counts.length)return;
+        const {ctx,w,h}=fit(canvas),colors=palette(),cell=w/4,pitch=Math.min(6,(cell-8)/10);
+        ctx.clearRect(0,0,w,h);ctx.font='12px monospace';ctx.textAlign='center';
+        counts.forEach((n,i)=>{
+          const x=(i+.5)*cell,base=h-35;
+          for(let j=0;j<n;j++)dot(ctx,x+(j%10-4.5)*pitch,base-(Math.floor(j/10)+.5)*pitch,pitch*.34,colors.signal);
+          ctx.fillStyle=colors.ink;ctx.fillText('Site '+i,x,h-18,cell-2);ctx.fillText(String(n),x,h-3);
+        });
+      };
+      const run=()=>{
+        const v=Object.fromEntries(inputs.map(i=>[i.dataset.key!,i.value]));
+        p=headDistribution(lab.run(v).at(-1)!.state!);counts=sample(p,100,Math.random);
+        this.querySelector('.tool-readout')!.textContent='Started at site '+v.pos+' with coin |'+v.coin+'⟩; after '+v.steps+' steps: '+p.map((q,i)=>'site '+i+' '+pct(Math.min(1,q))+' ideal, '+counts[i]+'/100 observed').join('; ')+'.';
+        draw();
+      };
+      inputs.forEach(i=>i.addEventListener('change',run));this.querySelector('[data-run]')!.addEventListener('click',run);
+      onResize(this,draw);onTheme(draw);onSeen(this,v=>{seen=v;if(v)draw();});run();
+    }
+  }
+  if(!customElements.get('qce-quantum-head'))customElements.define('qce-quantum-head',QuantumHead);
+</script>
+<style>
+  qce-quantum-head{display:grid;gap:var(--s3);min-width:0}
+  .tool-controls{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:end;min-width:0}
+  label{display:grid;gap:var(--s1);flex:1 1 8rem;min-width:0}
+  select{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);width:100%;max-width:100%;min-width:0;min-height:2.75rem}
+  canvas{width:100%;height:9rem}
+  .note{font-size:.875rem;color:var(--ink-2)}
+</style>
