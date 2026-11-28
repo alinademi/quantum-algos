@@ -3,7 +3,7 @@ description: "Entanglement entropy counts, in bits, how much one half of a pure 
 answer: "Entanglement entropy is the entropy of one half of a pair whose joint state is pure. It is 0 for a product state and 1 bit, called one ebit, for a Bell pair."
 myth:
   claim: "Entropy means disorder, so an entangled pair must be in a messy, unknown state."
-  truth: "The pair as a whole is in one exact state, so its entropy is 0. The entropy belongs to one half alone, and it is above 0 because the information sits in the link between the halves."
+  truth: "A pair in one exact pure state has entropy 0 as a whole. The entropy belongs to one half alone, and it is above 0 because the information sits in the link between the halves."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -15,9 +15,9 @@ Think of a two-piece puzzle. Together, the pieces make a clear picture. One piec
 
 Entanglement entropy counts how little one half tells you, in bits. One bit is the surprise of a fair coin flip.
 
-Start two qubits as 00, then use a Hadamard gate and a CNOT to make a Bell pair. The pair is in one exact state. Yet one qubit alone gives a fair coin flip whichever way you measure it: 1 bit, called one ebit. Two qubits with a state each give 0 bits: measure one the right way and nothing surprises you. Any other way is never less surprising. A gate on one qubit alone does not change this count.
+Start two qubits as 00, then use a Hadamard gate and a CNOT to make a Bell pair. The pair is in one exact state. Yet one qubit alone gives a fair coin flip in any basis: 1 bit, called one ebit. If each qubit has a pure state of its own, the count is 0 bits: measure one the right way and nothing surprises you. A gate on one qubit alone does not change this count.
 
-The picture breaks here: a puzzle piece has its picture all along. In standard quantum mechanics, one half of an entangled pair has no exact state of its own, only odds (a mixed state). Only the pair has an exact state. And this count needs the whole pair to be in one exact state.
+The picture breaks here: a puzzle piece has its picture all along. In standard quantum mechanics, one half of an entangled pair has no pure state, only odds: its state is mixed. Only the pair is in a pure state. And this count needs the whole pair to be in a pure state.
 
 </Depth>
 
@@ -27,11 +27,11 @@ Start as 00, then a Hadamard gate on the first qubit and a [CNOT](/learn/cnot/):
 
 Entropy scores odds: add p × log2(1/p) over the odds, in bits. A fair coin gives ½ + ½ = 1 bit. Odds of 90% and 10% give about 0.47.
 
-Write a pure pair in [Schmidt form](/learn/schmidt/): terms with weights adding to 1. The entanglement entropy is the entropy of the weights, the same for A and B. A product has one weight, 100%: entropy 0. Two qubits reach at most 1 bit, from weights of 50% and 50%. A gate on one qubit alone leaves the weights alone. Measuring A in any basis gives an average surprise per shot never below this entropy; the basis of A's Schmidt terms reaches it.
+Write a pure pair in [Schmidt form](/learn/schmidt/): terms with weights adding to 1. The entanglement entropy is the entropy of the weights, the same for A and B. A product has one weight, 100%: entropy 0. Two qubits reach at most 1 bit, from weights of 50% and 50%. A gate on one qubit alone leaves the weights alone. Measuring A in any basis (a test with two results) gives an average surprise per shot never below this entropy; the basis of A's Schmidt terms reaches it.
 
 This needs the pair to be pure: a coin that picks 00 or 11 also gives A 1 bit, with no entanglement.
 
-One ebit is one Bell pair's worth. With many copies, local actions plus messages turn n copies into about n times E Bell pairs, and back.
+One ebit is one Bell pair's worth. Take a large number n of copies of the same pure pair: local actions plus messages turn them into about n times the entanglement entropy (in bits) Bell pairs, and back.
 
 </Depth>
 
@@ -41,7 +41,7 @@ A pure state has Schmidt form $|\psi\rangle = \sum_i \sqrt{\lambda_i}\,|a_i\rang
 
 $$E(\psi) = S(\rho_A) = S(\rho_B) = -\sum_i \lambda_i \log_2 \lambda_i,$$
 
-while $S(\rho_{AB}) = 0$ (Wilde, Theorem 11.2.1). $E = 0$ exactly for products. $E \le \log_2 \min(d_A, d_B)$, with equality exactly when there are $\min(d_A, d_B)$ weights, all equal. $U_A \otimes U_B$ keeps $E$, and $E(\psi_{AB} \otimes \phi_{A'B'}) = E(\psi) + E(\phi)$ across the cut $AA'|BB'$.
+while $S(\rho_{AB}) = 0$ (Wilde, Theorem 11.2.1). Here $S$ is the information missing about one half, in bits. It equals a thermodynamic entropy (times $k_B \ln 2$) only for special states, such as thermal ones. $E = 0$ exactly for products. $E \le \log_2 \min(d_A, d_B)$, with equality exactly when there are $\min(d_A, d_B)$ weights, all equal. $U_A \otimes U_B$ keeps $E$, and $E(\psi_{AB} \otimes \phi_{A'B'}) = E(\psi) + E(\phi)$ across the cut $AA'|BB'$.
 
 For two qubits, $\det \rho_A = |\psi_{00}\psi_{11} - \psi_{01}\psi_{10}|^2$, the quantity from [entanglement](/learn/entanglement/). With $C = 2\,|\psi_{00}\psi_{11} - \psi_{01}\psi_{10}|$,
 
@@ -49,9 +49,9 @@ $$\lambda_\pm = \tfrac12\bigl(1 \pm \sqrt{1 - C^2}\bigr).$$
 
 Started as $|00\rangle$, a gate on A that makes $\sqrt{1-p}\,|0\rangle + \sqrt{p}\,|1\rangle$, then a CNOT, give $\sqrt{1-p}\,|00\rangle + \sqrt{p}\,|11\rangle$, so $E = h(p) = -p\log_2 p - (1-p)\log_2(1-p)$.
 
-Also $S(\rho) = \min_U H(\operatorname{diag} U\rho U^\dagger)$ (Aaronson, eq. 11.6): measuring A in any basis gives results with Shannon entropy at least $E$, equal in the eigenbasis of $\rho_A$.
+Also $S(\rho) = \min_U H(\operatorname{diag} U\rho U^\dagger)$ (Aaronson, eq. 11.6): measuring A in any orthonormal basis gives results with Shannon entropy at least $E$, equal in the eigenbasis of $\rho_A$. Every rank-one POVM also gives at least $E$; only a coarse-grained one goes lower, such as a one-outcome test, with entropy 0.
 
-For $n$ copies, local operations and classical communication convert $|\psi\rangle^{\otimes n}$ to about $nE$ Bell pairs and back as $n$ grows (Wilde, ch. 19).
+For $n$ copies, local operations and classical communication convert $|\psi\rangle^{\otimes n}$ to about $nE$ Bell pairs and back as $n$ grows (Wilde, ch. 19). A single copy cannot always be converted exactly.
 
 This fails for mixed pairs: $\tfrac12(|00\rangle\langle 00| + |11\rangle\langle 11|)$ has $S(\rho_A) = 1$, yet it is a mix of products.
 

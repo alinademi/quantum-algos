@@ -180,7 +180,7 @@ export function startText(p: number, alpha: number): string {
 /** What the two weights say about A alone. */
 export function weightsText(s: State): string {
   const [w1, w2] = schmidtWeights(s), E = entropyA(s);
-  if (w2 < DUST) return `One weight is 100%, so the pair is a product: A has a state of its own, and the entanglement entropy is 0.`;
+  if (w2 < DUST) return `One weight is 100%, so the pair is a product: A is in a pure state, and the entanglement entropy is 0.`;
   if (Math.abs(w1 - w2) < WEQ) return `The two weights are 50% and 50%, so the entanglement entropy is 1 bit, one ebit, the most that two qubits can have.`;
   return `The two Schmidt weights are ${percent(w1)} and ${percent(w2)}, so the entanglement entropy is ${bitsWord(E)}.`;
 }
@@ -194,7 +194,7 @@ export function readout(p: number, alpha: number, phi: number, n0: number, n1: n
   const s = pairState(p, alpha), rho = reducedA(s), E = entropyA(s), H = spread(rho, phi);
   const flat = Math.abs(schmidtWeights(s)[0] - schmidtWeights(s)[1]) < WEQ, at = `At ${Math.round(deg(phi))}°`;
   const here = flat
-    ? `${at} A's results give 1 bit of average surprise per shot, at every angle: A alone looks like a fair coin from any side.`
+    ? `${at} A's results give 1 bit of average surprise per shot, at every angle: A alone is the mixed state I/2, a fair coin in every basis.`
     : Math.abs(H - E) < 1e-9
       ? `${at} A's results give ${bitsWord(H)} of average surprise per shot, equal to the entanglement entropy: this is the basis of A's Schmidt terms.`
       : `${at} A's results give ${bitsWord(H)} of average surprise per shot, above the entanglement entropy of ${bitsWord(E)}. No angle goes below it.`;

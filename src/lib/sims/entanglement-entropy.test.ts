@@ -353,6 +353,9 @@ test('readout names the start state, the weights, S for both sides, 0 for the wh
   assert.match(e.readout(0, 0, 0, 0, 0), /product.*entanglement entropy is 0/);
   assert.match(e.readout(0.5, 0, 0, 0, 0), /1 bit, one ebit, the most that two qubits can have/);
   assert.match(e.readout(0.5, 0, e.rad(33), 0, 0), /1 bit of average surprise per shot, at every angle/);
+  assert.match(e.readout(0.5, 0, e.rad(33), 0, 0), /the mixed state I\/2, a fair coin in every basis/);
+  assert.match(e.readout(0, 0, 0, 0, 0), /A is in a pure state/);
+  assert.doesNotMatch(e.readout(0.5, 0, 0, 0, 0), /no state/);
   assert.match(e.readout(0.64, 0, 0, 0, 0), /64% and 36%|36% and 64%/);
   assert.match(e.readout(0.64, 0, 0, 0, 0), /0\.94 bits/);
   assert.match(e.readout(0.25, e.rad(35), e.rad(35), 0, 0), /basis of A's Schmidt terms/);
