@@ -1,5 +1,5 @@
 ---
-description: "Topological quantum computation encodes information in collective degrees of freedom and can implement gates by braiding suitable non-Abelian anyons."
+description: "Explore ideal Ising-anyon braid matrices and how collective encoding protects information from local perturbations."
 answer: "Topological quantum computation encodes information in collective degrees of freedom and can implement gates by braiding suitable non-Abelian anyons."
 myth:
   claim: "All braiding operations on all types of anyons provide universal quantum computing."
@@ -12,19 +12,21 @@ import { lab } from '../../lib/sims/topological-model.ts';
 
 <Depth level="kid">
 
-Imagine exchanging special particles along paths. The order of exchanges can act on information stored collectively, even if you never read the individual particles.
+Imagine braiding several strings. Pull them gently into different shapes without passing one through another and the braid remains the same. In a quantum model, special particles can carry information in how they belong together, rather than in any single particle. Local disturbances that do not change this collective arrangement cannot read or change the stored information in the ideal model. Exchanging the particles in different orders can perform different operations. Some types of particles can build any desired operation with braids alone, while others need an extra resource. The string picture breaks because the information is a quantum state of the particles together, and actual devices can still suffer errors.
 
 </Depth>
 
 <Depth level="student">
 
-The lab models a fusion qubit of Ising anyons. Two adjacent braid generators act like 90-degree Z and X rotations, up to a common overall phase. Exchanging in different orders gives different matrices. Three-exchange braid relations still hold.
+Non-Abelian anyons encode information in their joint fusion channel: which total type the particles can combine into. In the ideal topological limit, local perturbations cannot distinguish these collective states, and braid operations depend on the exchange topology rather than precise paths. The lab represents a two-dimensional fusion space of Ising anyons. Two adjacent exchanges act like 90° Z and X rotations up to global phase; their order matters, while specific three-exchange words agree. Ising braids alone generate only Clifford operations and need an extra resource such as a magic state. Fibonacci anyon braids alone are approximately [universal](/learn/universal/). Actual protection depends on separation, gaps and physical errors.
 
 </Depth>
 
 <Depth level="engineer">
 
-In a conventional four-Ising-anyon fusion basis with fixed total charge, adjacent braid generators can be represented (with common phase removed) by $B_1=R_Z(\pi/2)$ and $B_2=R_X(\pi/2)$, for one handedness and basis convention. They obey $B_1 B_2 B_1=B_2 B_1 B_2$ but do not commute. Topological protection is model- and implementation-dependent; Ising braids generate Clifford operations and need additional resources for universality. This is an ideal fusion-space matrix model, not a simulation of moving physical particles.
+For four Ising anyons with fixed total charge, the fusion basis has dimension two. In one convention $R=\operatorname{diag}(e^{-i\pi/8},e^{3i\pi/8})$ and $F=H$. Removing the common braid phase gives generators $B_1=R_Z(\pi/2)$ and $B_2=R_X(\pi/2)$. They obey $B_1B_2B_1=B_2B_1B_2$ but do not commute. The protected information is stored nonlocally in fusion channels; ideal local perturbations cannot distinguish or change it, and braid topology determines the gate. Practical errors remain possible. Ising braids generate a finite Clifford group modulo phases and require a non-Clifford resource for universality. Fibonacci braids alone are dense on suitable encoded spaces (Freedman, Larsen and Wang). See [Nayak et al.](https://arxiv.org/abs/0707.1889). This lab models ideal fusion matrices, not particle dynamics.
+
+The ideas used here build on [Groups](/learn/groups/).
 
 </Depth>
 
