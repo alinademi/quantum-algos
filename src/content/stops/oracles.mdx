@@ -1,5 +1,5 @@
 ---
-description: "A quantum oracle is an assumed black-box unitary that encodes a function, often by XOR into an output register or by changing phase."
+description: "Encode a Boolean function as a reversible bit flip or a relative phase, then inspect its action on different inputs."
 answer: "A quantum oracle is an assumed black-box unitary that encodes a function, often by XOR into an output register or by changing phase."
 myth:
   claim: "An oracle can irreversibly overwrite its input with any function result."
@@ -12,13 +12,13 @@ import { lab } from '../../lib/sims/oracles.ts';
 
 <Depth level="kid">
 
-A secret box answers a question without showing how it works. In a quantum algorithm the box must also work when the question is in superposition.
+Imagine a sealed box which gives a yes-or-no answer to any question from a list. It must be possible to undo what the box does. Instead of replacing the question with the answer, let the box keep the question and flip a separate mark whenever the answer is yes. Run it again and the mark returns to its old value. There is another useful way to encode the answer: change the sign of the wave contribution belonging to a yes question. The signs can later change how contributions combine. The box is only a picture; building the real operation may take many instructions, and the wave can have contributions for many questions.
 
 </Depth>
 
 <Depth level="student">
 
-A bit oracle adds a Boolean answer into a target using XOR. With target 0 the result is the function value. With target |−⟩ the target stays the same and the input receives a phase of −1 wherever the function is 1.
+An oracle is a function supplied as a reversible [circuit](/learn/circuits/), often treated as a black box when counting queries. A bit oracle preserves input x and XORs the Boolean answer f(x) into a target y. If y starts in 0, its output is f(x); if y is arbitrary, repeating the oracle restores y. A phase oracle instead changes the sign of the amplitude for each x with f(x)=1. The bit oracle implements that phase action when the target starts in |−⟩, by phase kickback. If f is constantly 1 every contribution changes sign, an unobservable global phase on the input alone. Relative signs, not overall signs, matter.
 
 </Depth>
 
