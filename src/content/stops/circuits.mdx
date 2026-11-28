@@ -22,7 +22,7 @@ Quantum circuits draw qubits as tracks. The picture breaks because no little obj
 
 Read a quantum circuit from left to right. Each wire is a qubit. A box represents a gate applied to that wire, and a connected control dot and target plus sign represent [CNOT](/learn/cnot/). A meter marks a measurement, whether at the end or during the circuit.
 
-Start with 00. H on q0 then CNOT makes a Bell pair; reversing the order leaves |+⟩|0⟩. In matrix notation the rightmost operation acts first: H then CNOT is CNOT·(H⊗I). The lab shows each gate matrix and the whole circuit matrix separately. Gates on disjoint wires commute and can often be executed in the same layer.
+Start with 00. H on q0 then CNOT makes a Bell pair; reversing the order leaves |+⟩|0⟩. In matrix notation the rightmost operation acts first: H then CNOT is CNOT·(H⊗I). The lab shows the matrix on a gate’s own wires and the full two-wire circuit matrix separately. A one-wire matrix is padded with identity on the untouched wire. Gates on disjoint wires commute and can often be executed in the same layer.
 
 </Depth>
 
