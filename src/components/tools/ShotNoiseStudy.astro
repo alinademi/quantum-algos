@@ -9,9 +9,11 @@ import { shotSizes } from '../../lib/sims/shots.ts';
   </div>
   <canvas aria-hidden="true"></canvas>
   <p data-counts></p>
+  <p>Batch fractions (one dot per batch of independent shots)</p>
+  <canvas data-batches aria-hidden="true"></canvas>
   <dl data-table></dl>
   <p class="tool-readout" aria-live="polite"></p>
-  <p class="note">Each dot is a fresh measurement, grouped by its result. The table reports the root mean square error of 64 separate batches and the exact predicted standard error. They need not agree perfectly. Every run starts from a fresh reset; hardware noise is not modeled.</p>
+  <p class="note">Each dot is a fresh measurement, grouped by its result. The second picture uses the same 0-to-1 axis for every batch size; its dashed line is the exact probability. The table reports the root mean square error of 64 separate batches and the exact predicted standard error. They need not agree perfectly. Every run starts from a fresh reset; hardware noise is not modeled.</p>
 </qce-shot-noise-study>
 <script>
   import { shotStudy } from '../../lib/sims/shots.ts';
@@ -30,6 +32,15 @@ import { shotSizes } from '../../lib/sims/shots.ts';
           for(let j=0;j<n;j++)dot(ctx,half*i+6+(j%cols+.5)*pitch,base-(Math.floor(j/cols)+.5)*pitch,Math.max(.45,pitch*.33),i?p.signal:p.ink2);
           ctx.fillStyle=p.ink;ctx.font='12px monospace';ctx.textAlign='center';ctx.fillText(i+' : '+n,half*(i+.5),h-5);
         }
+        const {ctx:bc,w:bw,h:bh}=fit($<HTMLCanvasElement>('[data-batches]'));
+        bc.clearRect(0,0,bw,bh);
+        const left=12,right=bw-12,span=right-left,rh=(bh-20)/results.length;
+        bc.strokeStyle=p.ink2;bc.setLineDash([3,3]);bc.beginPath();bc.moveTo(left+r.p*span,16);bc.lineTo(left+r.p*span,bh-15);bc.stroke();bc.setLineDash([]);
+        bc.font='12px monospace';bc.fillStyle=p.ink;bc.textAlign='left';bc.fillText('0',left,bh-2);bc.textAlign='right';bc.fillText('1',right,bh-2);
+        results.forEach((v,i)=>{
+          const y=i*rh+18;bc.fillStyle=p.ink;bc.textAlign='left';bc.fillText(String(v.n)+' shots',left,y-6);
+          v.fractions.forEach((f,j)=>dot(bc,left+span*f,y+4+(j%7)*Math.max(2,(rh-26)/7),1.6,p.signal));
+        });
       };
       const update=()=>{
         const r=results.find(r=>r.n===+size.value)!;
@@ -50,6 +61,7 @@ import { shotSizes } from '../../lib/sims/shots.ts';
   label{display:grid;gap:var(--s1);flex:1 1 8rem;min-width:0}
   select{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);min-height:2.75rem}
   canvas{width:100%;height:12rem}
+  canvas[data-batches]{height:16rem}
   dl{margin:0;display:grid;gap:var(--s2)}
   dl :global(div){display:grid;gap:var(--s1);border-bottom:1px dotted var(--rule)}
   dd{margin:0;font-family:var(--mono);overflow-wrap:anywhere}

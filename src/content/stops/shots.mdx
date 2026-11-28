@@ -2,8 +2,8 @@
 description: "Repeat a qubit experiment at different shot counts to compare the measured fraction with its predicted odds."
 answer: "A shot is one execution of a preparation and measurement circuit, yielding one sample from its outcome distribution."
 myth:
-  claim: "More shots change the underlying state or make each sample more accurate."
-  truth: "More independent shots reduce the statistical uncertainty of the estimated probabilities."
+  claim: "Ten times as many shots gives ten times the accuracy."
+  truth: "For independent shots at fixed probability, reducing standard error tenfold requires a hundred times as many shots."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';

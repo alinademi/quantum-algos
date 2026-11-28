@@ -11,6 +11,6 @@ export function shotStudy(angle:number,rand:()=>number,batches=64){
  const p=Math.sin(deg(angle)/2)**2;
  return shotSizes.map(n=>{
   const counts=Array.from({length:batches},()=>sample([1-p,p],n,rand)[1]);
-  return {n,p,ones:counts[0],error:Math.sqrt(counts.reduce((sum,k)=>sum+(k/n-p)**2,0)/batches),predicted:stderr(p,n),batches};
+  return {n,p,ones:counts[0],error:Math.sqrt(counts.reduce((sum,k)=>sum+(k/n-p)**2,0)/batches),predicted:stderr(p,n),batches,fractions:counts.map(k=>k/n)};
  });
 }
