@@ -57,7 +57,7 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
 </qce-gate-lab>
 
 <script>
-  import { complex, stateDistribution, describeState, type Lab, type Values, type Step, type Diagram } from '../../lib/sims/gate-lab.ts';
+  import { complex, stateDistribution, describeState, estimateShots, num, type Lab, type Values, type Step, type Diagram } from '../../lib/sims/gate-lab.ts';
   import { sample } from '../../lib/quantum.ts';
   import { pct, fit, palette, dot, onResize, onTheme, onSeen } from '../../lib/draw.ts';
   // Lazy imports: only the current lab is loaded into the browser.
@@ -275,7 +275,13 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
         });
         measured={labels:d.labels,counts:got,p:d.p};canvas.hidden=key.hidden=false;drawPiles();
         counts.textContent = 'Started as '+startLabel()+'. '+n+' shots: '+d.labels.map((v,i)=>v+' = '+got[i]).join('; ')+'.';
-        status.textContent='Started as '+startLabel()+'. '+n+' fresh shots at step '+(index+1)+'. '+(d.labels.length<=4?d.labels.map((v,i)=>v+' '+got[i]).join(', '):'Counts listed by outcome')+'.';
+        let estimate='';
+        if(s.estimate){
+          const e=estimateShots(d.p,got,s.estimate.values);
+          estimate=' Observed '+s.estimate.label+': '+num(e.sample)+' (ideal '+num(e.exact)+', ideal standard error '+num(e.standardError)+').';
+          counts.textContent+=estimate;
+        }
+        status.textContent='Started as '+startLabel()+'. '+n+' fresh shots at step '+(index+1)+'. '+(d.labels.length<=4?d.labels.map((v,i)=>v+' '+got[i]).join(', '):'Counts listed by outcome')+'.'+estimate;
       });
       update(false);
     }

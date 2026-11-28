@@ -6,7 +6,7 @@ export type Values = Record<string, string>;
 export type Control = { key: string; label: string; options: { value: string; label: string }[]; active?: (v: Values) => boolean };
 export type Row = { label: string; value: string };
 export type Diagram = { n: number; ops: { name: string; wires: number[] }[]; current: number };
-export type Step = { start?: string; diagram?: Diagram; title: string; note: string; state?: State; distribution?: { labels: string[]; p: number[] }; rows?: Row[] };
+export type Step = { start?: string; diagram?: Diagram; title: string; note: string; state?: State; distribution?: { labels: string[]; p: number[] }; rows?: Row[]; estimate?: { label: string; values: number[] } };
 export type Lab = { controls: Control[]; run: (v: Values) => Step[] };
 export type Op = { name: string; wires: number[]; matrix: Matrix };
 export const choice = (key: string, label: string, options: readonly (string | [string, string])[], active?: Control['active']): Control => ({
@@ -114,3 +114,11 @@ export const fullMatrix = (n: number, ops: Op[]): Matrix => eye(2 ** n).map((_, 
 }, eye(2 ** n));
 export const maxColumnGap = (a: Matrix, b: Matrix) => matrixGap(a, b);
 export const stateDistribution = (s: State) => ({ labels: s.map((_, i) => label(i, Math.log2(s.length))), p: probs(s) });
+
+// Empirical mean and ideal standard error of an observable recorded per shot.
+export function estimateShots(p:number[], counts:number[], values:number[]){
+ const n=counts.reduce((a,b)=>a+b,0);
+ const exact=p.reduce((a,b,i)=>a+b*values[i],0);
+ const variance=p.reduce((a,b,i)=>a+b*(values[i]-exact)**2,0);
+ return {sample:counts.reduce((a,b,i)=>a+b*values[i],0)/n,exact,standardError:Math.sqrt(variance/n)};
+}

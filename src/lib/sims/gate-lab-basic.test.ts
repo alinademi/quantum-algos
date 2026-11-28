@@ -105,3 +105,9 @@ test('two-qubit families: unitary, exchange phases, fSim limits, XX interaction,
 test('circuit identities agree on all basis columns',()=>{
  for(const name of ['HXH','Reverse CNOT','CZ symmetry','Cancel CNOTs']){const [a,b]=circuits(name);matrix(g.fullMatrix(2,a),g.fullMatrix(2,b));}
 });
+
+test('observed estimators preserve sample fluctuations and use the ideal variance',()=>{
+ const e=g.estimateShots([.75,.25],[70,30],[1,-1]);close(e.sample,.4);close(e.exact,.5);close(e.standardError,Math.sqrt(.75/100));
+ close(g.estimateShots([.5,.5],[48,52],[1,-1]).sample,-.04);
+ close(g.estimateShots([1,0],[100,0],[1,-1]).standardError,0);
+});
