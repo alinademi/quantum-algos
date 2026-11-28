@@ -284,6 +284,7 @@ Rules:
 | krinner-2019-cryogenic | Krinner et al. | 2019 | Engineering cryogenic setups for 100-qubit scale superconducting circuit systems | EPJ Quantum Technology | Paper | University | 10.1140/epjqt/s40507-019-0072-0 | arXiv:1806.07862 | - | - |
 | kubica-2023-erasure | Kubica et al. | 2023 | Erasure Qubits: Overcoming the T1 Limit in Superconducting Circuits | Physical Review X | Paper | Research | 10.1103/PhysRevX.13.041022 | arXiv:2208.05461 | - | - |
 | kuperberg-2005-dihedral | Kuperberg | 2005 | A Subexponential-Time Quantum Algorithm for the Dihedral Hidden Subgroup Problem | SIAM Journal on Computing | Paper | Research | 10.1137/S0097539703436345 | arXiv:quant-ph/0302112 | https://arxiv.org/abs/quant-ph/0302112 | - |
+| kuperberg-2023-solovay | Kuperberg | 2023 | Breaking the cubic barrier in the Solovay-Kitaev algorithm | arXiv | Paper | Research | - | arXiv:2306.13158 | https://arxiv.org/abs/2306.13158 | - |
 | kwiatkowski-2026-rfc10024 | Kwiatkowski et al. | 2026 | Post-Quantum Traditional (PQ/T) Hybrid Key Agreement Mechanisms for TLS 1.3 | RFC Editor | Standard | Graduate | 10.17487/RFC10024 | - | https://www.rfc-editor.org/rfc/rfc10024.html | - |
 | lanes-2025-framework | Lanes et al. | 2025 | A Framework for Quantum Advantage | arXiv | Paper | Research | - | arXiv:2506.20658 | https://arxiv.org/abs/2506.20658 | - |
 | larocca-2025-barren | Larocca et al. | 2025 | Barren plateaus in variational quantum computing | Nature Reviews Physics | Review | Graduate | 10.1038/s42254-025-00813-9 | arXiv:2405.00781 | https://arxiv.org/abs/2405.00781 | - |
@@ -818,7 +819,7 @@ Rules:
 | gottesman-knill | aaronson-2018-qclec | Section 28.1, The Gottesman-Knill Theorem | https://www.scottaaronson.com/qclec.pdf#page=253 |
 | gottesman-knill | aaronson-2004-stabilizer | Full paper | https://arxiv.org/abs/quant-ph/0406196 |
 | solovay-kitaev | childs-notes | Chapter 2, Efficient universality of quantum circuits | https://www.cs.umd.edu/~amchilds/qa/qa.pdf#page=15 |
-| solovay-kitaev | aaronson-2018-qclec | Section 16.2.3, The Solovay-Kitaev Theorem | https://www.scottaaronson.com/qclec.pdf#page=130 |
+| solovay-kitaev | kuperberg-2023-solovay | Improved length exponent | https://arxiv.org/abs/2306.13158 |
 | solovay-kitaev | dawson-2005-solovay | Full paper | https://arxiv.org/abs/quant-ph/0505030 |
 | gate-teleportation | watrous-2025-understanding | Controlling error propagation: Implementing gates with magic states | https://quantum.cloud.ibm.com/learning/en/courses/foundations-of-quantum-error-correction/fault-tolerant-quantum-computing/controlling-error-propagation#implementing-gates-with-magic-states |
 | gate-teleportation | dewolf-notes | Section 20.4, T-gates and magic states | https://homepages.cwi.nl/~rdewolf/qcnotes.pdf#page=188 |

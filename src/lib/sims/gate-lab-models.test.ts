@@ -13,7 +13,7 @@ import { B1, B2 } from './topological-model.ts';
 import { gaussian } from './cv-model.ts';
 
 import { checkLabs, close, state, matrix, phase, all, value } from './gate-lab-checks.ts';
-const { run, last } = await checkLabs(['stabilizer-states', 'gottesman-knill', 'solovay-kitaev', 'gate-teleportation', 'zx-calculus', 'qtm', 'mbqc', 'adiabatic', 'topological-model', 'cv-model']);
+const { run, last } = await checkLabs(['stabilizer-states', 'gottesman-knill', 'gate-teleportation', 'zx-calculus', 'qtm', 'mbqc', 'adiabatic', 'topological-model', 'cv-model']);
 
 test('signed stabilizer generators and GF(2) expectation solver agree with dense simulation',()=>{
  for(let n=2;n<=4;n++)for(const mode of ['GHZ','Product plus','Signed example']){

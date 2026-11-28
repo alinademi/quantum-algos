@@ -1,5 +1,5 @@
-import { c, add, mul, conj, abs, sub, scale, expi, RZ, RY, type Matrix } from '../quantum.ts';
-import { choice, deg, gate, sequence, ket, row, details, type Lab } from './gate-lab.ts';
+import { c, add, mul, conj, abs, sub, scale, expi, type Matrix } from '../quantum.ts';
+
 
 // Stable phase-insensitive Frobenius distance. Align the global phase before
 // subtracting, rather than subtracting two nearly equal squared norms.
@@ -66,11 +66,3 @@ export function search(target:Matrix,limit:number){
 export function convergence(target:Matrix,limit=28) {
   return budgets.filter(n=>n<=limit).map(length=>({length,...search(target,length)}));
 }
-export const lab:Lab={
-  controls:[choice('axis','Target rotation',['Z','Y']),choice('angle','Target angle (degrees)',['30','60','17','100']),choice('limit','Search up to gates',['28','4','8','12','16','20','24'])],
-  run:v=>{
-    const target=(v.axis==='Z'?RZ:RY)(deg(v.angle)),best=search(target,+v.limit);
-    const s=sequence(ket('+'),best.word.map(x=>gate(x)),'This bounded search illustrates approximation, not the recursive theorem algorithm.');
-    return [details('Error versus gate budget','The shortest equally good word wins. The error may stay flat over some budgets.',convergence(target,+v.limit).map(r=>row(r.length+' gates',r.error))),...s,details('Best approximation','The error compares whole matrices after correcting global phase.',[row('Word',best.word.join(' ')||'Identity'),row('Length',best.word.length),row('Frobenius error',best.error)])];
-  }
-};

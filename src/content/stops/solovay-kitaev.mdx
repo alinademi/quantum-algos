@@ -11,23 +11,23 @@ import ApproximationSearch from '../../components/tools/ApproximationSearch.astr
 
 <Depth level="kid">
 
-Imagine building a clock hand that can turn only in a few fixed ways. You want it to point at a mark that none of those turns reaches exactly. Combine turns, including some backward turns, and the hand can get much closer. The nice surprise is that asking for a much finer match does not require a list that grows in direct proportion to the new precision. Under the right mathematical conditions the list grows far more slowly.
+Imagine building a clock hand that can turn only in a few fixed ways. You want it to point at a mark that none of those turns reaches exactly. Combine turns, including some backward turns, and the hand can get much closer. For an ordinary clock hand there is no general promise of quickly reaching every mark.
 
-The picture breaks because the allowed quantum turns need not share an axis, and their order changes the answer. The experiment below tries short lists to show how the best error falls.
+The picture breaks because quantum turns can tilt around different axes, and reversing their order can change the answer. This allows clever combinations of turns that almost cancel, leaving a tiny new turn. Under the right mathematical conditions the list grows much more slowly than the requested precision. The experiment below tries short lists to show how the best error falls.
 
 </Depth>
 
 <Depth level="student">
 
-The [Clifford and T](/learn/clifford-t/) gate set can approximate any one-qubit gate up to global phase. Solovay–Kitaev says that a fixed, suitably universal set with inverses needs only a power of the logarithm of the inverse error. For example, going from error one part in a thousand to one part in ten thousand adds only a constant to the logarithm, rather than multiplying it by ten. The theorem gives a bound, not the shortest possible sequence.
+The [Clifford and T](/learn/clifford-t/) gate set can approximate any one-qubit gate up to global phase. Solovay–Kitaev says that a fixed, suitably universal set with inverses needs only a power of the logarithm of the inverse error. For error 1/1000 to 1/10000, the base-ten logarithm grows from 3 to 4. A length bound proportional to its c-th power grows by (4/3)ᶜ, about 3.1 for c = 3.97, rather than tenfold. The theorem gives a bound, not the shortest possible sequence.
 
-The lab searches H, T and T† words without counting equivalent gates twice. Its [matrix distance](/learn/matrix-norms/) measures the error of the whole operation, not one input. The search is not the recursive theorem algorithm.
+The lab searches H, T and T† words without counting equivalent gates twice. Its [matrix distance](/learn/matrix-norms/) measures the error of the whole operation, not one input.
 
 </Depth>
 
 <Depth level="engineer">
 
-For a fixed dimension and a finite inverse-closed alphabet dense in SU(d), the Solovay–Kitaev algorithm obtains $\epsilon$ accuracy with length $O(\log^c(1/\epsilon))$, with $c\approx3.97$ in [Dawson and Nielsen](https://arxiv.org/abs/quant-ph/0505030). [Kuperberg (2023)](https://arxiv.org/abs/2306.13158) improves the exponent to $1.44042\ldots+\delta$ for any fixed positive $\delta$. Counting words and small balls in SU(d) gives a worst-case lower bound of order $\log(1/\epsilon)$. The recursive construction uses group commutators, not exhaustive search.
+For a fixed dimension and a finite inverse-closed alphabet dense in SU(d), the Solovay–Kitaev algorithm obtains $\epsilon$ accuracy with length $O(\log^c(1/\epsilon))$, with $c\approx3.97$ in [Dawson and Nielsen](https://arxiv.org/abs/quant-ph/0505030). [Kuperberg (2023)](https://arxiv.org/abs/2306.13158) improves the exponent to $1.44042\ldots+\delta$ for any fixed positive $\delta$. Counting words and small balls in SU(d) gives a worst-case lower bound of order $\log(1/\epsilon)$. The recursive construction refines a coarse exhaustive-search base case using group commutators.
 
 We demonstrate bounded breadth-first search over H, T, T† modulo global phase, with shortest-word ties and a numerical deduplication tolerance. The distance is $\min_\alpha\|U-e^{i\alpha}V\|_F$. For 2 by 2 unitaries its square is $4-2|\operatorname{Tr}(U^\dagger V)|$. The implementation aligns phase before taking differences to avoid cancellation near equality. These finite search results illustrate convergence for chosen targets, not a proof of the asymptotic theorem.
 
