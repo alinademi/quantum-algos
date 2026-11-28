@@ -9,3 +9,5 @@ test('Hadamard test real and imaginary sign and SWAP test distinguish overlaps',
  close(last('swap-test',{a:'0',theta:'180'}).distribution!.p[0],.5);
  close(last('swap-test',{a:'0',theta:'90'}).distribution!.p[0],.75);
 });
+
+test('Hadamard estimator uses the real and imaginary expectation with the correct sign',()=>{const r=last('hadamard-test',{state:'+',unitary:'P',angle:'90',part:'Imaginary'});close(r.distribution!.p[0],.75);close(r.estimate!.values[0],1);close(r.estimate!.values[1],-1);});
