@@ -170,6 +170,17 @@ test('any balanced lossless beam splitters (diagonal phases times H times diagon
   }
 });
 
+test('D1 can go dark only with matched splitters: with real splitters at angles t1, t2 the least D1 chance over all phases is sin^2(t2 - t1)', () => {
+  const bs = (t: number): q.Matrix => [[q.c(Math.cos(t)), q.c(Math.sin(t))], [q.c(Math.sin(t)), q.c(-Math.cos(t))]];
+  const p1 = (t1: number, t2: number, d: number) => q.abs2(q.matVec(bs(t2), q.matVec(q.P(d * RAD), q.matVec(bs(t1), q.ket0())))[1]);
+  closeC(bs(Math.PI / 4)[1][1], q.H[1][1]); closeC(bs(Math.PI / 4)[0][0], q.H[0][0]); // t = 45 degrees is H
+  for (const [t1, t2] of [[0.3, 0.3], [Math.PI / 4, Math.PI / 4], [0.3, 0.9], [Math.PI / 4, 0.5]]) {
+    close(Math.min(...degs.map((d) => p1(t1, t2, d))), Math.sin(t2 - t1) ** 2, 1e-4);
+  }
+  close(p1(0.3, 0.3, 0), 0); // matched, any ratio: D1 is dark at phase 0
+  assert.ok(p1(Math.PI / 4, 0.5, 0) > 1e-2); // unmatched: D1 is not dark at phase 0
+});
+
 test('every balanced 2x2 unitary (all |entries|^2 = 1/2) is D H D, with D, D diagonal phases', () => {
   const R = q.rng(23), TAU = 2 * Math.PI;
   for (let k = 0; k < 200; k++) {

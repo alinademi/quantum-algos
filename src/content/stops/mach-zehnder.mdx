@@ -1,9 +1,9 @@
 ---
-description: "Send single photons through two beam splitters. With equal arms every one leaves by the same port, until a marker records the path. Try it live."
-answer: "A Mach-Zehnder interferometer splits a photon's path into two arms with a beam splitter and joins them at a second one. With equal arms and no record of the path, the two amplitudes to reach one detector cancel, so every photon leaves by the other detector."
+description: "Send single photons through two beam splitters. Tuned right, every one leaves by the same port, until a marker records the path. Try it live."
+answer: "A Mach-Zehnder interferometer splits a photon's path into two arms with a beam splitter and joins them at a second one. With two matched beam splitters, the right phase and no record of the path, the two amplitudes to reach one detector cancel, so every photon leaves by the other detector. Equal arms alone are not enough."
 myth:
   claim: "The photon really takes one arm. We just don't know which."
-  truth: "A photon that took one arm would reach each detector half the time. With equal arms and no record of the path, D1 never clicks: the amplitudes from the two arms cancel there."
+  truth: "A particle that took one arm, with no wave, would reach each detector half the time. In a tuned setup with no record of the path, D1 never clicks: the amplitudes from the two arms cancel there. Pilot-wave theory gives a particle a path too, but guides it with a wave in both arms."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -13,7 +13,7 @@ import MachZehnder from '../../components/tools/MachZehnder.astro';
 
 Light comes in tiny bits called photons. Send one photon into a special box. Inside, a half mirror gives it two ways to go. Two plain mirrors bring the two ways together again at a second half mirror. Then the photon comes out at one of two doors, D0 or D1.
 
-You might guess each door gets half the photons. But every photon comes out at D0. Each way carries a wave-like number called an amplitude. At D1 the two amplitudes cancel, like a high wave meeting a low wave. At D0 they add up.
+You might guess each door gets half the photons. But when the box is built just right (two matching half mirrors, ways of matching length), every photon comes out at D0. Each way carries a wave-like number called an amplitude. At D1 the two amplitudes cancel, like a high wave meeting a low wave. At D0 they add up.
 
 Now put a marker in the box that keeps a record of which way each photon went. Nobody has to read it. The canceling stops, and each door gets half.
 
@@ -23,7 +23,7 @@ Where the wave picture breaks: a wave spreads out, but each photon comes out at 
 
 <Depth level="student">
 
-The photon starts in the upper input. Here we take each beam splitter as a [Hadamard gate](/learn/hadamard/), $H$. Many optics books put an $i$ on reflection instead. Then, in this picture, D0 is the dark one at 0°. Which detector is dark depends on the parts. That one stays dark does not. The first beam splitter acts like a Hadamard gate: each arm gets amplitude $1/\sqrt{2} \approx 0.71$.
+The photon starts in the upper input. Here we take each beam splitter as a [Hadamard gate](/learn/hadamard/), $H$, and the arms as matched. Many optics books put an $i$ on reflection instead. Then, in this picture, D0 is the dark one at 0°. Which detector is dark depends on the parts and the phase setting. But with matched splitters, some phase setting always leaves one port dark. The first beam splitter gives each arm amplitude $1/\sqrt{2} \approx 0.71$.
 
 The second beam splitter splits each arm again. There are two ways to reach D0, each with amplitude $\tfrac{1}{\sqrt{2}} \times \tfrac{1}{\sqrt{2}} = \tfrac{1}{2}$. They add: $\tfrac{1}{2} + \tfrac{1}{2} = 1$. Two ways reach D1 too, but one picks up a minus sign: $\tfrac{1}{2} - \tfrac{1}{2} = 0$. Probability is $|\text{amplitude}|^2$, so D0 gets 100% and D1 gets 0%. It is the same sum as in [interference](/learn/interference/).
 
@@ -52,7 +52,9 @@ $$
 
 A full record, $\langle m_0|m_1\rangle = 0$, gives $\tfrac{1}{2}$ at every $\varphi$. A partial record leaves fringes of visibility $|\langle m_0|m_1\rangle|$. Nobody has to read the marker.
 
-Real beam splitters can add fixed phases at their ports. Any balanced (50/50), lossless two-port splitter is $H$ with phases before and after. So the fringe only shifts by a constant: at $\varphi = 0$ the dark port may move, or neither port may be dark. Block one arm instead, and the photon is absorbed half the time and reaches each detector a quarter of the time, so D1 now clicks. That is the start of the [bomb tester](/learn/bomb-tester/).
+Real beam splitters can add fixed phases at their ports. Any balanced (50/50), lossless two-port splitter is $H$ with phases before and after. So the fringe only shifts by a constant: at $\varphi = 0$ the dark port may move, or neither port may be dark. With reflectances $R_1, R_2$, some $\varphi$ darkens a port only if $R_2 = R_1$, or $R_2 = 1 - R_1$ (then the other port). Block one arm instead, and the photon is absorbed half the time and reaches each detector a quarter of the time, so D1 now clicks. That is the start of the [bomb tester](/learn/bomb-tester/).
+
+The 50/50 split is what a classical particle that picks an arm, with no wave, would give. It does not rule out pilot-wave theory, which sends a wave down both arms and also predicts a dark D1.
 
 </Depth>
 
