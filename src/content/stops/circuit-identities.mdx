@@ -22,7 +22,7 @@ But two different cards might happen to give the same answer for one toy positio
 
 Circuit identities let us replace a sequence by another with the same operation. H X H equals Z. Two CNOTs on the same wires cancel. CZ is symmetric between its two wires. H on both wires before and after a CNOT reverses the direction of the control.
 
-To prove a replacement, compare the complete matrices, not one selected input. For example Z and I agree exactly on |0⟩, but Z turns |+⟩ into |−⟩. Z and I give the same 0/1 odds on every input, yet are not the same gate. The lab compares both sequences and their maximum matrix-entry difference.
+To prove a replacement, compare the complete matrices, not one selected input. For example Z and I agree exactly on |0⟩, but Z turns |+⟩ into |−⟩. Z and I give the same 0/1 odds on every input, yet are not the same gate. On |1⟩ they differ only by an invisible global sign. The lab compares both gate counts, amplitude differences, and the full matrices. Apply H then measure to distinguish the outputs on |+⟩.
 
 </Depth>
 
@@ -34,6 +34,6 @@ For [controlled gates](/learn/controlled-gates/), CZ is diagonal with entries $(
 
 </Depth>
 
-<Lab title="Test a circuit rewrite" intro="Inspect both circuits and compare their full matrices.">
+<Lab title="Test a circuit rewrite" intro="Compare gate counts and full matrices. For Z vs I, change q0 to 0, 1 and + to distinguish exact agreement from agreement up to phase.">
   <GateLab id="circuit-identities" lab={lab} />
 </Lab>
