@@ -1,5 +1,5 @@
 ---
-description: "The Fredkin gate swaps two target qubits only when its control is 1."
+description: "Use a third qubit to control a swap, and verify that the number of ones is conserved."
 answer: "The Fredkin gate swaps two target qubits only when its control is 1."
 myth:
   claim: "Fredkin destroys one target when it copies the other into its place."
@@ -12,13 +12,17 @@ import { lab } from '../../lib/sims/fredkin.ts';
 
 <Depth level="kid">
 
-Imagine two boxes and a switch. Switch on: exchange the boxes. Switch off: leave them alone. The quantum version keeps both control branches coherent.
+Imagine two labeled boxes and a lever. When the lever is off, leave the boxes exactly where they are. When it is on, exchange them. If one box carries a red ball and the other a blue ball, they trade places, but no ball is added or lost. Use the same lever and exchange again to undo it.
+
+In a quantum experiment the lever has its own amplitudes. The two boxes may become linked to it through the exchange. The picture breaks because the boxes and lever do not have definite hidden values for every measurement; the exchange changes a joint quantum state.
 
 </Depth>
 
 <Depth level="student">
 
-For control 0, the targets do not change. For 1, their positions exchange. A control in |+⟩ with different targets produces a three-qubit entangled state.
+Fredkin is controlled SWAP. On input (c,a,b), control 0 leaves both targets alone; control 1 exchanges a and b. It never changes how many 1s there are: 101 becomes 110, for example. The gate is reversible.
+
+One construction uses CNOT from a to b, [Toffoli](/learn/toffoli/) from c and b to a, then CNOT from a to b again. A superposed control |+⟩ with target bits 01 produces equal amplitudes for 001 and 110, an entangled state. The direct and decomposed versions have the same amplitudes for all inputs. Try a target pair with unequal bits to see the change.
 
 </Depth>
 
