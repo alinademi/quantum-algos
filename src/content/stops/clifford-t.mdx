@@ -3,7 +3,7 @@ description: "Combine repeated T gates, count the remaining non-Clifford operati
 answer: "Clifford+T combines efficiently trackable Clifford operations with the non-Clifford T gate to form an approximately universal quantum gate set."
 myth:
   claim: "Each T gate makes a circuit necessarily hard to simulate."
-  truth: "Some T gates cancel or combine into Cliffords; simulation cost depends on more than raw T count."
+  truth: "Some T gates simplify away. Known stabilizer-based simulators have polynomial cost in circuit size for fixed T count, with exponential dependence on T count."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -24,10 +24,10 @@ The T gate is a [phase gate](/learn/phase-gates/) of 45°. Two T gates give S, f
 
 <Depth level="engineer">
 
-T is $\operatorname{diag}(1,e^{i\pi/4})$ and is non-Clifford. H, S, CNOT and T are approximately universal up to global phase. Fault-tolerant resource estimates often count T gates and T depth because a logical T can require expensive magic-state resources in common error-correcting architectures. These are architecture-dependent costs, and syntactic T count may overestimate a simplified circuit.
+T is $\operatorname{diag}(1,e^{i\pi/4})$ and is non-Clifford: $TXT^\dagger=(X+Y)/\sqrt2$. For fixed n, the Clifford group modulo global phase is finite and its stabilizer circuits are efficiently simulated by [Gottesman-Knill](/learn/gottesman-knill/). Adding T gives access to rotations about distinct axes by angles that are irrational multiples of $2\pi$: for example, the Bloch rotation of THTH has half-angle cosine $\cos^2(\pi/8)$. Together these rotations give a dense single-qubit set ([Boykin et al.](https://arxiv.org/abs/quant-ph/9906054)); adding CNOT gives universality up to global phase. [Solovay-Kitaev](/learn/solovay-kitaev/) explains approximation. For fixed precision, [Bravyi-Gosset](https://arxiv.org/abs/1601.07601) gives simulation algorithms polynomial in circuit size and exponential in T count. Fault-tolerant resource estimates often count T gates and T depth because a logical T can require expensive magic-state resources in common error-correcting architectures. These are architecture-dependent costs, and syntactic T count may overestimate a simplified circuit.
 
 </Depth>
 
-<Lab title="Combine T gates" intro="Choose an input and a sequence; follow phases and count the non-Clifford gate symbols.">
+<Lab title="Combine T gates" intro="Start in |+⟩ and apply T to leave the six pure stabilizer states; then compare raw and merged T counts.">
   <GateLab id="clifford-t" lab={lab} />
 </Lab>
