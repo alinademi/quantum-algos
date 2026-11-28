@@ -2,8 +2,8 @@
 description: "Build a general one-qubit gate from three rotations and compare the result with its direct matrix."
 answer: "Every one-qubit unitary is a global phase times a sequence of three rotations around Z, Y and Z."
 myth:
-  claim: "The U gate and its three Euler rotations always have identical matrices."
-  truth: "Their matrices can differ by a global phase, which does not affect measurements of an unconditional gate."
+  claim: "Three rotation angles are needed to specify the final state of a single pure qubit."
+  truth: "Two angles specify its Bloch vector. Three are needed for a general gate, which acts on every possible input."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -14,7 +14,7 @@ import { lab } from '../../lib/sims/single-qubit-unitary.ts';
 
 Imagine trying to turn a small globe from one position to another. You can turn it around a vertical line, then a horizontal line, then the vertical line again. With the right three angles you can reach any orientation. Some choices reach the same orientation in different ways.
 
-An ideal qubit has a similar picture: three turns are enough to describe any single-qubit gate, apart from a common change to all its amplitude signs or timing that cannot be seen when the gate acts alone. The picture breaks because the globe has a literal orientation. The qubit has complex amplitudes, and its rotation angles describe a mathematical operation.
+An ideal qubit has a similar picture: three turns are enough to describe any single-qubit gate, apart from a shared phase on every amplitude that cannot be seen when the gate acts alone. The picture breaks because the globe has a literal orientation. The qubit has complex amplitudes, and its rotation angles describe a mathematical operation.
 
 </Depth>
 
@@ -34,6 +34,6 @@ OpenQASM 2 uses the Euler product without the prefactor (Cross et al., eq. 2); t
 
 </Depth>
 
-<Lab title="Build a general single-qubit gate" intro="Change the three angles and inspect the matrix comparison after the last rotation.">
+<Lab title="Build a general single-qubit gate" intro="Choose a target preset or change the three angles and inspect the matrix comparison after the last rotation.">
   <GateLab id="single-qubit-unitary" lab={lab} />
 </Lab>
