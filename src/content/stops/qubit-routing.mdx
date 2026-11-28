@@ -8,8 +8,6 @@ myth:
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
 import RoutingMap from '../../components/tools/RoutingMap.astro';
-import GateLab from '../../components/tools/GateLab.astro';
-import { lab } from '../../lib/sims/qubit-routing.ts';
 
 <Depth level="kid">
 
@@ -25,11 +23,10 @@ A [device's connectivity](/learn/connectivity/) tells us which physical qubits c
 
 <Depth level="engineer">
 
-The coupling graph defines legal multi-qubit interactions; a directed graph may also constrain CNOT direction. A route changes the permutation of logical states across physical sites. For endpoints at distance d on an undirected line, the displayed restore-layout method uses $2(d-1)$ SWAPs plus one neighboring CNOT. Retaining the updated layout or using bridge circuits may reduce cost.
+Placement chooses the initial logical-to-physical bijection for this four-wire example. The coupling graph defines legal multi-qubit interactions; a directed graph may also constrain CNOT direction. A route changes the permutation of logical states across physical sites. For endpoints at distance d on an undirected line, the displayed restore-layout method uses $2(d-1)$ SWAPs plus one neighboring CNOT. Retaining the updated layout or using bridge circuits may reduce cost. [SABRE](/learn/transpilation/) uses a heuristic that scores candidate SWAPs by distances for ready two-qubit gates and a look-ahead set; routing forward and backward improves the initial map ([Li, Ding and Xie](https://arxiv.org/abs/1809.02573)).
 
 </Depth>
 
-<Lab title="Route a CNOT" intro="Choose a control and target on a four-site line, follow the placement as it changes, then check the full circuit matrix.">
+<Lab title="Route a CNOT" intro="Change the initial placement, then step through the physical route and compare SWAP costs and the full matrix gap.">
   <RoutingMap />
-  <GateLab id="qubit-routing" lab={lab} />
 </Lab>
