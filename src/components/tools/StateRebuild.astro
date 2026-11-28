@@ -259,15 +259,18 @@ const BATCHES = [10, 100, 1000];
         };
         for (const d of [1, 0.1, 0.01]) {
           dotted(L, py(d), L + W, py(d));
-          g.textAlign = 'right'; g.fillText(String(d), L - 6, py(d));
+          g.fillStyle = col.ink2; g.textAlign = 'right'; g.fillText(String(d), L - 6, py(d)); // dot() changes fillStyle, so set it before each label
         }
         g.textAlign = 'center';
         for (const n of [10, 100, 1000, 10000]) {
           dotted(px(n), T, px(n), T + H);
+          g.fillStyle = col.ink2;
           g.fillText(n === 10000 ? '10000' : String(n), px(n), T + H + 12);
         }
+        g.fillStyle = col.ink2;
         g.fillText('shots per basis', L + W / 2, T + H + 26);
-        g.textAlign = 'left'; g.fillText('dot: trace distance', L + 6, T + 6); g.fillText('ring: half trace-norm, raw', L + 6, T + 19);
+        // Legend in the empty lower left: the dotted error line runs from upper left to lower right.
+        g.textAlign = 'left'; g.fillText('dot: trace distance', L + 6, T + H - 19); g.fillText('ring: half trace-norm, raw', L + 6, T + H - 6);
         // The typical error of the raw rebuild: dotted, from theory.
         const ch3 = chosen.some(Boolean) ? chosen : ([true, true, true] as Chosen);
         for (let i = 0; i <= 160; i++) {
@@ -280,7 +283,7 @@ const BATCHES = [10, 100, 1000];
           g.beginPath(); g.arc(px(m.n), py(m.raw), 5.5, 0, Math.PI * 2); g.stroke();
           dot(g, px(m.n), py(m.round), 3.2, col.signal);
         }
-        if (!history.length) { g.textAlign = 'center'; g.fillStyle = col.ink2; g.fillText('Press Run to add points', L + W / 2, T + H / 2); }
+        if (!history.length) { g.textAlign = 'right'; g.fillStyle = col.ink2; g.fillText('Press Run to add points', L + W - 6, T + 8); }
       }
 
       const redraw = () => { if (!pending) pending = requestAnimationFrame(() => { pending = 0; drawBall(); }); };
