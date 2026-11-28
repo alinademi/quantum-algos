@@ -7,8 +7,7 @@ myth:
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
-import GateLab from '../../components/tools/GateLab.astro';
-import { lab } from '../../lib/sims/circuit-cost.ts';
+import CircuitSchedule from '../../components/tools/CircuitSchedule.astro';
 
 <Depth level="kid">
 
@@ -18,7 +17,7 @@ Imagine three workbenches and a list of tasks. Some tasks use one bench, some ne
 
 <Depth level="student">
 
-The width of a [circuit](/learn/circuits/) is the number of qubit wires allocated. Gate count is the number of operations. Depth counts sequential layers when gates on disjoint wires may run together. For example two H gates on different wires fit in one layer, but a later CNOT depends on both. Counting CNOT and T separately matters because they can be more expensive than simple local gates on some architectures. Compare a serial schedule with the parallel one in the lab: width and gate count stay unchanged while depth may shrink. These measures help describe how a resource grows with input size ([asymptotic cost](/learn/big-o/)); real hardware time requires durations and constraints.
+The width of a [circuit](/learn/circuits/) is the number of qubit wires allocated. Gate count is the number of operations. Depth counts sequential layers when gates on disjoint wires may run together. For example two H gates on different wires fit in one layer, but a later CNOT depends on earlier gates on its own wires. Counting CNOT and T separately matters because they can be more expensive than simple local gates on some architectures. Compare a serial schedule with the parallel one in the lab: width and gate count stay unchanged while depth may shrink. These measures help describe how a resource grows with input size ([asymptotic cost](/learn/big-o/)); real hardware time requires durations and constraints.
 
 </Depth>
 
@@ -29,5 +28,5 @@ For a fixed ordered list of nonempty wire sets, assign each gate the earliest la
 </Depth>
 
 <Lab title="Schedule a circuit" intro="Compare a disjoint-wire schedule with a serial schedule and inspect width, depth and gate counts.">
-  <GateLab id="circuit-cost" lab={lab} />
+  <CircuitSchedule />
 </Lab>

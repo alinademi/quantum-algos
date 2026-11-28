@@ -1,0 +1,49 @@
+---
+import { recipes } from '../../lib/sims/circuit-cost.ts';
+---
+<qce-circuit-schedule class="tool">
+  <div class="tool-controls controls">
+    <label>Circuit <select data-recipe>{Object.keys(recipes).map(r=><option>{r}</option>)}</select></label>
+    <label>Schedule <select data-mode><option>Parallel on disjoint wires</option><option>One gate at a time</option></select></label>
+  </div>
+  <canvas aria-hidden="true"></canvas>
+  <dl data-counts></dl>
+  <p class="tool-readout" aria-live="polite"></p>
+  <p class="note">This is a logical schedule diagram, not a measurement experiment. Each column is one ideal unit-duration layer. The same gate on two wires occupies both rows. Hardware constraints can change the schedule.</p>
+</qce-circuit-schedule>
+<script>
+  import { recipes,layers,lab } from '../../lib/sims/circuit-cost.ts';
+  import { fit,palette,dot,onResize,onTheme,onSeen } from '../../lib/draw.ts';
+  class CircuitSchedule extends HTMLElement{
+    connectedCallback(){
+      const $=<T extends Element>(s:string)=>this.querySelector<T>(s)!;
+      const recipe=$<HTMLSelectElement>('[data-recipe]'),mode=$<HTMLSelectElement>('[data-mode]'),canvas=$<HTMLCanvasElement>('canvas');let seen=true;
+      const data=()=>{const ops=recipes[recipe.value],ls=mode.value==='One gate at a time'?ops.map((_,i)=>i+1):layers(ops,3);return {ops,ls,depth:Math.max(...ls)};};
+      const draw=()=>{if(!seen)return;const {ctx,w,h}=fit(canvas),p=palette(),{ops,ls,depth}=data();ctx.clearRect(0,0,w,h);
+        const left=25,sw=(w-left-6)/depth,sh=(h-38)/3,x=(l:number)=>left+(l-.5)*sw,y=(wire:number)=>28+(wire+.5)*sh;
+        ctx.font='11px monospace';ctx.textAlign='center';ctx.fillStyle=p.ink;
+        for(let l=1;l<=depth;l++)ctx.fillText(String(l),x(l),15);
+        for(let i=0;i<3;i++){ctx.fillText('q'+i,13,y(i)+4);for(let j=0;j<depth*12;j++)dot(ctx,left+(j+.5)*sw/12,y(i),.7,p.rule);}
+        ops.forEach((o,i)=>{const l=ls[i],cx=x(l);if(o.wires.length===2){const [a,b]=o.wires;for(let j=0;j<=20;j++)dot(ctx,cx,y(a)+(y(b)-y(a))*j/20,1,p.signal);}
+          o.wires.forEach((wire,j)=>{const cy=y(wire),bw=Math.min(32,sw-5);ctx.fillStyle=p.paper;ctx.fillRect(cx-bw/2,cy-12,bw,24);ctx.strokeStyle=p.ink;ctx.strokeRect(cx-bw/2,cy-12,bw,24);ctx.fillStyle=p.ink;ctx.font='12px monospace';ctx.fillText(o.name==='CNOT'?(j===0?'C':'X'):o.name,cx,cy+4);});
+        });
+      };
+      const update=()=>{const {ops,ls,depth}=data(),rows=lab.run({recipe:recipe.value,mode:mode.value})[1].rows!;
+        $('[data-counts]').replaceChildren(...rows.map(r=>{const div=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=r.label;dd.textContent=r.value;div.append(dt,dd);return div;}));
+        $('.tool-readout').textContent='Started with '+recipe.value+', '+mode.value.toLowerCase()+': '+depth+' layers. '+ops.map((o,i)=>o.name+' on q'+o.wires.join(', q')+' in layer '+ls[i]).join('; ')+'.';draw();
+      };
+      recipe.addEventListener('change',update);mode.addEventListener('change',update);onResize(this,draw);onTheme(draw);onSeen(this,v=>{seen=v;if(v)draw();});update();
+    }
+  }
+  customElements.define('qce-circuit-schedule',CircuitSchedule);
+</script>
+<style>
+  qce-circuit-schedule{display:grid;gap:var(--s3)}
+  .controls{display:flex;flex-wrap:wrap;gap:var(--s2)}
+  label{display:grid;gap:var(--s1);min-width:0;flex:1 1 8rem}
+  select{min-height:2.75rem;font:inherit;color:var(--ink);background:var(--paper)}
+  canvas{width:100%;height:11rem}
+  dl{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s2)}
+  dd{margin:0;font-family:var(--mono)}
+  .note{font-size:.875rem;color:var(--ink-2)}
+</style>
