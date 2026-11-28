@@ -5,7 +5,7 @@ const id = 'tf-' + Math.random().toString(36).slice(2, 8);
 ---
 <qce-three-filters class="tool">
   <canvas aria-hidden="true"></canvas>
-  <p class="key">Each dot is one photon. Dots under a filter: photons it absorbed. Dots under the screen: photons that got through. Filters are ideal and drawn face on, with lines along the axis. A tick through a flying photon shows its polarization; lamp photons are unpolarized and have none.</p>
+  <p class="key">Each dot is one photon. Dots under a filter: photons it absorbed. Dots under the screen: photons that got through. Filters are ideal and drawn face on, with lines along the axis. A tick through a flying photon shows its polarization; lamp photons are unpolarized, so they get no tick.</p>
   <div class="tool-controls">
     <label class="toggle"><input type="checkbox" name="middle" /> Add filter B</label>
     <div class="angle">
@@ -143,7 +143,7 @@ const id = 'tf-' + Math.random().toString(36).slice(2, 8);
         const setup = middle ? `A at ${A}°, B at ${b}°, C at ${C}°.` : `A at ${A}° and C at ${C}°, crossed. B is out.`;
         const stopped = st.map((s) => `${NAMES[s]} stopped ${num(piles[s])}`).join(', ');
         const formula = middle ? `½ × cos²${between(A, b)}° × cos²${between(b, C)}°` : `½ × cos²${between(A, C)}°`;
-        readout.textContent = `${setup} Of ${num(n)} lamp photons, ${stopped}, and ${num(piles[3])} reached the screen (${pct1(n ? piles[3] / n : 0)}). Lamp photons are unpolarized, so A passes half. Born rule prediction: ${formula} = ${pct1(pred)}.`;
+        readout.textContent = `${setup} Of ${num(n)} lamp photons, ${stopped}, and ${num(piles[3])} reached the screen (${pct1(n ? piles[3] / n : 0)}). Ideal lamp photons are unpolarized, so A passes half. Born rule prediction: ${formula} = ${pct1(pred)}.`;
       }
 
       function setValue() {

@@ -64,6 +64,14 @@ test('global phase: turning a filter or a polarization by 180 degrees changes no
   }
 });
 
+test('elliptical light, cos(x)|H> + i sin(x)|V>: Bloch vector (0, sin 2x, cos 2x), passes a linear filter at phi with chance (1 + cos 2x cos 2phi)/2', () => {
+  for (const x of [0, 0.3, Math.PI / 4, 1.2]) {
+    const e: q.State = [q.c(Math.cos(x)), q.c(0, Math.sin(x))];
+    closeAll(q.bloch(e), [0, Math.sin(2 * x), Math.cos(2 * x)]);
+    for (const f of angles) close(pol.passChance(e, f), (1 + Math.cos(2 * x) * Math.cos(2 * f * Math.PI / 180)) / 2);
+  }
+});
+
 test('relative phase shows: circular light passes any linear filter half the time, |+> passes 45 always', () => {
   for (const f of angles) close(pol.passChance(circular, f), 0.5);
   close(pol.passChance(q.plus(), 45), 1);
