@@ -1,0 +1,288 @@
+---
+// Two qubit states A and B on one disc of the Bloch ball (real states, the x-z plane). It shows their trace distance T and
+// fidelity F, the range of T that F allows, and one measurement along an axis: 50 fresh copies of each state, each measured
+// once, with Born-rule odds. Every number comes from sims/distance-measures.ts, which checks the closed forms against the
+// matrix definitions and the best guess ½ + ½T against every axis. Ideal qubits, no noise.
+import {
+  ANGLE, LEN, SHOTS, PRESETS, START, vecOf, bestAxis, traceDistance, fidelity, gap, guessChance, describe, num, pct, nameOf, angleText, lenText,
+} from '../../lib/sims/distance-measures.ts';
+const uid = 'tsa-' + Math.random().toString(36).slice(2, 8);
+const u0 = vecOf(START.a), v0 = vecOf(START.b), mu0 = bestAxis(u0, v0);
+const t0 = traceDistance(u0, v0), f0 = fidelity(u0, v0);
+const states = [
+  { k: 'a', name: 'A', look: 'filled dot', s: START.a },
+  { k: 'b', name: 'B', look: 'ring', s: START.b },
+] as const;
+---
+<qce-two-states-apart class="tool">
+  <div class="cols">
+    <canvas aria-hidden="true"></canvas>
+    <p class="key">A picture, not a photograph. The disc is a slice of the Bloch ball: the real states, with |0⟩ up and |+⟩ to the right. Pure states sit on the rim, mixes inside, the completely mixed state at the center. The dotted line from A to B is as long as 2T. The solid line is the measurement axis: its filled end is the outcome +, its open end is −, and the small marks on it are where A and B land when dropped straight onto it. The more A lands toward + than B does, the more their odds differ. Under the disc, one band shows T and the range 1 − F to √(1 − F²) that F allows for it. Under that, each dot is one fresh copy, measured once along the axis: filled gave +, open gave −. Each dot keeps its own random draw, so moving a slider flips dots instead of re-rolling them.</p>
+
+    <div class="tool-controls">
+      <fieldset>
+        <legend class="label">Try a pair</legend>
+        <div class="presets">
+          {PRESETS.map((p, i) => (
+            <button type="button" data-preset={i} aria-pressed={String(i === 0)}>{p.name}</button>
+          ))}
+        </div>
+      </fieldset>
+
+      {states.map(({ k, name, look, s }) => (
+        <fieldset>
+          <legend class="label">State {name} ({look})</legend>
+          <div class="slider">
+            <div class="row"><label for={`${uid}-${k}-angle`}>Angle</label><output for={`${uid}-${k}-angle`} data-out={`${k}-angle`}>{s.angle}°</output></div>
+            <input id={`${uid}-${k}-angle`} data-k={`${k}-angle`} type="range" min={ANGLE.min} max={ANGLE.max} step={ANGLE.step} value={s.angle} aria-valuetext={angleText(s.angle)} />
+          </div>
+          <div class="slider">
+            <div class="row"><label for={`${uid}-${k}-len`}>Length</label><output for={`${uid}-${k}-len`} data-out={`${k}-len`}>{s.len}%</output></div>
+            <input id={`${uid}-${k}-len`} data-k={`${k}-len`} type="range" min={LEN.min} max={LEN.max} step={LEN.step} value={s.len} aria-valuetext={lenText(s.len)} />
+          </div>
+          <p class="hint" data-name={k}>{name} is {nameOf(s)}</p>
+        </fieldset>
+      ))}
+
+      <fieldset>
+        <legend class="label">Measurement</legend>
+        <div class="choices">
+          <label><input type="radio" name={`${uid}-mode`} value="best" data-mode checked />Best axis for A and B</label>
+          <label><input type="radio" name={`${uid}-mode`} value="own" data-mode />My axis</label>
+        </div>
+        <div class="slider">
+          <div class="row"><label for={`${uid}-axis`}>Axis angle</label><output for={`${uid}-axis`} data-out="axis">{Math.round(mu0)}°</output></div>
+          <input id={`${uid}-axis`} data-k="axis" type="range" min="0" max="359" step="1" value={Math.round(mu0)} aria-valuetext={angleText(Math.round(mu0))} />
+        </div>
+      </fieldset>
+
+      <dl class="views">
+        <div><dt class="label">Trace distance T</dt><dd><code data-v="t">{num(t0)}</code></dd></div>
+        <div><dt class="label">Fidelity F</dt><dd><code data-v="f">{num(f0)}</code></dd></div>
+        <div><dt class="label">Gap in the chance of +</dt><dd><code data-v="gap">{num(gap(u0, v0, mu0))}</code></dd></div>
+        <div><dt class="label">Right guess</dt><dd><code data-v="guess">{pct(guessChance(u0, v0, mu0))}</code></dd></div>
+      </dl>
+
+      <button type="button" class="btn btn-sm btn-line again">Send {SHOTS} + {SHOTS} new copies</button>
+    </div>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">{describe(START.a, START.b, mu0, true)}</p>
+  <p class="note">The tool reaches only the real states, one slice of the ball: that is why the angle goes around one circle. T and F follow the same formulas on the whole ball. Length 100% is a pure state; at length 0% the angle makes no difference. Here F is the root fidelity, tr √(√ρ σ √ρ); some books call its square the fidelity. A guess uses one measurement, sees one copy, and is right half the time at worst because A and B are sent equally often. Ideal qubits, no noise.</p>
+</qce-two-states-apart>
+
+<script>
+  import {
+    SHOTS, PRESETS, START, vecOf, bestAxis, axisVec, traceDistance, fidelity, boundsOnT, plusChance, gap, guessChance, saysAOnPlus,
+    results, countRight, describe, num, pct, nameOf, angleText, lenText, type St,
+  } from '../../lib/sims/distance-measures.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  const FILL = 700; // ms for a new batch to arrive
+  const PAD = 12, COLS = 10, ROWS = SHOTS / COLS;
+
+  class TwoStatesApart extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const canvas = $<HTMLCanvasElement>('canvas'), readout = $('.tool-readout'), again = $<HTMLButtonElement>('.again');
+      const slide = (key: string) => $<HTMLInputElement>(`input[data-k="${key}"]`);
+      const out = (key: string) => $(`[data-out="${key}"]`);
+      const ins = { 'a-angle': slide('a-angle'), 'a-len': slide('a-len'), 'b-angle': slide('b-angle'), 'b-len': slide('b-len'), axis: slide('axis') };
+      const vals = { t: $('[data-v="t"]'), f: $('[data-v="f"]'), gap: $('[data-v="gap"]'), guess: $('[data-v="guess"]') };
+      const modes = [...this.querySelectorAll<HTMLInputElement>('[data-mode]')];
+      const presetBtns = [...this.querySelectorAll<HTMLButtonElement>('[data-preset]')];
+
+      let ctx: CanvasRenderingContext2D | null = null, w = 0, h = 0, col = palette();
+      let a: St = { ...START.a }, b: St = { ...START.b }, best = true, own = Math.round(bestAxis(vecOf(a), vecOf(b)));
+      // One fixed uniform draw per copy, so a batch stays the same batch while the settings move.
+      const fresh = () => Array.from({ length: SHOTS }, () => Math.random());
+      let usA = fresh(), usB = fresh();
+      let shotsA: boolean[] = [], shotsB: boolean[] = [];
+      let shown = SHOTS, seen = false, anim = 0, pending = 0;
+
+      const mu = () => (best ? bestAxis(vecOf(a), vecOf(b)) : own);
+      const right = () => countRight(shotsA, shotsB, saysAOnPlus(vecOf(a), vecOf(b), mu()));
+
+      function draw() {
+        if (!ctx || !w) return;
+        const g = ctx, u = vecOf(a), v = vecOf(b), m = mu(), mv = axisVec(m);
+        const R = w / 2 - 36, cx = w / 2, cy = 22 + R;
+        const px = (p: readonly number[]) => cx + R * p[0], py = (p: readonly number[]) => cy - R * p[2];
+        const fs = Math.round(Math.min(14, Math.max(11, w * 0.036)));
+        const label = (text: string, x: number, y: number, color = col.ink, align: CanvasTextAlign = 'center') => {
+          g.textAlign = align; g.textBaseline = 'middle'; g.lineWidth = 4; g.lineJoin = 'round';
+          g.strokeStyle = col.plate; g.strokeText(text, x, y); g.fillStyle = color; g.fillText(text, x, y);
+        };
+        g.clearRect(0, 0, w, h);
+        g.font = `500 ${fs}px ${token('--mono')}`;
+
+        // The disc: every state in the slice. Faint dots inside, the rim is the pure states, two axes.
+        const step = R / 9;
+        for (let i = -9; i <= 9; i++) for (let j = -9; j <= 9; j++) if (Math.hypot(i, j) * step <= R * 0.97) dot(g, cx + i * step, cy - j * step, 0.9, col.rule);
+        for (let i = 0; i < 144; i++) dot(g, cx + R * Math.sin((i * Math.PI) / 72), cy - R * Math.cos((i * Math.PI) / 72), 1.5, col.ink2);
+        for (let i = -20; i <= 20; i++) { dot(g, cx + (i * R) / 20, cy, 0.8, col.ink2); dot(g, cx, cy + (i * R) / 20, 0.8, col.ink2); }
+        label('|0⟩', cx, cy - R - 18); label('|1⟩', cx, cy + R + 18); label('|+⟩', cx + R + 20, cy); label('|−⟩', cx - R - 20, cy);
+
+        // The measurement axis: a line through the center. Filled end is +, open end is −.
+        const axisAt = (k: number) => [cx + k * mv[0], cy - k * mv[2]];
+        for (let k = -R; k <= R; k += 3) { const [x, y] = axisAt(k); dot(g, x, y, 1, col.ink); }
+        // Drop each point straight onto the axis: its place along the axis sets its odds of +.
+        const along = (p: readonly number[]) => p[0] * mv[0] + p[2] * mv[2];
+        for (const [p, color] of [[u, col.signal], [v, col.hot]] as const) {
+          const s = along(p), [x, y] = axisAt(s * R), n = Math.max(2, Math.round(Math.hypot(px(p) - x, py(p) - y) / 6));
+          for (let i = 1; i < n; i++) dot(g, px(p) + ((x - px(p)) * i) / n, py(p) + ((y - py(p)) * i) / n, 0.9, color);
+          dot(g, x, y, 3.2, col.plate); dot(g, x, y, 2.4, color);
+        }
+        const [ex, ey] = axisAt(R), [ox, oy] = axisAt(-R);
+        dot(g, ex, ey, 5.5, col.ink);
+        dot(g, ox, oy, 5.5, col.ink); dot(g, ox, oy, 3.4, col.plate);
+
+        // A to B: as long as 2T.
+        const len = Math.hypot(px(u) - px(v), py(u) - py(v)), n = Math.round(len / 8);
+        for (let i = 1; i < n; i++) dot(g, px(u) + ((px(v) - px(u)) * i) / n, py(u) + ((py(v) - py(u)) * i) / n, 1.6, col.ink2);
+
+        // The states. A is a filled dot, B a ring with a dot inside, so shape and letter say which is which.
+        dot(g, px(v), py(v), 8.5, col.plate); g.lineWidth = 2.2; g.strokeStyle = col.hot; g.beginPath(); g.arc(px(v), py(v), 6.5, 0, Math.PI * 2); g.stroke(); dot(g, px(v), py(v), 2, col.hot);
+        dot(g, px(u), py(u), 8.5, col.plate); dot(g, px(u), py(u), 6, col.signal);
+        // Each letter sits 17px from its point, toward the center (up at the center); B's is turned a little so two equal states show both.
+        const tag = (text: string, p: readonly number[], turn: number, color: string) => {
+          const x = px(p), y = py(p), d = Math.hypot(cx - x, cy - y), k = d < 1 ? 0 : (cx - x) / d, l = d < 1 ? -1 : (cy - y) / d;
+          label(text, x + 17 * (k * Math.cos(turn) - l * Math.sin(turn)), y + 17 * (k * Math.sin(turn) + l * Math.cos(turn)), color);
+        };
+        tag('A', u, -0.5, col.signal); tag('B', v, 0.5, col.hot);
+
+        // The band: T on a line from 0 to 1, with the range F allows.
+        const t = traceDistance(u, v), f = fidelity(u, v), [lo, hi] = boundsOnT(f);
+        const y0 = cy + R + 40, x0 = PAD + 12, span = w - 2 * PAD - 24, X = (p: number) => x0 + p * span, ty = y0 + 34;
+        g.font = `500 ${Math.max(11, fs - 1)}px ${token('--mono')}`;
+        label(`T = ${num(t)}, F allows ${num(lo)} to ${num(hi)}`, PAD, y0 + 6, col.ink2, 'left');
+        for (let i = 0; i <= 50; i++) { const p = i / 50; dot(g, X(p), ty, p >= lo - 1e-9 && p <= hi + 1e-9 ? 2.6 : 1.3, p >= lo - 1e-9 && p <= hi + 1e-9 ? col.signal : col.ink2); }
+        dot(g, X(t), ty, 8.5, col.plate); g.lineWidth = 2.2; g.strokeStyle = col.hot; g.beginPath(); g.arc(X(t), ty, 6.5, 0, Math.PI * 2); g.stroke();
+        label('0', X(0), ty + 20, col.ink2); label('1', X(1), ty + 20, col.ink2); label('T', X(t), ty - 17, col.hot);
+
+        // The copies: one dot each, measured once. Filled gave +, open gave −. A in signal, B in hot.
+        const y1 = ty + 40, bw = (w - 3 * PAD) / 2, pitch = Math.min(bw / COLS, 15), r = pitch * 0.36;
+        g.font = `500 ${Math.max(11, fs - 1)}px ${token('--mono')}`;
+        ([['A', shotsA, col.signal], ['B', shotsB, col.hot]] as const).forEach(([name, shots, color], k) => {
+          const bx = PAD + k * (bw + PAD) + (bw - COLS * pitch) / 2;
+          label(`${SHOTS} copies of ${name}`, PAD + k * (bw + PAD), y1, col.ink2, 'left');
+          g.lineWidth = Math.max(1, pitch * 0.12); g.strokeStyle = color;
+          shots.forEach((plus, i) => {
+            const x = bx + (i % COLS + 0.5) * pitch, y = y1 + 12 + (Math.floor(i / COLS) + 0.5) * pitch;
+            if (i >= shown) dot(g, x, y, r * 0.35, col.rule);
+            else if (plus) dot(g, x, y, r, color);
+            else { g.beginPath(); g.arc(x, y, r - g.lineWidth / 2, 0, Math.PI * 2); g.stroke(); }
+          });
+        });
+      }
+
+      const redraw = () => { if (!pending) pending = requestAnimationFrame(() => { pending = 0; draw(); }); };
+      const say = () => { readout.textContent = describe(a, b, mu(), best, shown === SHOTS ? right() : undefined); };
+      const stop = () => { if (anim) { cancelAnimationFrame(anim); anim = 0; } shown = SHOTS; };
+
+      // New settings: recompute the picture, the numbers and the batch. The spoken readout is left to say().
+      const show = () => {
+        stop();
+        const u = vecOf(a), v = vecOf(b), m = mu();
+        shotsA = results(usA, plusChance(u, m)); shotsB = results(usB, plusChance(v, m));
+        const set = (key: keyof typeof ins, value: number, text: string, spoken: string) => {
+          ins[key].value = String(value); out(key).textContent = text; ins[key].setAttribute('aria-valuetext', spoken);
+        };
+        set('a-angle', a.angle, `${a.angle}°`, angleText(a.angle)); set('a-len', a.len, `${a.len}%`, lenText(a.len));
+        set('b-angle', b.angle, `${b.angle}°`, angleText(b.angle)); set('b-len', b.len, `${b.len}%`, lenText(b.len));
+        const axis = Math.round(m) % 360;
+        set('axis', axis, `${axis}°`, angleText(axis));
+        $('[data-name="a"]').textContent = `A is ${nameOf(a)}`; $('[data-name="b"]').textContent = `B is ${nameOf(b)}`;
+        vals.t.textContent = num(traceDistance(u, v)); vals.f.textContent = num(fidelity(u, v));
+        vals.gap.textContent = num(gap(u, v, m)); vals.guess.textContent = pct(guessChance(u, v, m));
+        modes.forEach((r) => { r.checked = (r.value === 'best') === best; });
+        presetBtns.forEach((btn, i) => {
+          const p = PRESETS[i];
+          btn.setAttribute('aria-pressed', String(p.a.angle === a.angle && p.a.len === a.len && p.b.angle === b.angle && p.b.len === b.len));
+        });
+        draw();
+      };
+
+      // A new batch arrives copy by copy, unless the reader asked for less motion or the tool is off screen.
+      const measure = () => {
+        stop();
+        usA = fresh(); usB = fresh();
+        const u = vecOf(a), v = vecOf(b), m = mu();
+        shotsA = results(usA, plusChance(u, m)); shotsB = results(usB, plusChance(v, m));
+        if (reduceMotion() || !seen) { draw(); say(); return; }
+        shown = 0;
+        const t0 = performance.now();
+        const step = (now: number) => {
+          shown = Math.min(SHOTS, Math.floor(((now - t0) / FILL) * SHOTS));
+          draw();
+          if (shown < SHOTS) anim = requestAnimationFrame(step); else { anim = 0; say(); }
+        };
+        anim = requestAnimationFrame(step);
+      };
+
+      // Sliders redraw while they move; the spoken readout waits for release.
+      (['a-angle', 'a-len', 'b-angle', 'b-len'] as const).forEach((key) => {
+        ins[key].addEventListener('input', () => {
+          const n = Number(ins[key].value), st = key[0] === 'a' ? a : b;
+          if (key.endsWith('angle')) st.angle = n; else st.len = n;
+          show();
+        });
+        ins[key].addEventListener('change', say);
+      });
+      ins.axis.addEventListener('input', () => { best = false; own = Number(ins.axis.value); show(); });
+      ins.axis.addEventListener('change', say);
+      modes.forEach((r) => r.addEventListener('change', () => {
+        if (!r.checked) return;
+        if (r.value === 'own' && best) own = Math.round(bestAxis(vecOf(a), vecOf(b))) % 360;
+        best = r.value === 'best'; show(); say();
+      }));
+      presetBtns.forEach((btn, i) => btn.addEventListener('click', () => {
+        a = { ...PRESETS[i].a }; b = { ...PRESETS[i].b }; best = true; show(); say();
+      }));
+      again.addEventListener('click', measure);
+
+      const size = () => { ({ ctx, w, h } = fit(canvas)); draw(); };
+      onResize(canvas, size);
+      onTheme(() => { col = palette(); draw(); });
+      // Off screen, a batch in flight lands at once and is read out.
+      onSeen(this, (s) => { seen = s; if (!s && anim) { stop(); draw(); say(); } });
+      size(); show(); say();
+    }
+  }
+  customElements.define('qce-two-states-apart', TwoStatesApart);
+</script>
+
+<style>
+  qce-two-states-apart { display: grid; container-type: inline-size }
+  /* Narrow: the picture, then the controls, then the key. Wide: the key under the picture. */
+  .cols { display: grid; gap: var(--s4); min-width: 0; grid-template-areas: "pic" "ctl" "key" }
+  canvas { grid-area: pic; aspect-ratio: 2 / 3; max-width: 26rem; justify-self: center }
+  .key { grid-area: key; font-size: .875rem; color: var(--ink-2); max-width: var(--read) }
+  .tool-controls { grid-area: ctl; display: grid; gap: var(--s4); align-content: start; align-items: start; min-width: 0 }
+  fieldset { display: grid; gap: var(--s3); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { padding: 0; margin-bottom: var(--s2) }
+  .presets, .choices { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .presets button, .choices label {
+    display: inline-flex; align-items: center; gap: var(--s2); min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule);
+    border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 .9375rem var(--mono); cursor: pointer;
+  }
+  .choices label { font-family: inherit; font-weight: 600 }
+  .choices input { flex: none; width: 1.125rem; height: 1.125rem; margin: 0; accent-color: var(--signal) }
+  .presets button:hover, .choices label:hover { border-color: var(--ink) }
+  .presets button[aria-pressed="true"], .choices label:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink) }
+  .slider { display: grid; gap: var(--s1); min-width: 0 }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2) }
+  .row output { flex: none; font-size: 1.25rem }
+  input[type="range"] { margin: 0 }
+  .hint { font: 500 .9375rem var(--mono); color: var(--ink-2); overflow-wrap: anywhere }
+  .views { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); margin: 0 }
+  .views div { display: grid; align-content: start; gap: var(--s1); min-width: 0 }
+  dd { margin: 0; font-size: 1.25rem }
+  .again { justify-self: start }
+  .tool-readout { min-height: 13em }
+  .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  @container (min-width: 38rem) {
+    .cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "pic ctl" "key ctl"; column-gap: var(--s5); align-items: start }
+    .tool-readout { min-height: 8em }
+  }
+</style>

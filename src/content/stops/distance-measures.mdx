@@ -1,0 +1,68 @@
+---
+description: "Trace distance T is how well one measurement tells two quantum states apart. Fidelity F is how much they overlap. Move two qubit states and see both."
+answer: "Trace distance T = ½‖ρ − σ‖₁ is the most that one measurement can change the chance of one result between two states. If the two are equally likely, the best one-shot guess is right with chance ½ + ½T. Fidelity F measures their overlap: 1 for equal states, 0 for states a measurement tells apart every time."
+myth:
+  claim: "Trace distance and fidelity are two names for the same closeness score."
+  truth: "They are linked, not equal. Two pure states 60° apart on the Bloch sphere, and a pure state against the completely mixed state, both have T = ½, but F = 0.87 for the first pair and 0.71 for the second."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import TwoStatesApart from '../../components/tools/TwoStatesApart.astro';
+
+<Depth level="kid">
+
+Two machines each print a dot, red or blue, with set chances. A friend picks one machine in secret, each equally often, and hands you one dot. You guess which machine made it.
+
+If the machines print alike, you are right about half the time. If one prints only red and the other only blue, you are right every time. The trace distance is a score from 0 to 1 for how far above a coin flip your best guess can get: your best chance of being right is one half plus half the score.
+
+Two quantum states are like two such machines, except that each way of measuring gives its own set of chances. The trace distance counts the best way.
+
+Fidelity is a second score, for overlap: 1 for the same state, 0 for states that one measurement tells apart every time.
+
+</Depth>
+
+<Depth level="student">
+
+Measure a qubit and each result has a chance. Two states can give different chances. The trace distance T is the biggest gap in the chance of one result that any way of measuring can make: 0 for the same state, 1 when a measurement tells the two apart every time.
+
+Say A started as 0, and B started as 0, then a Hadamard gate. Measured as 0 or 1, A gives 0 every time and B gives 0 with chance 50%: a gap of 0.50. Tilting the measurement toward |−⟩ widens the gap, up to T = 0.71 at 45°. No measurement goes past it. If a fair coin picks A or B, the best guess is right with chance ½ + ½T, about 85%.
+
+Fidelity F scores overlap: 1 for the same state, 0 for states a measurement tells apart every time. For pure states, F = |⟨ψ|φ⟩|, here 0.71. If A is pure, F² is the chance that B passes the test "is it A?", 50% here.
+
+</Depth>
+
+<Depth level="engineer">
+
+For two states $\rho$ and $\sigma$, the trace distance and the fidelity are
+
+$$
+T = \tfrac12\lVert\rho-\sigma\rVert_1, \qquad F = \operatorname{tr}\sqrt{\sqrt\rho\,\sigma\sqrt\rho} = \lVert\sqrt\rho\,\sqrt\sigma\rVert_1.
+$$
+
+Some authors, Wilde among them, call $F^2$ the fidelity; there Fuchs-van de Graaf reads $1-\sqrt F\le T\le\sqrt{1-F}$. For the norms, see [matrix norms](/learn/matrix-norms/).
+
+$T$ is the largest gap in the chance of one outcome, $T = \max_{0\le E\le I}\operatorname{tr}[E(\rho-\sigma)]$. With equal priors, the best one-shot guess is right with chance $\tfrac12+\tfrac12T$ (Helstrom, see [telling states apart](/learn/state-discrimination/)). $T=0$ only for equal states, $T=1$ only when the supports are orthogonal, and unitaries keep $T$, and no channel can raise it.
+
+$F$ is symmetric, $F=1$ only for equal states, $F=0$ only for orthogonal supports, and no channel can lower it. For pure states $F=|\langle\psi|\phi\rangle|$, and if $\psi$ is pure, $F^2=\langle\psi|\sigma|\psi\rangle$. Uhlmann's theorem: $F$ is the largest $|\langle\Psi_\rho|\Psi_\sigma\rangle|$ over [purifications](/learn/purification/) of $\rho$ and $\sigma$.
+
+The Fuchs-van de Graaf inequalities tie them:
+
+$$
+1 - F \le T \le \sqrt{1-F^2}.
+$$
+
+The right side is equality for pure pairs. Mixed pairs can sit strictly inside, so $F$ does not fix $T$.
+
+For a qubit, $\rho=\tfrac12(I+\mathbf r\cdot\boldsymbol\sigma)$ and $\sigma=\tfrac12(I+\mathbf s\cdot\boldsymbol\sigma)$ give
+
+$$
+T=\tfrac12|\mathbf r-\mathbf s|, \qquad F^2=\tfrac12\Big(1+\mathbf r\cdot\mathbf s+\sqrt{(1-r^2)(1-s^2)}\Big).
+$$
+
+The second follows because $\operatorname{tr}\sqrt M=\sqrt{\operatorname{tr}M+2\sqrt{\det M}}$ for a $2\times2$ positive $M$. For pure states at angle $\Delta$ on the Bloch sphere, $F=\cos\tfrac\Delta2$ and $T=\sin\tfrac\Delta2$.
+
+</Depth>
+
+<Lab title="Tell two states apart" intro="Set states A and B, then send 50 copies of each through one measurement: no axis gives a gap above T, and the best axis gives a right guess with chance ½ + ½T.">
+  <TwoStatesApart />
+</Lab>
