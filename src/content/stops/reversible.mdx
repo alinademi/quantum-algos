@@ -1,9 +1,9 @@
 ---
-description: "Reversible computation preserves enough information to recover its input. Quantum gates require reversible linear evolution."
+description: "Build a reversible AND with Toffoli and explore the minimum heat cost of erasing a bit."
 answer: "Reversible computation preserves enough information to recover its input. Quantum gates require reversible linear evolution."
 myth:
-  claim: "Every classical logic operation must dissipate exactly kBT ln 2 of heat."
-  truth: "Landauer’s bound applies to erasing one unbiased independent bit in an ideal isothermal reset; actual costs depend on the process."
+  claim: "Every classical gate must dissipate at least kBT ln 2 of heat."
+  truth: "That lower bound applies to erasing an independent unbiased bit at temperature T, not to every gate."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -12,19 +12,19 @@ import { lab } from '../../lib/sims/reversible.ts';
 
 <Depth level="kid">
 
-If you forget the two switches after recording AND, you cannot always recover them. Keep the inputs and write the answer into a third bit so you can undo it.
+Imagine a notebook containing two yes-or-no answers. If you write only whether both answers are yes and throw away the originals, you cannot always reconstruct the pages. Instead keep both original answers and flip a third mark only when both are yes. Repeat the same instruction and the third mark returns to its starting value. Using rules like these, any ordinary calculation can be arranged so that it can be reversed. There is a physical reason to care: erasing an unknown bit has a minimum heat cost at a given temperature. The notebook picture does not say how much extra heat a real machine produces.
 
 </Depth>
 
 <Depth level="student">
 
-AND erases distinctions if only its output is retained. Toffoli instead XORs the AND into a target while keeping inputs. This mapping is reversible even when the target begins in 1. Physically erasing information can have a thermodynamic cost.
+AND and other [classical gates](/learn/classical-gates/) can lose information when only their output is kept. [Toffoli](/learn/toffoli/) XORs the AND into a target, leaving the two controls intact. It is its own inverse; Fredkin can also build reversible computations with suitable helper bits. Bennett showed how ordinary computations can be run reversibly by keeping enough history, copying the answer and undoing the work. Landauer's principle says erasing an independent unbiased bit in an isothermal reset releases at least kBT ln 2 of heat, about 3 × 10⁻²¹ joules at room temperature. It is not a minimum heat cost for every logic gate.
 
 </Depth>
 
 <Depth level="engineer">
 
-A reversible classical gate is a bijection of bit strings and therefore extends to a unitary permutation matrix. For an independent equiprobable bit erased isothermally into a thermal bath at T, the ideal Landauer heat bound is $k_BT\ln2$. It is not a universal energy price for each gate. Reversible logic by itself does not ensure zero dissipation in a real device.
+Reversible classical gates are bijections and therefore extend to unitary permutation matrices. Toffoli maps $(a,b,t)\mapsto(a,b,t\oplus ab)$ and is functionally complete with appropriate constant inputs and workspace; so is Fredkin. Bennett's reversible simulation stores intermediate history, copies the classical answer and runs the computation backward to recover workspace. This does not imply zero energy dissipation in hardware. For one independent equiprobable bit erased isothermally, the minimum heat to the environment is $k_BT\ln2$ (Landauer 1961); at 300 K this is about $2.87\times10^{-21}$ J. Correlations and nonuniform inputs change the entropy cost, and a real reset may dissipate more.
 
 </Depth>
 
