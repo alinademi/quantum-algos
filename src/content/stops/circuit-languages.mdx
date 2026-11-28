@@ -1,5 +1,5 @@
 ---
-description: "Circuit languages and software libraries describe quantum operations, measurement and sometimes classical control in different forms."
+description: "Compare a Bell-pair program in OpenQASM, Qiskit, Cirq and Q#, then follow its common gate diagram."
 answer: "Circuit languages and software libraries describe quantum operations, measurement and sometimes classical control in different forms."
 myth:
   claim: "A language and its simulator are the same thing."
@@ -12,13 +12,13 @@ import { lab } from '../../lib/sims/circuit-languages.ts';
 
 <Depth level="kid">
 
-People can describe the same experiment using different programming languages. The written instructions look different, but the ideal gate sequence can be the same.
+Imagine giving the same recipe to people who speak different languages. One writes the instructions as a list, another uses a programming language, and another has special words for ingredients and actions. The written forms differ, but they can describe the same experiment: prepare two parts, apply a change to the first, connect it to the second, then record both results. The instructions are not the machine itself. Different machines may execute the same recipe or simulate its results. The picture breaks because quantum code has precise conventions about wire ordering and measurement, which can differ between languages even if the mathematical circuit is equivalent.
 
 </Depth>
 
 <Depth level="student">
 
-OpenQASM 3 describes gates and measurements in a circuit-oriented language. Qiskit and Cirq are Python libraries; Q# is a quantum programming language. The four examples prepare a Bell pair and measure both wires. This lab simulates their shared gate sequence, rather than running each language.
+[Circuit diagrams](/learn/circuits/) can be expressed as code. OpenQASM 3 is a circuit-oriented language with gates and classical instructions. Qiskit and Cirq are Python libraries for constructing and executing circuits; Q# is a quantum programming language. Here each example allocates two qubits, applies H on the first and CNOT from first to second, then measures both. The ideal state before measurement is the Bell state with equal amplitudes for 00 and 11, so either is measured with equal chance. Compare the four snippets and their shared diagram. The simulator implements their common mathematical gates; it does not run or parse those programming languages. Output bit ordering may differ across systems.
 
 </Depth>
 
