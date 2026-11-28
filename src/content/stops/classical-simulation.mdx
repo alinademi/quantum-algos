@@ -18,15 +18,15 @@ Imagine writing a list of all possible patterns of light switches. One switch ha
 
 <Depth level="student">
 
-A dense state vector for n [qubits](/learn/multi-qubit/) stores 2ⁿ complex amplitudes. At 16 bytes each, 30 qubits need 16 GiB before overhead, and every added qubit doubles the cost. But a [tensor product](/learn/tensor-product/) of n single-qubit states needs only n small descriptions. A [stabilizer state](/learn/stabilizer-states/) has n signed Pauli rules. Tensor networks can represent states with restricted [entanglement](/learn/entanglement/) efficiently, depending on bond dimension and circuit structure. GHZ has only two nonzero amplitudes despite being entangled. Use the powers-of-two memory calculator and compare the four-wire examples. A classical simulator's resource cost depends on which representation and task it uses.
+A dense state vector for n [qubits](/learn/multi-qubit/) stores 2ⁿ complex amplitudes. At 16 bytes each, 30 qubits need 16 GiB before overhead, and every added qubit doubles the cost. But a [tensor product](/learn/tensor-product/) of n single-qubit states needs only n small descriptions. A [stabilizer state](/learn/stabilizer-states/) has n signed Pauli rules. Tensor networks can represent states with restricted [entanglement](/learn/entanglement/) efficiently, depending on bond dimension and circuit structure. GHZ has only two nonzero amplitudes despite being entangled. Its matrix product representation has two internal values (bond dimension 2), while the product state needs only one. Use the powers-of-two memory calculator and compare the four-wire examples. A classical simulator's resource cost depends on which representation and task it uses.
 
 </Depth>
 
 <Depth level="engineer">
 
-A generic pure-state vector requires exponentially many parameters; a dense density matrix has $4^n$ complex entries. Stabilizer tableaux use polynomial space, and tensor networks can exploit bounded bond dimension or favorable circuit structure. These are representation-dependent bounds, not a universal limit on exact or approximate simulation of a particular circuit. A state-vector simulator and a sampling algorithm need not store the same representation.
+A generic pure-state vector requires exponentially many parameters; a dense density matrix has $4^n$ complex entries. Stabilizer tableaux use polynomial space. An open-boundary matrix product state with uniform bond dimension D uses $O(nD^2)$ complex slots for qubits. A product state has D=1; GHZ has D=2 across every nontrivial cut since the two terms have orthogonal factors on each side. Changing the chosen example changes the lab’s tensor storage count; dense storage is unchanged. These are representation-dependent bounds, not a universal limit on exact or approximate simulation of a particular circuit. A state-vector simulator and a sampling algorithm need not store the same representation.
 
-The ideas used here build on [Reading a circuit](/learn/circuits/), [Powers and logs](/learn/powers-and-logs/).
+Dense storage illustrates the exponential growth in [powers and logs](/learn/powers-and-logs/); it need not be the cost of simulating a particular [circuit](/learn/circuits/).
 
 </Depth>
 
