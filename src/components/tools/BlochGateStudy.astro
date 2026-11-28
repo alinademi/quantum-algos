@@ -35,7 +35,7 @@ const { pauli = false } = Astro.props;
         if(!seen)return;const {ctx,w,h}=fit(canvas),p=palette();ctx.clearRect(0,0,w,h);
         const half=w/2,r=Math.min(half/2-14,(h-126)/2),cy=r+34;
         if(r<=0)return;
-        for(const [i,step] of [steps[0],steps[+step.value]].entries()){
+        for(const [i,shown] of [steps[0],steps[+step.value]].entries()){
           const cx=(i+.5)*half;
           const xy=(v:Vec)=>{const s=project(v,cam);return [cx+r*s.x,cy-r*s.y] as const;};
           const point=(v:Vec,size:number,color:string)=>{const [x,y]=xy(v);dot(ctx,x,y,size,color);};
@@ -45,7 +45,7 @@ const { pauli = false } = Astro.props;
             for(let j=-20;j<=20;j++){const v:Vec=[0,0,0];v[a]=j/20;point(v,active?1.25:.65,active?p.hot:p.ink2);}
             const v:Vec=[0,0,0];v[a]=1.14;const [x,y]=xy(v);ctx.fillStyle=p.ink;ctx.font='12px monospace';ctx.textAlign='center';ctx.fillText('xyz'[a],x,y);
           }
-          const v=bloch(step.state!) as Vec;
+          const v=bloch(shown.state!) as Vec;
           for(let j=0;j<=20;j++)point(v.map(x=>x*j/20) as Vec,1.35,p.signal);
           point(v,4,p.signal);
           ctx.fillStyle=p.ink;ctx.font='12px monospace';ctx.textAlign='center';ctx.fillText(i?'After gate '+step.value:'Start',cx,14);
