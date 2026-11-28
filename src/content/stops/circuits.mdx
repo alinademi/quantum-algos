@@ -1,6 +1,6 @@
 ---
-description: "A quantum circuit is an ordered sequence of operations on labeled wires, followed by any specified measurements."
-answer: "A quantum circuit is an ordered sequence of operations on labeled wires, followed by any specified measurements."
+description: "Read wire diagrams in order, change the gate sequence, and see how the whole circuit matrix is formed."
+answer: "A quantum circuit is an ordered sequence of operations on labeled wires, with measurements where the diagram shows them."
 myth:
   claim: "The order of gates does not matter."
   truth: "Gates on the same wires need not commute; changing the order can change the result."
@@ -12,19 +12,25 @@ import { lab } from '../../lib/sims/circuits.ts';
 
 <Depth level="kid">
 
-Think of instructions for a machine. Each wire carries a qubit. Follow the instructions in order; the same instructions in a different order can give a different answer.
+Imagine a set of tracks with instructions printed from left to right. An object on a track passes each instruction in order. Some instructions act on a single track; others link two tracks. A meter at the end gives a recorded answer. If two instructions use the same track, changing their order can change the answer, just as folding a piece of paper and then cutting it is different from cutting and then folding.
+
+Quantum circuits draw qubits as tracks. The picture breaks because no little object is physically travelling along the printed wire. The wire shows which part of a joint quantum state each instruction acts on.
 
 </Depth>
 
 <Depth level="student">
 
-A circuit starts with a state and updates it gate by gate. Gates on different wires can often run in parallel. H on the first wire followed by CNOT can make an entangled pair; the reverse order on 00 does not.
+Read a quantum circuit from left to right. Each wire is a qubit. A box represents a gate applied to that wire, and a connected control dot and target plus sign represent [CNOT](/learn/cnot/). A meter marks a measurement, whether at the end or during the circuit.
+
+Start with 00. H on q0 then CNOT makes a Bell pair; reversing the order leaves |+⟩|0⟩. In matrix notation the rightmost operation acts first: H then CNOT is CNOT·(H⊗I). The lab shows each gate matrix and the whole circuit matrix separately. Gates on disjoint wires commute and can often be executed in the same layer.
 
 </Depth>
 
 <Depth level="engineer">
 
 With column vectors, chronological gates $U_1,\ldots,U_m$ give $U_m\cdots U_1|\psi\rangle$. Operations on disjoint subsystems commute, but overlapping ones need not. The lab uses the convention $|q_0q_1\rangle$, with q0 the most significant displayed bit. Measurement and classical control require more than a single unitary matrix.
+
+The ideas used here build on [Hadamard](/learn/hadamard/).
 
 </Depth>
 
