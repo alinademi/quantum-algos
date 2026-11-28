@@ -1,5 +1,5 @@
 ---
-description: "Adiabatic quantum computation slowly changes a Hamiltonian from one with an easy ground state toward one encoding a desired solution."
+description: "Change a one-qubit energy operator over different times and compare the ground-state probability throughout the path."
 answer: "Adiabatic quantum computation slowly changes a Hamiltonian from one with an easy ground state toward one encoding a desired solution."
 myth:
   claim: "A slow interpolation always guarantees an exact answer in a fixed finite time."
@@ -7,27 +7,31 @@ myth:
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
+import AdiabaticPath from '../../components/tools/AdiabaticPath.astro';
 import GateLab from '../../components/tools/GateLab.astro';
 import { lab } from '../../lib/sims/adiabatic.ts';
 
 <Depth level="kid">
 
-Imagine guiding a ball along a moving lowest point. Move slowly enough and it can stay near the lowest point. A quantum ground state can similarly follow a changing energy operator under suitable conditions.
+Imagine a ball in a bowl whose lowest point moves slowly from one side to another. If you move the bowl gently, the ball can stay near its lowest point. A quantum experiment can similarly begin in the lowest-energy state of an easy system and slowly change the energy rule to encode an answer. The smaller the separation from the next energy level, the more carefully you generally need to move. A rapidly shrinking separation can make the process very slow. Sometimes the ball returns near the lowest point at the end despite wandering earlier. The picture breaks because an isolated quantum system evolves by amplitudes rather than friction, and a slow change is not a universal shortcut.
 
 </Depth>
 
 <Depth level="student">
 
-This example starts with the ground state of −X and changes the Hamiltonian toward −Z. The desired state moves from |+⟩ toward |0⟩. The lab numerically evolves the state, rather than assuming it instantly follows the ground state.
+Start in |+⟩, the ground state of −X, and [evolve](/learn/time-evolution/) toward the ground state |0⟩ of −Z. Their interpolated Hamiltonian has a minimum gap of √2 in the chosen units. A common adiabatic time-scale estimate is change-rate scale divided by the squared minimum gap: smaller gaps may require much longer runtime, potentially exponential. Examine the probability throughout the path, not only its final value: at time 5 our example nearly reaches 1 at the end despite a dip earlier. General adiabatic computation is polynomially equivalent to [universal circuits](/learn/universal/), but restricted stoquastic [annealing](/learn/annealing/) is not known to be universal. This simulator is an ideal one-qubit numerical example.
 
 </Depth>
 
 <Depth level="engineer">
 
-With $\hbar=1$, $i\partial_t|\psi\rangle=H(t)|\psi\rangle$ and $H(s)=-(1-s)X-sZ$, where $s=t/T$. Its gap is $2\sqrt{(1-s)^2+s^2}$, never zero. The lab approximates time-ordered evolution by 1000 midpoint constant-H exponentials. Under standard smoothness and nonvanishing-gap assumptions the adiabatic theorem controls error as T grows; accuracy need not improve monotonically at every finite T. Under suitable models and polynomial resource bounds, adiabatic computation and circuit computation are polynomially equivalent ([Aharonov et al.](https://arxiv.org/abs/quant-ph/0405098)). This one-qubit example is not a proof of an optimization speedup.
+With $\hbar=1$, $H(s)=-(1-s)X-sZ$ and $s=t/T$. The spectral gap is $2\sqrt{(1-s)^2+s^2}$, minimum √2 at s=1/2. A rough adiabatic scale for smooth gapped paths is $T\gg\|\partial_s H\|/\Delta_{\min}^2$; rigorous bounds also involve path derivatives and transition matrix elements. An exponentially small gap can lead to an exponentially long runtime under such schedules. This lab uses 1000 midpoint constant-H exponentials, approximating time-ordered evolution. Final success need not increase monotonically with T: finite-time interference can produce a nearly perfect final overlap even after an earlier dip. General adiabatic models are polynomially equivalent to circuits ([Aharonov et al.](https://arxiv.org/abs/quant-ph/0405098)); restricted stoquastic annealing, including this simple minus-X/minus-Z example, is not known to be universal. No optimization speedup is implied.
+
+The ideas used here build on [Simulating physics](/learn/simulation/).
 
 </Depth>
 
 <Lab title="Follow a moving ground state" intro="Choose the total evolution time, step through the path and inspect ground-state probability.">
+  <AdiabaticPath />
   <GateLab id="adiabatic" lab={lab} />
 </Lab>
