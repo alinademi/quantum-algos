@@ -5,7 +5,7 @@ import { c, abs, abs2, add, mul, scale, conj, sub, expi, basis, fromBloch, tenso
 export type Values = Record<string, string>;
 export type Control = { key: string; label: string; options: { value: string; label: string }[]; active?: (v: Values) => boolean };
 export type Row = { label: string; value: string };
-export type Diagram = { n: number; ops: { name: string; wires: number[] }[]; current: number };
+export type Diagram = { n: number; ops: { name: string; wires: number[] }[]; current: number; measureWires?: number[] };
 export type Step = { start?: string; diagram?: Diagram; title: string; note: string; state?: State; distribution?: { labels: string[]; p: number[] }; rows?: Row[]; estimate?: { label: string; values: number[] } };
 export type Lab = { controls: Control[]; run: (v: Values) => Step[] };
 export type Op = { name: string; wires: number[]; matrix: Matrix };
@@ -81,9 +81,9 @@ export function apply(state: State, o: Op): State {
 }
 export const runOps = (s: State, ops: Op[]) => ops.reduce(apply, s);
 export const inverse = (ops: Op[]): Op[] => [...ops].reverse().map(o => ({ ...o, name: o.name + '†', matrix: dagger(o.matrix) }));
-export const sequence = (start: State, ops: Op[], endNote = '', startLabel = describeState(start)): Step[] => {
+export const sequence = (start: State, ops: Op[], endNote = '', startLabel = describeState(start), measureWires?: number[]): Step[] => {
   let s = start;
-  const diagram = (current: number): Diagram => ({ n: Math.log2(start.length), ops: ops.map(({name,wires}) => ({name,wires})), current });
+  const diagram = (current: number): Diagram => ({ n: Math.log2(start.length), ops: ops.map(({name,wires}) => ({name,wires})), current, measureWires });
   return [{...stateStep('Start state', 'Started as '+startLabel+'. Qubit 0 is on the left.', s), start:startLabel, diagram: diagram(-1)}, ...ops.map((o, i) => {
     s = apply(s, o);
     return {...stateStep(o.name + ' on ' + o.wires.map(w => 'q' + w).join(', '), 'Started as '+startLabel+', after '+o.name+': '+(i === ops.length - 1 && endNote ? endNote : 'the state below is before measurement.'), s, o.matrix.length <= 4 ? matrixRows(o.matrix) : undefined), start:startLabel, diagram: diagram(i)};

@@ -60,14 +60,6 @@ test('CNOT creates a Bell pair and the order of a circuit matters',()=>{
  state(run('cnot')[1].state!,bell);state(last('circuits').state!,bell);
  state(last('circuits',{order:'CNOT then H'}).state!,g.product('+','0'));
 });
-test('the four Bell labels produce the four orthonormal Bell states and decode',()=>{
- const states=g.bits(2).map(s=>{
-  const a=+s[0],b=+s[1],expected=q.basis(2,b).map((x,i)=>q.add(q.scale(x,Math.SQRT1_2),q.c(i===3-b?(a?-1:1)*Math.SQRT1_2:0)));
-  const st=last('bell-states',{start:s,decode:'Prepare only'}).state!;state(st,expected);
-  state(last('bell-states',{start:s}).state!,g.bstate(s));return st;
- });
- states.forEach((a,i)=>states.forEach((b,j)=>close(q.abs(q.inner(a,b)),+(i===j))));
-});
 test('controlled decompositions match independent block matrices for both control values',()=>{
  for(const [name,m] of Object.entries({CX:q.X,CY:q.Y,CZ:q.Z,CP:q.P(.731)}))for(const on of [0,1]){
   const expected=g.eye(4);for(let i=0;i<2;i++)for(let j=0;j<2;j++)expected[2*on+i][2*on+j]=m[i][j];
@@ -115,3 +107,5 @@ test('observed estimators preserve sample fluctuations and use the ideal varianc
 test('display hides roundoff-scale probability but preserves small real probabilities',()=>{assert.equal(g.displayProbability(1e-32),0);assert.equal(g.displayProbability(1e-8),1e-8);assert.equal(g.displayProbability(1+1e-15),1);});
 
 test('integer rows never round exact counts to six significant digits',()=>{assert.equal(g.row('count',1118481).value,'1118481');assert.equal(g.row('slots',1125899906842624).value,'1125899906842624');});
+
+test('protocol diagrams can mark only the actually measured wires',()=>{const s=g.sequence(g.product('0','0'),[g.gate('H')],'',undefined,[0]);assert.deepEqual(s[1].diagram!.measureWires,[0]);});

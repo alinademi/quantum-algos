@@ -53,7 +53,7 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
     <canvas data-piles aria-hidden="true" hidden></canvas>
     <p data-pile-key class="note" hidden>Each dot is one measured fresh copy, grouped by its outcome; the counts below each label are observed, not exact probabilities.</p>
   </div>
-  <p class="note" data-quantum-note hidden={!initial.some(s=>s.state||s.distribution)}>This is an ideal mathematical model, not a quantum device. Every shot measures a fresh preparation using Born-rule odds. Change a setting or step to clear old counts.</p>
+  <p class="note" data-quantum-note hidden={!initial.some(s=>s.state||s.distribution)}>This is an ideal mathematical model, not a quantum device. Shots at a state step inspect all displayed wires; at a measurement step they sample only the listed outcomes. Every shot uses a fresh preparation. Change a setting or step to clear old counts.</p>
   <p data-status class="tool-readout" aria-live="polite"></p>
 </qce-gate-lab>
 
@@ -183,7 +183,8 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
           return e;
         };
         const x0 = 48, dx = 108, y0 = 38, dy = 40, width = x0 + dx*d.ops.length + 44, height = y0 + dy*d.n;
-        const chart = svg('svg',{viewBox:'0 0 '+width+' '+height,width,height,role:'img','aria-label':d.current<0?'Quantum circuit, before the first gate':'Quantum circuit, current gate '+(d.current+1)+' of '+d.ops.length});
+        const meterWires=d.measureWires??Array.from({length:d.n},(_,i)=>i);
+        const chart = svg('svg',{viewBox:'0 0 '+width+' '+height,width,height,role:'img','aria-label':(d.current<0?'Quantum circuit, before the first gate':'Quantum circuit, current gate '+(d.current+1)+' of '+d.ops.length)+'; end meters on '+meterWires.map(w=>'q'+w).join(', ')});
         const y = (w:number) => y0+dy*w;
         if(d.current>=0) chart.append(svg('rect',{x:x0+dx*d.current,y:0,width:dx,height,fill:'var(--signal)',opacity:0.10,rx:4}));
         for(let w=0;w<d.n;w++){
@@ -209,7 +210,7 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
           chart.append(full);
         });
         // Standard-basis meters at the right end mark the optional measurement.
-        for(let w=0;w<d.n;w++){
+        for(const w of meterWires){
           const x=width-24,cy=y(w);
           chart.append(svg('rect',{x:x-10,y:cy-10,width:20,height:20,rx:2,stroke:'currentColor',fill:'var(--paper)'}),svg('path',{d:'M'+(x-6)+' '+(cy+4)+'a6 6 0 0 1 12 0 M'+x+' '+(cy+4)+'L'+(x+4)+' '+(cy-4),stroke:'currentColor',fill:'none'}));
         }
