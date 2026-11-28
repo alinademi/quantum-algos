@@ -2,8 +2,8 @@
 description: "Change a one-qubit energy operator over different times and compare the ground-state probability throughout the path."
 answer: "Adiabatic quantum computation slowly changes a Hamiltonian from one with an easy ground state toward one encoding a desired solution."
 myth:
-  claim: "A slow interpolation always guarantees an exact answer in a fixed finite time."
-  truth: "Adiabatic accuracy depends on the path, spectral gap, rate and other conditions; finite-time errors remain possible."
+  claim: "Quantum annealing solves hard problems quickly."
+  truth: "Small gaps can demand long runtimes, often on an inverse-square gap scale. Annealing is not a general fast solver."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -13,25 +13,25 @@ import { lab } from '../../lib/sims/adiabatic.ts';
 
 <Depth level="kid">
 
-Imagine a ball in a bowl whose lowest point moves slowly from one side to another. If you move the bowl gently, the ball can stay near its lowest point. A quantum experiment can similarly begin in the lowest-energy state of an easy system and slowly change the energy rule to encode an answer. The smaller the separation from the next energy level, the more carefully you generally need to move. A rapidly shrinking separation can make the process very slow. Sometimes the ball returns near the lowest point at the end despite wandering earlier. The picture breaks because an isolated quantum system evolves by amplitudes rather than friction, and a slow change is not a universal shortcut.
+Imagine a ball in a bowl whose lowest point moves slowly from one side to another. If you move the bowl gently, the ball can stay near its lowest point. A quantum experiment can similarly begin in the lowest-energy state of an easy system and slowly change the energy rule to encode an answer. The smaller the separation from the next energy level, the more carefully you generally need to move. A rapidly shrinking separation can make the process very slow. Sometimes the ball returns near the lowest point at the end despite wandering earlier. A general version can do the same computations as a circuit. The picture breaks because a ball with friction settles by itself, but an isolated qubit evolves without friction.
 
 </Depth>
 
 <Depth level="student">
 
-Start in |+⟩, the ground state of −X, and [evolve](/learn/time-evolution/) toward the ground state |0⟩ of −Z. Their interpolated Hamiltonian has a minimum gap of √2 in the chosen units. A common adiabatic time-scale estimate is change-rate scale divided by the squared minimum gap: smaller gaps may require much longer runtime, potentially exponential. Examine the probability throughout the path, not only its final value: at time 5 our example nearly reaches 1 at the end despite a dip earlier. General adiabatic computation is polynomially equivalent to [universal circuits](/learn/universal/), but restricted stoquastic [annealing](/learn/annealing/) is not known to be universal. This simulator is an ideal one-qubit numerical example.
+Start in |+⟩, the ground state of −X, and [evolve](/learn/time-evolution/) toward the ground state |0⟩ of −Z. Their interpolated Hamiltonian has a minimum gap of √2 in the chosen units. A common adiabatic time-scale estimate is change-rate scale divided by the squared minimum gap: smaller gaps may require much longer runtime, potentially exponential. In the first lab, halve the minimum gap and increase runtime about fourfold to compare final success. In the second, time 5 nearly reaches 1 despite an earlier dip. General adiabatic computation is polynomially equivalent to [universal circuits](/learn/universal/), but restricted stoquastic (nonpositive off-diagonal entries in the chosen basis) [annealing](/learn/annealing/) is not known to be universal. This simulator is an ideal one-qubit numerical example.
 
 </Depth>
 
 <Depth level="engineer">
 
-With $\hbar=1$, $H(s)=-(1-s)X-sZ$ and $s=t/T$. The spectral gap is $2\sqrt{(1-s)^2+s^2}$, minimum √2 at s=1/2. A rough adiabatic scale for smooth gapped paths is $T\gg\|\partial_s H\|/\Delta_{\min}^2$; rigorous bounds also involve path derivatives and transition matrix elements. An exponentially small gap can lead to an exponentially long runtime under such schedules. This lab uses 1000 midpoint constant-H exponentials, approximating time-ordered evolution. Final success need not increase monotonically with T: finite-time interference can produce a nearly perfect final overlap even after an earlier dip. General adiabatic models are polynomially equivalent to circuits ([Aharonov et al.](https://arxiv.org/abs/quant-ph/0405098)); restricted stoquastic annealing, including this simple minus-X/minus-Z example, is not known to be universal. No optimization speedup is implied.
+With $\hbar=1$, $H(s)=-(1-s)X-sZ$ and $s=t/T$. The spectral gap is $2\sqrt{(1-s)^2+s^2}$, minimum √2 at s=1/2. A rough adiabatic scale for smooth gapped paths is $T\gg\|\partial_s H\|/\Delta_{\min}^2$; rigorous bounds also involve path derivatives and transition matrix elements. An exponentially small gap can lead to an exponentially long runtime under such schedules. The second lab uses that interpolation. The first instead sweeps $H(s)=(2s-1)Z-gX$, beginning in its exact ground state. Its gap is $2\sqrt{(2s-1)^2+g^2}$, so $\Delta_{\min}=2g$ and $\|\partial_sH\|=2$. Halving g quadruples the rough time scale. Both numerical models use midpoint constant-H exponentials. Final success need not increase monotonically with T: finite-time interference can produce a nearly perfect final overlap even after an earlier dip. General adiabatic models are polynomially equivalent to circuits ([Aharonov et al.](https://arxiv.org/abs/quant-ph/0405098)); restricted stoquastic annealing (real off-diagonal entries ≤ 0 in the chosen basis), including this simple minus-X/minus-Z example, is not known to be universal. No optimization speedup is implied.
 
-The ideas used here build on [Simulating physics](/learn/simulation/).
+The [simulation](/learn/simulation/) compares finite-time dynamics with instantaneous ground states.
 
 </Depth>
 
-<Lab title="Follow a moving ground state" intro="Choose the total evolution time, step through the path and inspect ground-state probability.">
+<Lab title="Follow a moving ground state" intro="Vary the minimum gap and runtime, then compare success and the separate fixed-gap example.">
   <AdiabaticPath />
   <GateLab id="adiabatic" lab={lab} />
 </Lab>
