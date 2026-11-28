@@ -1,0 +1,57 @@
+---
+description: "A quantum channel is any physical change of a qubit, written with Kraus operators. Try noise, gates and a map that fails the entangled-pair test."
+answer: "A quantum channel is any physical change of a quantum state: a gate, noise, or a measurement whose result you ignore. It is a linear map from states to states, written with Kraus operators, that stays valid even when the qubit has an entangled partner."
+myth:
+  claim: "Any rule that turns every qubit state into a qubit state is a valid quantum process."
+  truth: "No. Flipping the Bloch arrow through the center turns every one-qubit state into a state, yet on half of an entangled pair it gives a negative chance. A real process must also work when the qubit has a partner."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import ChannelMachine from '../../components/tools/ChannelMachine.astro';
+
+<Depth level="kid">
+
+Picture a machine that changes a qubit. Inside are a few doors, each with its own change, and a chance that can depend on the qubit. Door one does nothing. Door two swaps 0 and 1. A gate is a machine with one door.
+
+Say the qubit starts as 0 and the swap door has chance ¼. Measure it: 0 with chance ¾, 1 with chance ¼. Without a record of the door, that average is all there is.
+
+A real machine follows two rules. The door chances must add to 1, or qubits go missing. And it must still work when the qubit is one half of an entangled pair, the other half far away and left alone. Some tidy rules fail that test. They are not real machines.
+
+Where the picture breaks: the doors are bookkeeping. One machine can be described with different sets of doors. The machine fixes only the average.
+
+</Depth>
+
+<Depth level="student">
+
+A quantum channel is any physical change of a qubit's state: a gate, noise, or a measurement whose result you throw away. It is written as a list of operators K₀, K₁, ... (Kraus operators). Operator k acts with some chance, and the output is the average.
+
+Example: start as 0, then a bit flip with chance ¼. K₀ is √¾ times the identity. K₁ is √¼ times an X gate. Operator 0 leaves 0 (chance ¾). Operator 1 gives 1 (chance ¼).
+
+Two rules make a channel:
+
+- **Chances add to 1** for every input. The test: K†K, summed over the operators, is the identity.
+- **Completely positive.** The result is still a real state when the qubit is one half of a pair, the other half left alone.
+
+Flipping the [Bloch](/learn/bloch/) arrow through the center sends every one-qubit state to a state. On half of a Bell pair it predicts a negative chance. It is not a channel.
+
+</Depth>
+
+<Depth level="engineer">
+
+A channel $\mathcal{E}$ is a linear map on density matrices that returns a density matrix even when it acts on one part of a larger system. Trace-preserving: $\mathrm{Tr}\,\mathcal{E}(M) = \mathrm{Tr}\,M$. Completely positive: $\mathcal{E}\otimes\mathrm{id}_n$ is positive for every $n$. Every such map has a Kraus form
+
+$$
+\mathcal{E}(\rho) = \sum_k K_k\,\rho\,K_k^\dagger, \qquad \sum_k K_k^\dagger K_k = I,
+$$
+
+where the second equation is trace preservation. Going from $n$ to $m$ dimensions needs at most $nm$ operators. A unitary (an isometry when $n \neq m$) is the one-operator case. The [partial trace](/learn/partial-trace/) is a channel, with $K_b = I\otimes\langle b|$.
+
+With a record of $k$, the state is $K_k\rho K_k^\dagger / p_k$, with $p_k = \mathrm{Tr}(K_k\rho K_k^\dagger)$. Without it, you have the average. The operators are not unique: $K'_j = \sum_k u_{jk} K_k$ for a unitary $u$ gives the same channel. See [Stinespring and Choi](/learn/channel-representations/).
+
+Positive is weaker than completely positive. The transpose maps states to states, but $(\mathrm{T}\otimes\mathrm{id})(|\Phi^+\rangle\langle\Phi^+|) = \tfrac12\,\mathrm{SWAP}$ has eigenvalue $-\tfrac12$. Scaling the Bloch vector by $\lambda$, which is $\rho \mapsto \lambda\rho + (1-\lambda)\,\mathrm{Tr}(\rho)\,I/2$, shows the gap. Applied to half of $|\Phi^+\rangle$, it leaves eigenvalues $\tfrac{1+3\lambda}{4}$ once and $\tfrac{1-\lambda}{4}$ three times. It is positive for $-1 \le \lambda \le 1$ but completely positive only for $-\tfrac13 \le \lambda \le 1$. At $\lambda = -1$ it is the transpose followed by a $Y$ gate.
+
+</Depth>
+
+<Lab title="Break the pair test" intro="Pick a map and a start state. See the operators and the chance each one acts. Then drag the scale factor below −1/3, and watch what happens to half of an entangled pair.">
+  <ChannelMachine />
+</Lab>
