@@ -12,22 +12,22 @@ import { lab } from '../../lib/sims/oracles.ts';
 
 <Depth level="kid">
 
-Imagine a sealed box which gives a yes-or-no answer to any question from a list. It must be possible to undo what the box does. Instead of replacing the question with the answer, let the box keep the question and flip a separate mark whenever the answer is yes. Run it again and the mark returns to its old value. There is another useful way to encode the answer: change the sign of the wave contribution belonging to a yes question. The signs can later change how contributions combine. The box is only a picture; building the real operation may take many instructions, and the wave can have contributions for many questions.
+Imagine a sealed box which gives a yes-or-no answer to any question from a list. It must be possible to undo what the box does. Instead of replacing the question with the answer, let the box keep the question and flip a separate mark whenever the answer is yes. Run it again and the mark returns to its old value. There is another useful way to encode the answer: change the sign of the wave contribution belonging to a yes question. The signs can later change how contributions combine. The box is only a picture; building the real operation may take many instructions, such as a two-key flip for an answer that requires both keys, and the wave can have contributions for many questions.
 
 </Depth>
 
 <Depth level="student">
 
-An oracle is a function supplied as a reversible [circuit](/learn/circuits/), often treated as a black box when counting queries. A bit oracle preserves input x and XORs the Boolean answer f(x) into a target y. If y starts in 0, its output is f(x); if y is arbitrary, repeating the oracle restores y. A phase oracle instead changes the sign of the amplitude for each x with f(x)=1. The bit oracle implements that phase action when the target starts in |−⟩, by phase kickback. If f is constantly 1 every contribution changes sign, an unobservable global phase on the input alone. Relative signs, not overall signs, matter.
+An oracle is a function supplied as a reversible [circuit](/learn/circuits/), often treated as a black box when counting queries. A bit oracle preserves input x and XORs the Boolean answer f(x) into a target y. If y starts in 0, its output is f(x); if y is arbitrary, repeating the oracle restores y. A phase oracle instead changes the sign of the amplitude for each x with f(x)=1. The bit oracle implements that phase action when the target starts in |−⟩, by [phase kickback](/learn/phase-kickback/). For AND, one Toffoli flips the target only on 11; the phase version is CZ. To compute XOR, use two CNOTs. If f is constantly 1 every contribution changes sign, an unobservable global phase on the input alone. Relative signs, not overall signs, matter.
 
 </Depth>
 
 <Depth level="engineer">
 
-The bit oracle is $U_f|x,y\rangle=|x,y\oplus f(x)\rangle$, hence $U_f^2=I$. A phase oracle is $O_f|x\rangle=(-1)^{f(x)}|x\rangle$. Since X has eigenvalue −1 on |−⟩, $U_f(|x\rangle|{-}\rangle)=(O_f|x\rangle)|{-}\rangle$. Oracle query counts treat the oracle as a primitive; actual construction can be expensive.
+The bit oracle is $U_f|x,y\rangle=|x,y\oplus f(x)\rangle$, hence $U_f^2=I$. A phase oracle is $O_f|x\rangle=(-1)^{f(x)}|x\rangle$. Since X has eigenvalue −1 on |−⟩, $U_f(|x\rangle|{-}\rangle)=(O_f|x\rangle)|{-}\rangle$. A classical AND can be computed into a clean helper with [Toffoli](/learn/toffoli/), and XOR into a target with CNOTs. Build a reversible circuit for the function, XOR its answer into y, then reverse the computation to [uncompute](/learn/uncomputation/) the helpers. Otherwise garbage entangled with the input can spoil later interference. AND on two bits is one Toffoli with target y, and its phase oracle is CZ. Oracle query counts treat the oracle as a primitive; actual construction can be expensive.
 
 </Depth>
 
-<Lab title="Try two oracle encodings" intro="Pick a function, input and target preparation or phase-oracle mode; compare output amplitudes.">
+<Lab title="Try two oracle encodings" intro="Pick a function and input, then build the bit or phase oracle gate by gate and compare its full matrix to the truth table.">
   <GateLab id="oracles" lab={lab} />
 </Lab>
