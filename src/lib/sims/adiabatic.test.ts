@@ -2,17 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
 import * as g from './gate-lab.ts';
-import { unitaryError } from './gates.ts';
-import { pauli } from './pauli-strings.ts';
-import { evolveGenerators, prep } from './stabilizer-states.ts';
-import { expect } from './gottesman-knill.ts';
-import { search } from './solovay-kitaev.ts';
-import { shift } from './qtm.ts';
 import { evolution,path,avoidedPath,adiabaticScale } from './adiabatic.ts';
-import { B1, B2 } from './topological-model.ts';
-import { gaussian } from './cv-model.ts';
 
-import { checkLabs, close, state, matrix, phase, all, value } from './gate-lab-checks.ts';
+import { checkLabs,close,state } from './gate-lab-checks.ts';
 const {run,last}=await checkLabs(['adiabatic']);
 test('adiabatic midpoint evolution maintains norm, converges under step refinement and follows the gapped ground state at long time',()=>{
  for(const t of [1,5,20,50,100]){

@@ -1,5 +1,5 @@
 ---
-description: "Change a one-qubit energy operator over different times and compare the ground-state probability throughout the path."
+description: "Vary the minimum energy gap and runtime of a one-qubit adiabatic path, and compare ground-state probabilities."
 answer: "Adiabatic quantum computation slowly changes a Hamiltonian from one with an easy ground state toward one encoding a desired solution."
 myth:
   claim: "Quantum annealing solves hard problems quickly."
@@ -27,11 +27,14 @@ Start in |+⟩, the ground state of −X, and [evolve](/learn/time-evolution/) t
 
 With $\hbar=1$, $H(s)=-(1-s)X-sZ$ and $s=t/T$. The spectral gap is $2\sqrt{(1-s)^2+s^2}$, minimum √2 at s=1/2. A rough adiabatic scale for smooth gapped paths is $T\gg\|\partial_s H\|/\Delta_{\min}^2$; rigorous bounds also involve path derivatives and transition matrix elements. An exponentially small gap can lead to an exponentially long runtime under such schedules. The second lab uses that interpolation. The first instead sweeps $H(s)=(2s-1)Z-gX$, beginning in its exact ground state. Its gap is $2\sqrt{(2s-1)^2+g^2}$, so $\Delta_{\min}=2g$ and $\|\partial_sH\|=2$. Halving g quadruples the rough time scale. Both numerical models use midpoint constant-H exponentials. Final success need not increase monotonically with T: finite-time interference can produce a nearly perfect final overlap even after an earlier dip. General adiabatic models are polynomially equivalent to circuits ([Aharonov et al.](https://arxiv.org/abs/quant-ph/0405098)); restricted stoquastic annealing (real off-diagonal entries ≤ 0 in the chosen basis), including this simple minus-X/minus-Z example, is not known to be universal. No optimization speedup is implied.
 
-The [simulation](/learn/simulation/) compares finite-time dynamics with instantaneous ground states.
+Like [Hamiltonian simulation](/learn/simulation/), the lab builds evolution from short constant-H steps and compares it with instantaneous ground states.
 
 </Depth>
 
-<Lab title="Follow a moving ground state" intro="Vary the minimum gap and runtime, then compare success and the separate fixed-gap example.">
+<Lab title="Follow a moving ground state" intro="Vary the minimum gap and runtime in the avoided-crossing model, then compare success.">
   <AdiabaticPath />
+</Lab>
+
+<Lab title="Interpolate from −X to −Z" intro="Change the runtime of this separate fixed-gap interpolation; inspect its instantaneous ground-state probability at each step.">
   <GateLab id="adiabatic" lab={lab} />
 </Lab>
