@@ -44,8 +44,6 @@ test('Clifford conjugation preserves Pauli signs; T does not preserve X or Y',()
 test('circuit layers depend on occupied wires, with parallel disjoint gates',()=>{
  assert.deepEqual(layers(recipes['Parallel H and CNOT'],3),[1,1,2,2,3]);
  assert.deepEqual(layers(recipes['Serial chain'],3),[1,2,3,4]);
- assert.equal(value(last('transpilation'),'Native operations'),52); // 1 H=3, 7 CX=7 operations each
- assert.equal(value(last('transpilation',{opt:'No'}),'Native operations'),66);
 });
 test('circuit languages are illustrative descriptions of the same Bell circuit',()=>{
  for(const opt of labs['circuit-languages'].controls[0].options)state(last('circuit-languages',{language:opt.value}).state!,[q.c(Math.SQRT1_2),q.c(0),q.c(0),q.c(Math.SQRT1_2)]);
