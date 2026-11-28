@@ -1,0 +1,49 @@
+<qce-routing-map class="tool">
+  <div class="tool-controls controls">
+    <label>Logical CNOT <select data-pair>{['0→3','3→0','0→2','1→2','2→0'].map(p=><option>{p}</option>)}</select></label>
+    <label>Routing step <input data-step type="range" min="0" max="5" value="0" /><output data-position>Start</output></label>
+    <button type="button" class="btn" data-next>Next step</button>
+  </div>
+  <canvas aria-hidden="true"></canvas>
+  <p class="tool-readout" aria-live="polite"></p>
+  <p class="note">This map is a diagram of physical sites and logical wire labels, not measurements or a model of physical movement. Adjacent sites can interact in both directions. The full circuit below shows amplitudes and measurement statistics.</p>
+</qce-routing-map>
+<script>
+  import { layoutTrace } from '../../lib/sims/qubit-routing.ts';
+  import { fit,palette,dot,onResize,onTheme,onSeen } from '../../lib/draw.ts';
+  class RoutingMap extends HTMLElement{
+    connectedCallback(){
+      const $=<T extends Element>(s:string)=>this.querySelector<T>(s)!;
+      const pair=$<HTMLSelectElement>('[data-pair]'),step=$<HTMLInputElement>('[data-step]'),canvas=$<HTMLCanvasElement>('canvas');let seen=true;
+      const trace=()=>{const [a,b]=pair.value.split('→').map(Number);return layoutTrace(a,b);};
+      const draw=()=>{if(!seen)return;const {ctx,w,h}=fit(canvas),p=palette(),row=trace()[+step.value];ctx.clearRect(0,0,w,h);
+        const spacing=w/4,y=h/2,x=(i:number)=>(i+.5)*spacing;
+        for(let i=0;i<3;i++){for(let k=0;k<=16;k++)dot(ctx,x(i)+spacing*k/16,y,1,p.ink2);}
+        if(row.wires.length===2){const [a,b]=row.wires;for(let k=0;k<=20;k++)dot(ctx,x(a)+(x(b)-x(a))*k/20,y,1.7,p.signal);}
+        for(let i=0;i<4;i++){
+          ctx.fillStyle=p.paper;ctx.beginPath();ctx.arc(x(i),y,Math.min(23,spacing*.35),0,Math.PI*2);ctx.fill();ctx.strokeStyle=p.ink;ctx.stroke();
+          ctx.fillStyle=p.ink;ctx.font='600 14px monospace';ctx.textAlign='center';ctx.fillText('q'+row.sites[i],x(i),y+5);
+          ctx.font='11px monospace';ctx.fillText('site '+i,x(i),y-34);
+        }
+        ctx.fillStyle=p.ink;ctx.font='12px monospace';ctx.fillText(row.name==='Start'?'Initial layout':row.name+' at '+row.wires.join(', '),w/2,h-8);
+      };
+      const report=(announce:boolean)=>{const rows=trace(),i=+step.value,r=rows[i];$('[data-position]').textContent=i+' / '+(rows.length-1);step.setAttribute('aria-valuetext',i===0?'Initial layout':'Step '+i+': '+r.name);
+        if(announce)$('.tool-readout').textContent='Started with q0, q1, q2, q3 on sites 0, 1, 2, 3. '+(i?'After '+r.name+' on site '+r.wires.join(' and ')+': ':'Initial layout: ')+r.sites.map((q,j)=>'site '+j+' holds q'+q).join(', ')+'. '+rows.filter(x=>x.name==='SWAP').length+' SWAPs for the full restored route.';
+        draw();
+      };
+      const reset=()=>{step.max=String(trace().length-1);step.value='0';report(true);};
+      pair.addEventListener('change',reset);step.addEventListener('input',()=>report(false));step.addEventListener('change',()=>report(true));
+      $('[data-next]').addEventListener('click',()=>{step.value=String((+step.value+1)%trace().length);report(true);});
+      onResize(this,draw);onTheme(draw);onSeen(this,v=>{seen=v;if(v)draw();});reset();
+    }
+  }
+  customElements.define('qce-routing-map',RoutingMap);
+</script>
+<style>
+  qce-routing-map{display:grid;gap:var(--s3)}
+  .controls{display:flex;flex-wrap:wrap;align-items:end;gap:var(--s2)}
+  label{display:grid;flex:1 1 7rem;gap:var(--s1);min-width:0}
+  select,input{min-height:2.75rem;font:inherit;color:var(--ink);background:var(--paper)}
+  canvas{width:100%;height:9rem}
+  .note{font-size:.875rem;color:var(--ink-2)}
+</style>

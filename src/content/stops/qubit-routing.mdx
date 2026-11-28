@@ -7,6 +7,7 @@ myth:
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
+import RoutingMap from '../../components/tools/RoutingMap.astro';
 import GateLab from '../../components/tools/GateLab.astro';
 import { lab } from '../../lib/sims/qubit-routing.ts';
 
@@ -28,6 +29,7 @@ The coupling graph defines legal multi-qubit interactions; a directed graph may 
 
 </Depth>
 
-<Lab title="Route a CNOT" intro="Choose a control and target on a four-site line; check the matrix after restoring the original layout.">
+<Lab title="Route a CNOT" intro="Choose a control and target on a four-site line, follow the placement as it changes, then check the full circuit matrix.">
+  <RoutingMap />
   <GateLab id="qubit-routing" lab={lab} />
 </Lab>

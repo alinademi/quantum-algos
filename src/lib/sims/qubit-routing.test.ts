@@ -12,10 +12,11 @@ import { nativeH, nativeCX } from './native-gates.ts';
 import { storage } from './classical-simulation.ts';
 import { twoLevel } from './decomposition.ts';
 import { cartan } from './two-qubit-synthesis.ts';
-import { route } from './qubit-routing.ts';
+import { route, layoutTrace } from './qubit-routing.ts';
 
 import { checkLabs, close, state, matrix, phase, all, value } from './gate-lab-checks.ts';
 const {labs,last}=await checkLabs(['qubit-routing']);
 test('routing restores all logical wires and only uses nearest-neighbor gates',()=>{
  for(let a=0;a<4;a++)for(let b=0;b<4;b++)if(a!==b){const ops=route(a,b);assert.ok(ops.every(o=>Math.abs(o.wires[0]-o.wires[1])===1));assert.equal(ops.length,2*(Math.abs(a-b)-1)+1);matrix(g.fullMatrix(4,ops),g.fullMatrix(4,[g.cx(a,b)]));}
 });
+test('physical mapping tracks each logical wire and places CNOT endpoints correctly',()=>{for(let a=0;a<4;a++)for(let b=0;b<4;b++)if(a!==b){const r=layoutTrace(a,b);assert.deepEqual(r[0].sites,[0,1,2,3]);assert.deepEqual(r.at(-1)!.sites,[0,1,2,3]);for(const step of r){assert.deepEqual([...step.sites].sort(),[0,1,2,3]);if(step.name==='CNOT')assert.deepEqual(step.wires.map(w=>step.sites[w]),[a,b]);}}});
