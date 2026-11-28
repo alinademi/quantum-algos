@@ -1,5 +1,5 @@
 ---
-description: "Translate H, X and CNOT into alternative example hardware gate bases and verify their matrices."
+description: "Translate arbitrary one-qubit gates and CNOT into alternative example hardware gate bases and verify their matrices."
 answer: "Native gates are the operations a target device or execution model offers directly. A compiler translates other gates into the target basis."
 myth:
   claim: "Every device supports the same native gates and each takes the same time."
@@ -18,16 +18,16 @@ Imagine two workshops with different tools. One can connect pieces by pressing t
 
 <Depth level="student">
 
-A device has a set of [native gates](/learn/qubit-control/) it can execute directly. In one example basis RZ, SX and CZ are available, while another offers RZ, SX, X and ECR. Two SX gates make X; RZ(90°), SX, RZ(90°) make H up to global phase. H on the target around CZ implements [CNOT](/learn/cnot/). ECR, with different local gates, can implement the same CNOT. Try both bases and compare the complete matrices. These are mathematical illustrations of [two-qubit gate families](/learn/two-qubit-gates/), not calibrated schedules. A [universal](/learn/universal/) native basis can implement other gates exactly or approximately; a compiler uses the particular device's instructions and topology.
+A device has a set of [native gates](/learn/qubit-control/) it can execute directly. In one example basis RZ, SX and CZ are available, while another offers RZ, SX, X and ECR. Two SX gates make X; RZ(90°), SX, RZ(90°) make H up to global phase. H on the target around CZ implements [CNOT](/learn/cnot/). ECR, with different local gates, can implement the same CNOT. Try both bases and compare gate counts and matrix error. Any one-qubit gate can be built with Z turns and two SX gates, so either basis plus its entangling gate is universal. These are mathematical illustrations of [two-qubit gate families](/learn/two-qubit-gates/), not calibrated schedules. A [universal](/learn/universal/) native basis can implement other gates exactly or approximately; a compiler uses the particular device's instructions and topology.
 
 </Depth>
 
 <Depth level="engineer">
 
-Here $SX=HSH$, so $SX^2=X$. $R_Z(\pi/2)SX R_Z(\pi/2)=e^{-i\pi/4}H$. Conjugating CZ by H on the target gives CX. Each native H carries $e^{-i\pi/4}$, so that native CX carries $e^{-i\pi/2}$. In the q0-left ECR convention, CX is X on q0, ECR, then $R_Z(\pi/2)$ on q0 and SX on q1, with no additional global phase. These exact identities illustrate two possible bases; real devices have specific calibrated operations, coupling directions, durations and errors. Consult the target instructions rather than assuming one basis fits every chip.
+Here $SX=HSH$, so $SX^2=X$. $R_Z(\pi/2)SX R_Z(\pi/2)=e^{-i\pi/4}H$. Conjugating CZ by H on the target gives CX. Each native H carries $e^{-i\pi/4}$, so that native CX carries $e^{-i\pi/2}$. In the q0-left ECR convention, CX is X on q0, ECR, then $R_Z(\pi/2)$ on q0 and SX on q1, with no additional global phase. For the [general one-qubit U](/learn/single-qubit-unitary/), the product $R_Z(\phi+\pi)SX R_Z(\theta+\pi)SX R_Z(\lambda)$ equals U times the global phase $e^{-i(\pi+\phi+\lambda)/2}$. Adding CZ or ECR gives a universal basis, since each can make CNOT. These exact identities illustrate two possible bases; real devices have specific calibrated operations, coupling directions, durations and errors. Consult the target instructions rather than assuming one basis fits every chip.
 
 </Depth>
 
-<Lab title="Translate into a native basis" intro="Choose a target gate; step through its native decomposition and check the global-phase-adjusted matrix.">
+<Lab title="Translate into a native basis" intro="Choose CNOT or a general one-qubit U; compare native counts and the phase-adjusted matrix error.">
   <GateLab id="native-gates" lab={lab} />
 </Lab>
