@@ -1,5 +1,5 @@
 ---
-description: "The Gottesman–Knill theorem provides efficient classical simulation of stabilizer circuits built using stabilizer preparations, Clifford gates, Pauli."
+description: "Learn why some entangled quantum circuits can be simulated using a short list of rules instead of a vast state vector."
 answer: "The Gottesman–Knill theorem provides efficient classical simulation of stabilizer circuits built using stabilizer preparations, Clifford gates, Pauli measurements and appropriate classical feed-forward."
 myth:
   claim: "Any circuit that creates entanglement is hard for a classical computer to simulate."
@@ -12,22 +12,28 @@ import { lab } from '../../lib/sims/gottesman-knill.ts';
 
 <Depth level="kid">
 
-Some huge lists of quantum numbers can be replaced by much smaller rules. With the right gates you can update the rules directly, even for many entangled wires.
+Imagine a long row of light switches. Instead of writing down every possible row, you write rules like "this light and that light always agree". A small list of rules can tell you a great deal about a very large row. Now suppose you can rearrange the switches in ways that turn each rule into another rule of the same kind. You never need the giant list.
+
+Some quantum experiments work like that. A normal computer can predict their answers quickly even when the qubits are linked. The picture breaks because the real rules describe quantum measurements, not hidden values of every switch. Other quantum operations break the useful pattern.
 
 </Depth>
 
 <Depth level="student">
 
-Start with generators that describe all-zero qubits, conjugate them by Clifford gates, and compute Pauli measurement probabilities from the resulting group. If a signed Pauli observable belongs to the stabilizer group its outcome is fixed; otherwise the two outcomes are equally likely.
+A circuit made of Clifford gates, starting in a [stabilizer state](/learn/stabilizer-states/), can be sampled efficiently on a normal computer. This is the Gottesman–Knill theorem. Update the short list of signed Pauli rules after each gate. To measure an observable Q, check whether +Q or −Q is a rule obtained by multiplying the generators. The respective expectations are +1 and −1: the answer is certain. Otherwise the expectation is zero, giving each sign with equal chance.
+
+The lab computes these odds without allocating a state vector, even for 64 qubits. Adding T supplies a universal set, and the theorem no longer guarantees efficient simulation.
 
 </Depth>
 
 <Depth level="engineer">
 
-Represent each signed Pauli by binary X and Z components and phase information. Clifford conjugation updates these in polynomial time. For a pure stabilizer state, a Hermitian Pauli Q has expectation +1 if Q is in S, −1 if −Q is in S, and 0 otherwise. The lab uses binary elimination to test membership with signs, not a dense vector. Full stabilizer simulation also updates the generators after measurements; the lab computes probabilities before a single chosen measurement. See [Aaronson and Gottesman](https://arxiv.org/abs/quant-ph/0406196).
+A pure stabilizer state has $n$ independent signed Pauli generators, whose products form $S$. Represent them by binary X and Z components and signs. Clifford conjugation updates these in polynomial time, and Pauli measurements update the generators and can feed classical results forward. For Hermitian Pauli Q, the expectation is $+1$ if $Q\in S$, $-1$ if $-Q\in S$, and zero otherwise. The odds of $+1$ and $-1$ are $(1+E)/2$ and $(1-E)/2$.
+
+The lab uses binary elimination with sign tracking to test group membership before a single selected measurement. It illustrates the [classical simulation](/learn/classical-simulation/) theorem, not a full dynamic simulator. Adding T to [Clifford gates](/learn/clifford-group/) gives an approximately [universal set](/learn/universal/); Gottesman–Knill no longer covers arbitrary such circuits (some remain easy). See [binary arithmetic](/learn/gf2/) and [Aaronson and Gottesman](https://arxiv.org/abs/quant-ph/0406196).
 
 </Depth>
 
-<Lab title="Measure up to 64 stabilizer qubits" intro="Change the Clifford preparation and measured Pauli. Compare polynomial generator storage with the dense amplitude count.">
+<Lab title="Measure up to 64 stabilizer qubits" intro="Choose a preparation and observable; compare signed measurement odds with the dense amplitude count.">
   <GateLab id="gottesman-knill" lab={lab} />
 </Lab>
