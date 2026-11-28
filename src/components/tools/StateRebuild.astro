@@ -1,0 +1,453 @@
+---
+// A source makes the same unknown qubit state again and again. Pick bases, run shots, and watch ρ̃ = ½(I + αxX + αyY + αzZ) close in on the truth; every shot is a Born rule draw from the true state, and every number comes from the sim file.
+import { PRESETS, presetAt, truthVec, emptyTally, describe, vecText, SHOWN, MAX_SHOTS, type Chosen } from '../../lib/sims/tomography.ts';
+const uid = 'sr-' + Math.random().toString(36).slice(2, 8);
+const t0 = PRESETS[3].t, v0 = truthVec(t0), YAW = 30;
+const ALL: Chosen = [true, true, true];
+const BATCHES = [10, 100, 1000];
+---
+<qce-state-rebuild class="tool">
+  <div class="cols">
+    <div class="stage">
+      <canvas class="ball" aria-hidden="true"></canvas>
+      <p class="key">The faint dots only draw the Bloch ball; they are not measurements. The open ring is the true state of the source. You set it, so you can check the rebuild; a real experiment has no answer key. The large dot is the rebuilt state from your counts, with a line from the center to it. It is blue inside the ball and red outside. The square is the rebuild rounded to a state, drawn when it had to move. When a basis is not measured, the small faint dots are the states that match your numbers exactly: the data cannot choose among them. If the measured numbers alone are already outside the ball, no state matches and there are no such dots. Under the ball, each row shows the latest {SHOWN} shots in one basis: a filled dot gave +1, an open dot gave −1. Drag the ball, or use Turn, to turn it.</p>
+      <canvas class="chart" aria-hidden="true"></canvas>
+      <p class="key">Each press of Run adds one pair of marks. The filled dot is the trace distance from the rounded rebuild to the true state, and the open ring is the same for the raw rebuild; they sit together when no rounding was needed. The dotted line is the typical error of the raw rebuild for this state, ½√E|α − r|². Both scales are logarithmic. With all three bases, the dotted line is straight: 100 times the shots, a 10 times smaller error.</p>
+    </div>
+
+    <div class="tool-controls">
+      <fieldset>
+        <legend class="label">The unknown state the source makes</legend>
+        <div class="named">
+          <span class="label" id={`${uid}-n`}>Sources to try</span>
+          <div class="presets" role="group" aria-labelledby={`${uid}-n`}>
+            {PRESETS.map((p) => (
+              <button type="button" data-preset={p.name} aria-pressed={String(presetAt(t0) === p.name)}>{p.name}<span class="visually-hidden">: {p.said}</span></button>
+            ))}
+          </div>
+        </div>
+        <div class="slider">
+          <div class="row"><label for={`${uid}-t`}>θ, down from |0⟩</label><output for={`${uid}-t`} data-out="theta">{t0.theta}°</output></div>
+          <input id={`${uid}-t`} name="theta" type="range" min="0" max="180" step="1" value={t0.theta} aria-valuetext={`${t0.theta} degrees`} />
+        </div>
+        <div class="slider">
+          <div class="row"><label for={`${uid}-p`}>φ, around from |+⟩</label><output for={`${uid}-p`} data-out="phi">{t0.phi}°</output></div>
+          <input id={`${uid}-p`} name="phi" type="range" min="0" max="359" step="1" value={t0.phi} aria-valuetext={`${t0.phi} degrees`} />
+        </div>
+        <div class="slider">
+          <div class="row"><label for={`${uid}-r`}>Bloch length r (1 is pure)</label><output for={`${uid}-r`} data-out="r">{(t0.r / 100).toFixed(2)}</output></div>
+          <input id={`${uid}-r`} name="r" type="range" min="0" max="100" step="1" value={t0.r} aria-valuetext={`${(t0.r / 100).toFixed(2)}, pure`} />
+        </div>
+        <p class="hint">Changing the state, the bases or Start over throws away the shots so far.</p>
+      </fieldset>
+
+      <fieldset class="basis">
+        <legend class="label">Measure each copy in</legend>
+        <div class="choices">
+          {['X', 'Y', 'Z'].map((a, k) => (
+            <label><input type="checkbox" data-axis={k} checked={ALL[k]} /> {a} basis</label>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset class="basis">
+        <legend class="label">Shots per basis in one press</legend>
+        <div class="choices">
+          {BATCHES.map((b) => (
+            <label><input type="radio" name={`${uid}-batch`} data-batch value={b} checked={b === 100} /> {b}</label>
+          ))}
+        </div>
+      </fieldset>
+
+      <div class="buttons">
+        <button type="button" class="btn btn-sm run">Run 100 shots in each chosen basis</button>
+        <button type="button" class="btn btn-sm btn-line again">Start over</button>
+      </div>
+      <p class="hint" data-cap hidden>That is the most this tool runs: {MAX_SHOTS} shots per basis. Press Start over to try again.</p>
+
+      <div class="views">
+        <table>
+          <caption class="label">The rebuilt matrix <var>ρ̃</var>, before rounding</caption>
+          <thead><tr><td></td><th scope="col">⟨0|</th><th scope="col">⟨1|</th></tr></thead>
+          <tbody>
+            {[0, 1].map((i) => (
+              <tr><th scope="row">|{i}⟩</th>{[0, 1].map((j) => <td data-e={`${i}${j}`}>?</td>)}</tr>
+            ))}
+          </tbody>
+        </table>
+        <p class="hint">ρ̃ = ½(I + αx X + αy Y + αz Z), with each α the average result in its basis. Numbers are rounded to two decimals.</p>
+        <dl>
+          <div><dt class="label">Copies measured</dt><dd data-v="copies">none yet</dd></div>
+          <div><dt class="label">Rebuilt point (x, y, z)</dt><dd data-v="vec">none yet</dd></div>
+          <div><dt class="label">Its length</dt><dd data-v="len">none yet</dd></div>
+          <div><dt class="label">Eigenvalues of <var>ρ̃</var></dt><dd data-v="eig">none yet</dd></div>
+          <div><dt class="label">Rounded point</dt><dd data-v="round">none yet</dd></div>
+          <div><dt class="label">True point</dt><dd data-v="true">{vecText(v0)}</dd></div>
+          <div><dt class="label">Trace distance, rounded to true</dt><dd data-v="dist">none yet</dd></div>
+          <div><dt class="label">Typical raw error, from theory</dt><dd data-v="typ">none yet</dd></div>
+        </dl>
+      </div>
+
+      <div class="slider">
+        <div class="row"><label for={`${uid}-y`}>Turn the ball</label><output for={`${uid}-y`} data-out="yaw">{YAW}°</output></div>
+        <input id={`${uid}-y`} name="yaw" type="range" min="0" max="359" step="1" value={YAW} aria-valuetext={`${YAW} degrees`} />
+      </div>
+    </div>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">{describe(t0, ALL, emptyTally())}</p>
+  <p class="note">A simulation of ideal, noise-free qubits and perfect measurements, one qubit only. Each shot is drawn from your browser's random numbers with Born rule odds ½(1 + r) for +1, where r is the true Bloch coordinate in that basis. Measuring X or Y means a gate first (a Hadamard gate for X; S† then a Hadamard gate for Y), then a Z measurement. A real device adds noise in its gates and readout, and tomography has no way to separate that from the state itself.</p>
+</qce-state-rebuild>
+
+<script>
+  import {
+    AXES, SHOWN, MAX_SHOTS, PRESETS, presetAt, truthVec, rhoOfVec, estimate, eigenvalues, isState, roundVec, traceDistance,
+    rmsError, sameShots, consistentSet, emptyTally, addShots, shoot, describe, vecText, num, eigText, cnum, dist, len,
+    camera, project, spherePoints, segment, wrap, type Truth, type Chosen, type Tally, type Shot, type Vec3,
+  } from '../../lib/sims/tomography.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  // Drawing only: these dots draw the ball, its equator and axes. They are not states or shots.
+  const SURFACE = spherePoints(520);
+  const EQUATOR = Array.from({ length: 120 }, (_, k) => [Math.cos((k * 3 * Math.PI) / 180), Math.sin((k * 3 * Math.PI) / 180), 0] as Vec3);
+  const AXES3: Vec3[] = [];
+  for (let k = 0; k < 3; k++) for (let i = -20; i <= 20; i++) { const v: Vec3 = [0, 0, 0]; v[k] = i / 20; AXES3.push(v); }
+  const ENDS: [string, Vec3][] = [['|0⟩', [0, 0, 1.22]], ['|1⟩', [0, 0, -1.22]], ['|+⟩', [1.22, 0, 0]], ['|−⟩', [-1.22, 0, 0]], ['|+i⟩', [0, 1.22, 0]], ['|−i⟩', [0, -1.22, 0]]];
+  const ORIGIN: Vec3 = [0, 0, 0];
+  const TILT = 20, REVEAL = 600; // REVEAL: ms for a new batch of shots to fill the rows
+  // Chart range, both log: shots per basis, and trace distance.
+  const XLO = 5, XHI = 10000, YLO = 0.003, YHI = 1;
+
+  type Mark = { n: number; round: number; raw: number };
+  type Item = { d: number; x: number; y: number; r: number; color: string; a: number; halo: boolean };
+
+  class StateRebuild extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const input = (n: string) => $<HTMLInputElement>(`input[name="${n}"]`);
+      const output = (n: string) => $<HTMLOutputElement>(`[data-out="${n}"]`);
+      const cell = (n: string) => $(`[data-v="${n}"]`);
+      const ball = $<HTMLCanvasElement>('canvas.ball'), chart = $<HTMLCanvasElement>('canvas.chart'), readout = $('.tool-readout');
+      const sliders = { theta: input('theta'), phi: input('phi'), r: input('r') };
+      const yIn = input('yaw');
+      const boxes = [...this.querySelectorAll<HTMLInputElement>('input[data-axis]')];
+      const batches = [...this.querySelectorAll<HTMLInputElement>('input[data-batch]')];
+      const presets = [...this.querySelectorAll<HTMLButtonElement>('[data-preset]')];
+      const run = $<HTMLButtonElement>('.run'), again = $<HTMLButtonElement>('.again'), cap = $('[data-cap]');
+      const still = reduceMotion();
+
+      const readTruth = (): Truth => ({ theta: +sliders.theta.value, phi: +sliders.phi.value, r: +sliders.r.value });
+      const readChosen = (): Chosen => boxes.map((b) => b.checked) as Chosen;
+      const batchSize = () => +(batches.find((b) => b.checked)?.value ?? 100);
+
+      let bctx: CanvasRenderingContext2D | null = null, bw = 0, bh = 0;
+      let kctx: CanvasRenderingContext2D | null = null, kw = 0, kh = 0, col = palette();
+      let truth = readTruth(), v = truthVec(truth), chosen = readChosen(), yaw = +yIn.value;
+      let tally: Tally = emptyTally(), strips: Shot[][] = [[], [], []], history: Mark[] = [];
+      let incoming: Shot[][] | null = null, nextTally: Tally | null = null, shownNew = 0;
+      let seen = false, anim = 0, pending = 0;
+
+      const total = () => Math.max(...tally.total);
+      const capped = () => total() + batchSize() > MAX_SHOTS;
+      const canRun = () => chosen.some(Boolean) && !capped();
+
+      // ---- The ball and the shot rows
+      function drawBall() {
+        if (!bctx || !bw) return;
+        const g = bctx, w = bw, cx = w / 2, cy = w / 2, R = w / 2 - (16 + 0.08 * w), u = R / 100;
+        const cam = camera(yaw, TILT), items: Item[] = [];
+        const at = (p: Vec3) => { const s = project(p, cam); return { x: cx + R * s.x, y: cy - R * s.y, d: s.depth }; };
+        const put = (p: Vec3, r: number, color: string, a = 1, lift = 0, halo = false) => {
+          const s = at(p);
+          items.push({ d: s.d + lift, x: s.x, y: s.y, r, color, a, halo });
+        };
+        const shade = (p: Vec3, back: number, front: number) => back + ((front - back) * (project(p, cam).depth + 1)) / 2;
+        const line = (a: Vec3, b: Vec3, r: number, color: string, alpha: number) => {
+          const k = Math.max(2, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) * 26));
+          for (const p of segment(a, b, k)) put(p, r, color, alpha, 0.001);
+        };
+        g.clearRect(0, 0, w, bh);
+
+        for (let k = 0; k < 144; k++) dot(g, cx + R * Math.cos((k * Math.PI) / 72), cy + R * Math.sin((k * Math.PI) / 72), Math.max(0.6, u * 0.6), col.rule);
+        for (const p of SURFACE) put(p, Math.max(0.6, u * 0.8), col.ink2, shade(p, 0.1, 0.36));
+        for (const p of EQUATOR) put(p, Math.max(0.7, u * 0.9), col.ink2, shade(p, 0.25, 0.75));
+        for (const p of AXES3) put(p, Math.max(0.7, u * 0.9), col.ink2, shade(p, 0.25, 0.75));
+
+        const have = tally.total.some((n) => n > 0);
+        const a = estimate(tally), inside = isState(a), rounded = roundVec(a), moved = have && !inside;
+        const rDot = Math.max(4, u * 5.5), rTrue = Math.max(3.5, u * 4.6), rSq = Math.max(3, u * 3.6);
+        if (have) {
+          if (chosen.some((c) => !c)) for (const p of consistentSet(a, chosen, 260)) put(p, Math.max(0.8, u * 1.1), col.hot, 0.45, 0.01);
+          const rayColor = inside ? col.signal : col.hot;
+          line(ORIGIN, a, Math.max(1, u * 1.3), rayColor, 0.9);
+          if (moved) line(a, rounded, Math.max(0.7, u * 0.8), col.ink2, 0.8);
+        }
+        if (have) put(a, rDot, inside ? col.signal : col.hot, 1, 0.05, true);
+
+        items.sort((p, q) => p.d - q.d);
+        for (const it of items) {
+          g.globalAlpha = it.a;
+          if (it.halo) dot(g, it.x, it.y, it.r + 2, col.plate);
+          dot(g, it.x, it.y, it.r, it.color);
+        }
+        g.globalAlpha = 1;
+        // The true state is an open ring, drawn over everything so it never hides.
+        const st = at(v);
+        g.beginPath(); g.arc(st.x, st.y, rTrue, 0, Math.PI * 2);
+        g.lineWidth = 5; g.strokeStyle = col.plate; g.stroke();
+        g.lineWidth = 2; g.strokeStyle = col.ink; g.stroke();
+        // The rounded state is a square.
+        if (moved) {
+          const sr = at(rounded), half = rSq;
+          g.fillStyle = col.plate; g.fillRect(sr.x - half - 2, sr.y - half - 2, 2 * half + 4, 2 * half + 4);
+          g.fillStyle = col.ink; g.fillRect(sr.x - half, sr.y - half, 2 * half, 2 * half);
+        }
+
+        const fs = Math.round(Math.min(14, Math.max(11, R * 0.11)));
+        const write = (text: string, x: number, y: number, color: string, font: string) => {
+          g.font = font; g.textAlign = 'center'; g.textBaseline = 'middle';
+          const half = g.measureText(text).width / 2 + 2;
+          const lx = Math.min(w - half, Math.max(half, x)), ly = Math.min(w - fs, Math.max(fs, y));
+          g.lineWidth = 4; g.lineJoin = 'round'; g.strokeStyle = col.plate; g.strokeText(text, lx, ly);
+          g.fillStyle = color; g.fillText(text, lx, ly);
+        };
+        const mono = `500 ${fs}px ${token('--mono')}`;
+        const sa = at(a), dots = [{ ...st, r: rTrue }, ...(have ? [{ ...sa, r: rDot }] : [])];
+        g.font = mono;
+        for (const [name, p] of ENDS) {
+          const s = at(p), half = g.measureText(name).width / 2 + 2;
+          let { x, y } = s;
+          const k = Math.hypot(x - cx, y - cy) || 1, ux = (x - cx) / k, uy = (y - cy) / k;
+          const hits = () => dots.some((o) => Math.abs(x - o.x) < half + o.r + 6 && Math.abs(y - o.y) < fs / 2 + o.r + 6);
+          for (let i = 0; i < 24 && hits(); i++) { x += ux * 3; y += uy * 3; }
+          write(name, x, y, col.ink, mono);
+        }
+        write('true', st.x - rTrue - fs * 1.4, st.y - rTrue - fs * 0.4, col.ink, mono);
+        if (have) write('rebuilt', sa.x + rDot + fs * 2.2, sa.y + rDot + fs * 0.6, inside ? col.signal : col.hot, `700 ${fs}px ${token('--mono')}`);
+
+        // The latest shots, one row per basis. Filled gave +1, open gave −1.
+        const shotsNow = (k: number): Shot[] => (incoming ? [...strips[k], ...incoming[k].slice(0, shownNew)] : strips[k]).slice(-SHOWN);
+        const top = w + 6, lab = 26, pitch = Math.min((w - lab - 8) / SHOWN, 14), r = pitch * 0.36;
+        const rowH = Math.min((bh - top - 4) / 3, 26);
+        g.lineWidth = Math.max(1, pitch * 0.14); g.strokeStyle = col.ink2;
+        for (let k = 0; k < 3; k++) {
+          const y = top + (k + 0.5) * rowH, list = chosen[k] ? shotsNow(k) : [];
+          g.font = mono; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillStyle = chosen[k] ? col.ink : col.ink2;
+          g.fillText(AXES[k], 4, y);
+          for (let i = 0; i < SHOWN; i++) {
+            const x = lab + pitch * (i + 0.5);
+            if (i >= list.length) dot(g, x, y, Math.max(0.6, r * 0.3), col.rule);
+            else if (list[i] === 1) dot(g, x, y, r, col.signal);
+            else { g.beginPath(); g.arc(x, y, r - g.lineWidth / 2, 0, Math.PI * 2); g.stroke(); }
+          }
+        }
+      }
+
+      // ---- The error chart
+      function drawChart() {
+        if (!kctx || !kw) return;
+        const g = kctx, L = 46, B = 34, T = 10, Rm = 24, W = kw - L - Rm, H = kh - T - B;
+        const px = (n: number) => L + ((Math.log(n) - Math.log(XLO)) / (Math.log(XHI) - Math.log(XLO))) * W;
+        const py = (d: number) => T + (1 - (Math.log(Math.min(YHI, Math.max(d, YLO))) - Math.log(YLO)) / (Math.log(YHI) - Math.log(YLO))) * H;
+        const fs = 11, mono = `500 ${fs}px ${token('--mono')}`;
+        g.clearRect(0, 0, kw, kh);
+        g.font = mono; g.fillStyle = col.ink2; g.textBaseline = 'middle';
+        // Grid: a dotted line at each decade.
+        const dotted = (x0: number, y0: number, x1: number, y1: number) => {
+          const k = Math.max(2, Math.round(Math.hypot(x1 - x0, y1 - y0) / 6));
+          for (let i = 0; i <= k; i++) dot(g, x0 + ((x1 - x0) * i) / k, y0 + ((y1 - y0) * i) / k, 0.8, col.rule);
+        };
+        for (const d of [1, 0.1, 0.01]) {
+          dotted(L, py(d), L + W, py(d));
+          g.textAlign = 'right'; g.fillText(String(d), L - 6, py(d));
+        }
+        g.textAlign = 'center';
+        for (const n of [10, 100, 1000, 10000]) {
+          dotted(px(n), T, px(n), T + H);
+          g.fillText(n === 10000 ? '10000' : String(n), px(n), T + H + 12);
+        }
+        g.fillText('shots per basis', L + W / 2, T + H + 26);
+        g.textAlign = 'left'; g.fillText('trace distance to the truth', L + 6, T + 6);
+        // The typical error of the raw rebuild: dotted, from theory.
+        const ch3 = chosen.some(Boolean) ? chosen : ([true, true, true] as Chosen);
+        for (let i = 0; i <= 160; i++) {
+          const n = Math.exp(Math.log(XLO) + ((Math.log(XHI) - Math.log(XLO)) * i) / 160);
+          dot(g, px(n), py(rmsError(v, sameShots(n), ch3)), 1.3, col.ink);
+        }
+        // One pair of marks per press: the raw rebuild is a ring, the rounded one a dot.
+        g.lineWidth = 1.5; g.strokeStyle = col.ink;
+        for (const m of history) {
+          g.beginPath(); g.arc(px(m.n), py(m.raw), 5.5, 0, Math.PI * 2); g.stroke();
+          dot(g, px(m.n), py(m.round), 3.2, col.signal);
+        }
+        if (!history.length) { g.textAlign = 'center'; g.fillStyle = col.ink2; g.fillText('Press Run to add points', L + W / 2, T + H / 2); }
+      }
+
+      const redraw = () => { if (!pending) pending = requestAnimationFrame(() => { pending = 0; drawBall(); }); };
+
+      /** The silent parts: outputs, matrix, numbers, presets, buttons and both pictures. Not a live region. */
+      function show() {
+        truth = readTruth(); v = truthVec(truth); chosen = readChosen();
+        const pole = truth.theta === 0 || truth.theta === 180, center = truth.r === 0;
+        output('theta').textContent = `${truth.theta}°`; output('phi').textContent = `${truth.phi}°`; output('r').textContent = (truth.r / 100).toFixed(2);
+        sliders.theta.setAttribute('aria-valuetext', `${truth.theta} degrees${center ? '. At length 0 the direction does not change the state.' : ''}`);
+        sliders.phi.setAttribute('aria-valuetext', `${truth.phi} degrees${center ? '. At length 0 the direction does not change the state.' : pole ? '. At a pole, φ does not change the state.' : ''}`);
+        sliders.r.setAttribute('aria-valuetext', `${(truth.r / 100).toFixed(2)}${truth.r === 100 ? ', pure' : truth.r === 0 ? ', completely mixed' : ', mixed'}`);
+        const name = presetAt(truth);
+        presets.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.preset === name)));
+        const have = tally.total.some((n) => n > 0), a = estimate(tally);
+        const rho = rhoOfVec(a);
+        for (const i of [0, 1]) for (const j of [0, 1]) $(`[data-e="${i}${j}"]`).textContent = have ? cnum(rho[i][j]) : '?';
+        cell('true').textContent = vecText(v);
+        cell('copies').textContent = have ? String(tally.total.reduce((s, n) => s + n, 0)) : 'none yet';
+        if (have) {
+          const [hi, lo] = eigenvalues(a), ok = isState(a), rounded = roundVec(a);
+          cell('vec').textContent = vecText(a);
+          cell('len').textContent = `${num(len(a))}, ${ok ? 'inside the ball' : 'outside the ball'}`;
+          cell('eig').textContent = `${num(hi)} and ${eigText(lo)}${ok ? '' : ' (negative: not a state)'}`;
+          cell('round').textContent = ok ? 'same, no rounding needed' : vecText(rounded);
+          cell('dist').textContent = dist(traceDistance(rounded, v));
+          cell('typ').textContent = dist(rmsError(v, tally.total, chosen));
+        } else for (const k of ['vec', 'len', 'eig', 'round', 'dist', 'typ']) cell(k).textContent = 'none yet';
+        const b = batchSize(), k = chosen.filter(Boolean).length;
+        run.textContent = `Run ${b} shots in each chosen basis`;
+        const can = canRun();
+        run.setAttribute('aria-disabled', String(!can));
+        run.title = !k ? 'Pick at least one basis first.' : capped() ? `That would pass ${MAX_SHOTS} shots per basis.` : `${b * k} copies in all`;
+        cap.hidden = !k || !capped() || !have;
+        drawBall(); drawChart();
+      }
+
+      /** The live sentence: spoken on release of a slider, on choices and on button presses only. */
+      const say = () => {
+        readout.textContent = describe(truth, chosen, tally) + (chosen.some(Boolean) && tally.total.some((n) => n > 0) && capped() ? ` That is the most this tool runs per basis, ${MAX_SHOTS}. Press Start over to try again.` : '');
+      };
+
+      const stop = () => { if (anim) { cancelAnimationFrame(anim); anim = 0; } };
+      const reset = () => { stop(); tally = emptyTally(); strips = [[], [], []]; history = []; incoming = null; nextTally = null; shownNew = 0; };
+
+      // The new batch is kept, whole, once its shots have filled the rows.
+      function commit() {
+        if (!nextTally || !incoming) return;
+        tally = nextTally;
+        strips = strips.map((s, k) => [...s, ...incoming![k]].slice(-SHOWN));
+        incoming = null; nextTally = null; anim = 0;
+        const a = estimate(tally), n = total();
+        history.push({ n, round: traceDistance(roundVec(a), v), raw: traceDistance(a, v) });
+        if (history.length > 80) history.shift();
+        show(); say();
+      }
+      const finish = () => { stop(); if (nextTally) commit(); };
+
+      function press() {
+        if (!canRun()) { say(); return; }
+        finish();
+        const b = batchSize();
+        const fresh: Shot[][] = [[], [], []];
+        let next = tally;
+        for (let k = 0; k < 3; k++) {
+          if (!chosen[k]) continue;
+          const s = shoot(v, k, b, Math.random);
+          next = addShots(next, k, s);
+          fresh[k] = s.slice(-SHOWN);
+        }
+        incoming = fresh; nextTally = next; shownNew = 0;
+        if (still || !seen) { shownNew = SHOWN; commit(); return; }
+        const t0 = performance.now();
+        const step = (now: number) => {
+          shownNew = Math.min(SHOWN, Math.ceil(((now - t0) / REVEAL) * SHOWN));
+          if (shownNew < SHOWN) { drawBall(); anim = requestAnimationFrame(step); } else commit();
+        };
+        anim = requestAnimationFrame(step);
+      }
+
+      const showView = () => {
+        yIn.value = String(wrap(Math.round(yaw)));
+        output('yaw').textContent = `${yIn.value}°`;
+        yIn.setAttribute('aria-valuetext', `${yIn.value} degrees`);
+      };
+
+      // Moving a slider redraws at once but stays quiet; the sentence is spoken when the slider is released.
+      for (const s of Object.values(sliders)) {
+        s.addEventListener('input', () => { reset(); show(); });
+        s.addEventListener('change', say);
+      }
+      presets.forEach((b) => b.addEventListener('click', () => {
+        const p = PRESETS.find((x) => x.name === b.dataset.preset)!;
+        sliders.theta.value = String(p.t.theta); sliders.phi.value = String(p.t.phi); sliders.r.value = String(p.t.r);
+        reset(); show(); say();
+      }));
+      boxes.forEach((b) => b.addEventListener('change', () => { reset(); show(); say(); }));
+      batches.forEach((b) => b.addEventListener('change', () => { show(); }));
+      run.addEventListener('click', press);
+      again.addEventListener('click', () => { reset(); show(); say(); });
+      yIn.addEventListener('input', () => { yaw = +yIn.value; showView(); redraw(); });
+
+      // Drag sideways to turn the ball. The Turn slider does the same by keyboard.
+      let drag: number | null = null;
+      ball.addEventListener('pointerdown', (e) => { drag = e.clientX; ball.setPointerCapture(e.pointerId); });
+      ball.addEventListener('pointermove', (e) => {
+        if (drag === null) return;
+        yaw = wrap(yaw - (e.clientX - drag) * 0.6); drag = e.clientX;
+        showView(); redraw();
+      });
+      for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) ball.addEventListener(t, () => { drag = null; });
+
+      onResize(ball, () => { ({ ctx: bctx, w: bw, h: bh } = fit(ball)); drawBall(); });
+      onResize(chart, () => { ({ ctx: kctx, w: kw, h: kh } = fit(chart)); drawChart(); });
+      onTheme(() => { col = palette(); drawBall(); drawChart(); });
+      onSeen(this, (s) => { seen = s; if (!s) finish(); });
+      // Start from the controls as the page shows them: a browser can restore form values on going back.
+      showView(); show();
+      const first = describe(truth, chosen, tally);
+      if (readout.textContent !== first) readout.textContent = first;
+    }
+  }
+  customElements.define('qce-state-rebuild', StateRebuild);
+</script>
+
+<style>
+  qce-state-rebuild { display: grid; container-type: inline-size }
+  .cols { display: grid; gap: var(--s4); min-width: 0 }
+  .stage { display: grid; gap: var(--s3); align-content: start; min-width: 0 }
+  canvas { display: block; width: 100%; max-width: 26rem; justify-self: center; touch-action: pan-y }
+  canvas.ball { aspect-ratio: 4 / 5; cursor: grab }
+  canvas.ball:active { cursor: grabbing }
+  canvas.chart { aspect-ratio: 8 / 5; max-width: 30rem }
+  .key, .hint, .note { font-size: .875rem; color: var(--ink-2); max-width: var(--read) }
+  .tool-controls { display: grid; gap: var(--s4); align-content: start; align-items: start; min-width: 0 }
+  fieldset { display: grid; gap: var(--s3); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { padding: 0; margin-bottom: var(--s2) }
+  .slider { display: grid; gap: var(--s1); min-width: 0 }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2) }
+  .row output { flex: none; font-size: 1.125rem }
+  .named { display: grid; gap: var(--s2) }
+  .presets { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .presets button { min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 .9375rem var(--mono); cursor: pointer }
+  .presets button:hover { border-color: var(--ink) }
+  .presets button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .choices { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .choices label { display: inline-flex; align-items: center; gap: var(--s2); min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); font: 500 .9375rem var(--mono); cursor: pointer }
+  .choices label:hover { border-color: var(--ink) }
+  .choices label:has(:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink) }
+  .choices input { width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--signal) }
+  .buttons { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .run[aria-disabled="true"] { opacity: .5; cursor: not-allowed }
+  .views { display: grid; gap: var(--s3); min-width: 0 }
+  table { justify-self: start; border-collapse: collapse; font: 500 1rem var(--mono) }
+  var { font-style: normal; text-transform: none }
+  caption { padding-bottom: var(--s2); text-align: left }
+  th, td { padding: .3rem .5rem; text-align: right; white-space: nowrap }
+  thead th { color: var(--ink-2); font-weight: 500 }
+  tbody th { color: var(--ink-2); font-weight: 500; text-align: left; padding-left: 0 }
+  tbody td { border: 1px solid var(--rule); background: var(--paper); min-width: 4rem }
+  dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--s3) }
+  dl div { display: grid; gap: var(--s1); min-width: 0 }
+  dd { margin: 0; font: 500 1rem var(--mono); overflow-wrap: anywhere }
+  .tool-readout { min-height: 9em }
+  @container (min-width: 38rem) {
+    .cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--s5); align-items: start }
+    canvas { max-width: none }
+    .tool-readout { min-height: 6.5em }
+  }
+</style>
