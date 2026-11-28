@@ -23,3 +23,5 @@ test('ZZZ at π/4 entangles three plus states, not three independent rotations',
  const eigen=last('pauli-rotations',{p:'ZZZ',theta:'45',start:'000'});
  for(let i=0;i<3;i++)close(value(eigen,'Purity of q'+i),1);
 });
+
+test('IZX entangles the last two wires from ++0 at 45 degrees',async()=>{const {lab}=await import('./pauli-rotations.ts');const s=lab.run({p:'IZX',start:'++0',theta:'45'}).at(-1)!;if(s.rows!.find(r=>r.label==='Entangled? (pure joint state)')!.value!=='Yes')throw Error('expected entanglement');});

@@ -20,6 +20,6 @@ export function wirePurity(s:State,wire:number){
  return p0*p0+p1*p1+2*abs2(off);
 }
 export const lab:Lab={
- controls:[choice('p','Pauli string',['ZZZ','XYZ','XIX','YZI','IZX','ZII']),choice('start','Start state',['+++','+01','000','111','+0+']),choice('theta','θ in exp(−iθP), degrees',['45','30','90','180','0'])],
+ controls:[choice('p','Pauli string',['ZZZ','XYZ','XIX','YZI','IZX','ZII']),choice('start','Start state',['+++','+01','000','111','+0+','++0']),choice('theta','θ in exp(−iθP), degrees',['45','30','90','180','0'])],
  run:v=>{const t=deg(v.theta),ops=ladder(v.p,t),s=sequence(product(...v.start),ops,'Each basis change and parity computation is undone.');s.forEach(step=>{const purities=[0,1,2].map(i=>wirePurity(step.state!,i));step.rows=[...(step.rows??[]),...purities.map((p,i)=>row('Purity of q'+i,p)),row('Entangled? (pure joint state)',purities.some(p=>p<1-1e-9)?'Yes':'No')];});s.at(-1)!.rows!.push(row('Full matrix vs exp(−iθP)',matrixGap(fullMatrix(3,ops),phaseRotation(pauli(v.p),t))));return s}
 };
