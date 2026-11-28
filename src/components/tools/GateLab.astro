@@ -4,15 +4,16 @@ import { defaults, complex, stateDistribution, type Lab } from '../../lib/sims/g
 import { pct } from '../../lib/draw.ts';
 interface Props { id: string; lab: Lab }
 const { id, lab } = Astro.props;
-const initial = lab.run(defaults(lab));
+const initialValues = defaults(lab);
+const initial = lab.run(initialValues);
 const first = initial[0];
 const d = first.distribution ?? (first.state ? stateDistribution(first.state) : undefined);
 ---
 <qce-gate-lab class="tool" data-lesson={id}>
   <div class="tool-controls controls">
     {lab.controls.map(control => (
-      <label>{control.label}
-        <select data-control={control.key}>
+      <label hidden={control.active?.(initialValues) === false}>{control.label}
+        <select data-control={control.key} disabled={control.active?.(initialValues) === false}>
           {control.options.map(option => <option value={option.value}>{option.label}</option>)}
         </select>
       </label>
@@ -27,7 +28,7 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
   </div>
   <details><summary>Jump to a step</summary>
   <ol class="steps" data-steps aria-label="Sequence of steps">
-    {initial.map((s, i) => <li><button type="button" data-jump={i} aria-current={i === 0 ? 'step' : undefined}>{s.title}</button></li>)}
+    {initial.map((s, i) => <li><button type="button" data-jump={i} aria-current={i === 0 ? 'step' : undefined}>{i+1}. {s.title}</button></li>)}
   </ol></details>
   <div class="diagram" data-diagram hidden tabindex="0" role="region" aria-label="Circuit diagram, scroll to follow all gates"></div>
   <div class="panel">
@@ -131,13 +132,13 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
       const stepList = $('[data-steps]'), details = $('[data-details]'), outcomes = $('[data-outcomes]');
       const dist = $<HTMLElement>('[data-distribution]'), shots = $<HTMLElement>('[data-shots]'), counts = $('[data-counts]');
       let steps: Step[] = [], index = 0;
-      let measured: {labels:string[];counts:number[]} | undefined;
+      let measured: {labels:string[];counts:number[];p:number[]} | undefined;
       let visible=true;
       const canvas=$<HTMLCanvasElement>('[data-piles]'),key=$<HTMLElement>('[data-pile-key]');
       const drawPiles=()=>{
         if(!visible||!measured||canvas.hidden)return;
-        const {labels,counts:got}=measured;
-        const active=labels.map((name,i)=>({name,n:got[i]})).filter(r=>r.n>0);
+        const {labels,counts:got,p:ideal}=measured;
+        const active=labels.map((name,i)=>({name,n:got[i],p:ideal[i]})).filter(r=>r.p>0||r.n>0);
         const width=canvas.getBoundingClientRect().width;
         if(width<40)return;
         const cols=width>=430?4:2,cell=width/cols,rows=Math.ceil(active.length/cols);
@@ -227,7 +228,7 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
         $('[data-step-count]').textContent = (index + 1) + ' / ' + steps.length;
         slider.setAttribute('aria-valuetext', 'Step '+(index+1)+': '+s.title);
         stepList.replaceChildren(...steps.map((step, i) => {
-          const item = el('li'), button = el('button', step.title) as HTMLButtonElement;
+          const item = el('li'), button = el('button', (i+1)+'. '+step.title) as HTMLButtonElement;
           button.type = 'button'; if (i === index) button.setAttribute('aria-current', 'step');
           button.addEventListener('click', () => { index = i; render(true); speak(); }); item.append(button); return item;
         }));
@@ -245,19 +246,18 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
           item.append(el('span', name), el('span', s.state ? complex(s.state[i]) : ''), el('span', pct(p)), meter); return item;
         }));
       };
-      const update = () => {
+      const update = (announce=true) => {
         try {
           const v=values();
           for(const input of inputs){
-            // Angles are only meaningful for the parameterized gate in these two labs.
-            const inactive=input.dataset.control==='angle'&&((this.dataset.lesson==='phase-kickback'&&v.mode!=='P')||(this.dataset.lesson==='hadamard-test'&&v.unitary!=='P'));
+            const inactive=lab.controls.find(c=>c.key===input.dataset.control)?.active?.(v)===false;
             input.closest('label')!.hidden=inactive;input.disabled=inactive;
           }
-          steps = lab.run(v); index = 0; render(); speak();
+          steps = lab.run(v); index = 0; render(); if(announce)speak();
         }
         catch { status.textContent = 'This setting could not be calculated.'; }
       };
-      inputs.forEach(e => e.addEventListener('change', update));
+      inputs.forEach(e => e.addEventListener('change', () => update()));
       slider.addEventListener('input', () => { index = +slider.value; render(); });
       slider.addEventListener('change',speak);
       back.addEventListener('click', () => { if (index > 0) { index--; render(); speak(); } });
@@ -274,11 +274,11 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
           observed.append(el('span','Observed: '+got[i]+' / '+n+' ('+pct(got[i]/n)+')'),bar);
           item.append(observed);
         });
-        measured={labels:d.labels,counts:got};canvas.hidden=key.hidden=false;drawPiles();
+        measured={labels:d.labels,counts:got,p:d.p};canvas.hidden=key.hidden=false;drawPiles();
         counts.textContent = 'Started as '+startLabel()+'. '+n+' shots: '+d.labels.map((v,i)=>v+' = '+got[i]).join('; ')+'.';
         status.textContent='Started as '+startLabel()+'. '+n+' fresh shots at step '+(index+1)+'. '+(d.labels.length<=4?d.labels.map((v,i)=>v+' '+got[i]).join(', '):'Counts listed by outcome')+'.';
       });
-      update();
+      update(false);
     }
   }
   if (!customElements.get('qce-gate-lab')) customElements.define('qce-gate-lab', GateLab);

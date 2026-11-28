@@ -3,14 +3,14 @@
 import { c, abs, abs2, add, mul, scale, conj, sub, expi, basis, fromBloch, tensor, matVec, matMul, dagger, probs, label, X, Y, Z, I, H, S, T, P, RX, RY, RZ, type C, type State, type Matrix } from '../quantum.ts';
 
 export type Values = Record<string, string>;
-export type Control = { key: string; label: string; options: { value: string; label: string }[] };
+export type Control = { key: string; label: string; options: { value: string; label: string }[]; active?: (v: Values) => boolean };
 export type Row = { label: string; value: string };
 export type Diagram = { n: number; ops: { name: string; wires: number[] }[]; current: number };
 export type Step = { start?: string; diagram?: Diagram; title: string; note: string; state?: State; distribution?: { labels: string[]; p: number[] }; rows?: Row[] };
 export type Lab = { controls: Control[]; run: (v: Values) => Step[] };
 export type Op = { name: string; wires: number[]; matrix: Matrix };
-export const choice = (key: string, label: string, options: readonly (string | [string, string])[]): Control => ({
-  key, label, options: options.map(o => typeof o === 'string' ? { value: o, label: o } : { value: o[0], label: o[1] }),
+export const choice = (key: string, label: string, options: readonly (string | [string, string])[], active?: Control['active']): Control => ({
+  key, label, active, options: options.map(o => typeof o === 'string' ? { value: o, label: o } : { value: o[0], label: o[1] }),
 });
 export const defaults = (lab: Lab): Values => Object.fromEntries(lab.controls.map(x => [x.key, x.options[0].value]));
 export const deg = (x: string | number) => Number(x) * Math.PI / 180;
@@ -84,7 +84,7 @@ export const sequence = (start: State, ops: Op[], endNote = '', startLabel = des
   const diagram = (current: number): Diagram => ({ n: Math.log2(start.length), ops: ops.map(({name,wires}) => ({name,wires})), current });
   return [{...stateStep('Start state', 'Started as '+startLabel+'. Qubit 0 is on the left.', s), start:startLabel, diagram: diagram(-1)}, ...ops.map((o, i) => {
     s = apply(s, o);
-    return {...stateStep('Gate '+(i+1)+': '+o.name + ' on ' + o.wires.map(w => 'q' + w).join(', '), 'Started as '+startLabel+', after '+o.name+': '+(i === ops.length - 1 && endNote ? endNote : 'the state below is before measurement.'), s, o.matrix.length <= 4 ? matrixRows(o.matrix) : undefined), start:startLabel, diagram: diagram(i)};
+    return {...stateStep(o.name + ' on ' + o.wires.map(w => 'q' + w).join(', '), 'Started as '+startLabel+', after '+o.name+': '+(i === ops.length - 1 && endNote ? endNote : 'the state below is before measurement.'), s, o.matrix.length <= 4 ? matrixRows(o.matrix) : undefined), start:startLabel, diagram: diagram(i)};
   })];
 };
 export const matrixRows = (m: Matrix): Row[] => m.map((r, i) => row('Matrix row ' + i, r.map(complex).join('  ')));
