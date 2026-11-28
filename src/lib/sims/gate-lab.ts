@@ -15,13 +15,15 @@ export const choice = (key: string, label: string, options: readonly (string | [
 export const defaults = (lab: Lab): Values => Object.fromEntries(lab.controls.map(x => [x.key, x.options[0].value]));
 export const deg = (x: string | number) => Number(x) * Math.PI / 180;
 export const angles = ['0', '30', '45', '60', '90', '120', '180', '270', '360'];
+// Finite-angle examples: hide roundoff-scale probabilities in the display, never in the sampler.
+export const displayProbability=(p:number)=>p<1e-24?0:Math.min(1,p);
 export const num = (x: number) => Math.abs(x) < 1e-12 ? '0' : Number(x.toPrecision(6)).toString();
 export function complex(a: C): string {
   if (Math.abs(a.im) < 1e-12) return num(a.re);
   if (Math.abs(a.re) < 1e-12) return num(a.im) + 'i';
   return num(a.re) + (a.im < 0 ? ' − ' : ' + ') + num(Math.abs(a.im)) + 'i';
 }
-export const row = (label: string, value: string | number): Row => ({ label, value: typeof value === 'number' ? num(value) : value });
+export const row = (label: string, value: string | number): Row => ({ label, value: typeof value === 'number' ? (Number.isSafeInteger(value)?String(value):num(value)) : value });
 export const details = (title: string, note: string, rows: Row[]): Step => ({ title, note, rows });
 export const stateStep = (title: string, note: string, state: State, rows?: Row[]): Step => ({ title, note, state, rows });
 const names = new WeakMap<State,string>();

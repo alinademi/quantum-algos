@@ -2,6 +2,7 @@
 // An accessible step-by-step lab shared by circuit stops: each stop supplies its own math and controls.
 import { defaults, complex, stateDistribution, type Lab } from '../../lib/sims/gate-lab.ts';
 import { pct } from '../../lib/draw.ts';
+import { displayProbability } from '../../lib/sims/gate-lab.ts';
 interface Props { id: string; lab: Lab }
 const { id, lab } = Astro.props;
 const initialValues = defaults(lab);
@@ -39,7 +40,7 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
       <p class="label">Outcome · amplitude (if pure) · ideal probability</p>
       <div class="outcomes" data-outcomes tabindex="0" role="region" aria-label="Outcome amplitudes and probabilities">
         {d?.labels.map((name, i) => <div class="outcome">
-          <span>{name}</span><span>{first.state ? complex(first.state[i]) : ''}</span><span>{pct(Math.min(1,d.p[i]))}</span>
+          <span>{name}</span><span>{first.state ? complex(first.state[i]) : ''}</span><span>{pct(displayProbability(d.p[i]))}</span>
           <div class="meter" aria-hidden="true"><i style={`width: ${d.p[i] * 100}%`}></i></div>
         </div>)}
       </div>
@@ -57,7 +58,7 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
 </qce-gate-lab>
 
 <script>
-  import { complex, stateDistribution, describeState, estimateShots, num, type Lab, type Values, type Step, type Diagram } from '../../lib/sims/gate-lab.ts';
+  import { complex, stateDistribution, describeState, estimateShots, num, displayProbability, type Lab, type Values, type Step, type Diagram } from '../../lib/sims/gate-lab.ts';
   import { sample } from '../../lib/quantum.ts';
   import { pct, fit, palette, dot, onResize, onTheme, onSeen } from '../../lib/draw.ts';
   // Lazy imports: only the current lab is loaded into the browser.
@@ -137,7 +138,7 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
       const drawPiles=()=>{
         if(!visible||!measured||canvas.hidden)return;
         const {labels,counts:got,p:ideal}=measured;
-        const active=labels.map((name,i)=>({name,n:got[i],p:ideal[i]})).filter(r=>r.p>0||r.n>0);
+        const active=labels.map((name,i)=>({name,n:got[i],p:ideal[i]})).filter(r=>displayProbability(r.p)>0||r.n>0);
         const width=canvas.getBoundingClientRect().width;
         if(width<40)return;
         const cols=width>=430?4:2,cell=width/cols,rows=Math.ceil(active.length/cols);
@@ -163,7 +164,7 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
       const speak = () => {
         const s=steps[index];
         const d=s.distribution??(s.state?stateDistribution(s.state):undefined);
-        const summary=d?d.labels.length<=4?d.labels.map((v,i)=>v+' '+pct(Math.max(0,Math.min(1,d.p[i])))).join(', '):d.labels.length+' possible outcomes':s.note;
+        const summary=d?d.labels.length<=4?d.labels.map((v,i)=>v+' '+pct(displayProbability(d.p[i]))).join(', '):d.labels.length+' possible outcomes':s.note;
         status.textContent='Start or preparation: '+startLabel()+'. Step '+(index+1)+' of '+steps.length+': '+s.title+'. '+summary+'.';
       };
       const values = (): Values => Object.fromEntries(inputs.map(el => [el.dataset.control!, el.value]));
@@ -239,7 +240,7 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
         dist.hidden = shots.hidden = !d; counts.textContent = 'No shots yet.'; measured=undefined;canvas.hidden=key.hidden=true;
         $<HTMLElement>('[data-quantum-note]').hidden=!steps.some(s=>s.state||s.distribution);
         outcomes.replaceChildren(...(d?.labels ?? []).map((name, i) => {
-          const p = Math.max(0, Math.min(1, d!.p[i]));
+          const p = displayProbability(d!.p[i]);
           const item = el('div', undefined, 'outcome'), meter = el('div', undefined, 'meter'), bar = el('i');
           meter.setAttribute('aria-hidden', 'true'); bar.style.width = p * 100 + '%'; meter.append(bar);
           item.append(el('span', name), el('span', s.state ? complex(s.state[i]) : ''), el('span', pct(p)), meter); return item;
@@ -304,6 +305,7 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
   .panel { border-top:1px dotted var(--rule); padding-top:var(--s3); min-width:0; display:grid; gap:var(--s2) }
   dl { display:grid; gap:var(--s1); margin:0 }
   dl :global(div) { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); gap:var(--s2); border-bottom:1px dotted var(--rule); padding:var(--s1) 0 }
+  dl :global(dt) { min-width:0; overflow-wrap:anywhere; font-family:var(--mono) }
   dl :global(dd) { margin:0; overflow-wrap:anywhere; white-space:pre-wrap; font-family:var(--mono) }
   .outcomes { display:grid; gap:var(--s2); max-height:24rem; overflow-y:auto }
   .outcomes :global(.outcome) { display:grid; grid-template-columns:minmax(4rem,1fr) minmax(0,2fr) auto; gap:var(--s1) var(--s2); font-family:var(--mono); font-size:.85rem; align-items:center }
