@@ -9,3 +9,5 @@ test('circuit languages are illustrative descriptions of the same Bell circuit',
  for(const opt of labs['circuit-languages'].controls[0].options)state(last('circuit-languages',{language:opt.value}).state!,[q.c(Math.SQRT1_2),q.c(0),q.c(0),q.c(Math.SQRT1_2)]);
 });
 test('examples actually differ in syntax and show the measurement explicitly',()=>{assert.equal(new Set(Object.values(code)).size,4);assert.match(code['OpenQASM 3'],/c = measure q/);assert.match(code['Cirq (Python)'],/cirq.measure/);assert.match(code['Qiskit (Python)'],/qc.measure/);assert.match(code['Q#'],/M\(q\[0\]\)/);});
+
+test('alternate circuits expose noncommuting order and bit-order differences in every language',()=>{for(const opt of labs['circuit-languages'].controls[0].options){const language=opt.value;state(last('circuit-languages',{language,program:'CNOT before H'}).state!,[q.c(Math.SQRT1_2),q.c(0),q.c(Math.SQRT1_2),q.c(0)]);const r=last('circuit-languages',{language,program:'X on q0'});state(r.state!,q.basis(2,2));assert.equal(r.rows![1].value,'01');}});
