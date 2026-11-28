@@ -1,9 +1,9 @@
 ---
 description: "Make random bits by measuring a qubit, see how they differ from pseudo-random numbers, and learn what real quantum generators need."
-answer: "A quantum coin flip makes a random bit by measuring a qubit in the state |+⟩, which has equal amplitudes for 0 and 1, so each result has probability 1/2. In quantum theory nothing fixes the result in advance, while a seed fixes every pseudo-random number."
+answer: "A quantum coin flip makes a random bit by measuring a qubit in the state |+⟩, which has equal amplitudes for 0 and 1, so each result has probability 1/2. Standard quantum theory gives only the odds for one result, while a seed fixes every pseudo-random number."
 myth:
   claim: "If the bits look random, they are random."
-  truth: "A good pseudo-random program makes bits that pass common tests, yet anyone who knows its rule and seed can predict every one. Randomness is about how bits are made, not how they look."
+  truth: "A good pseudo-random program makes bits that pass common tests, yet anyone who knows its rule and seed can predict every one. No list of bits proves by its looks how it was made."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -13,9 +13,9 @@ import QuantumCoins from '../../components/tools/QuantumCoins.astro';
 
 Flip a coin: heads or tails. Computer programs often use a recipe instead. It starts from a number called the seed and repeats the same steps. The answers look jumbled, but the same seed always gives the same list. Know the seed, and you can guess every answer.
 
-A qubit can flip a quantum coin. Start it as 0, then a Hadamard gate gives it equal amplitudes for 0 and 1, so a measurement gives either one with equal chance. Measure it to get one bit. No seed and no recipe picks that bit ahead of time.
+A qubit can flip a quantum coin. Start it as 0, then a Hadamard gate gives it equal amplitudes for 0 and 1, so a measurement gives either one with equal chance. Measure it to get one bit. Standard quantum theory has no seed or recipe that picks which bit.
 
-The coin picture breaks here. A tossed coin only seems random: if you knew exactly how it was thrown, you could work out how it lands. In quantum theory, a qubit has no hidden detail like that.
+The coin picture breaks here. A tossed coin only seems random: if you knew exactly how it was thrown, you could work out how it lands. Quantum theory gives only the odds for one result. Some views add hidden detail, but the odds stay the same.
 
 The qubit on this page is pretend: your computer makes its flips, not a real qubit.
 
@@ -23,11 +23,11 @@ The qubit on this page is pretend: your computer makes its flips, not a real qub
 
 <Depth level="student">
 
-Start a qubit as 0 and apply a Hadamard gate. Now it has amplitude $1/\sqrt{2}$ for 0 and $1/\sqrt{2}$ for 1. Measure it, and each result has probability $|1/\sqrt{2}|^2 = 1/2$. That is one fair random bit. Measuring the same qubit again repeats the bit, so each new bit needs a fresh qubit, or the same one reset to 0.
+Start a qubit as 0 and apply a Hadamard gate. Now it has amplitude $1/\sqrt{2}$ for 0 and $1/\sqrt{2}$ for 1. Measure it, and each result has probability $|1/\sqrt{2}|^2 = 1/2$. That is one fair random bit from an ideal qubit: standard quantum theory gives only the odds, not a rule for which bit. Measuring the same qubit again repeats the bit, so each new bit needs a fresh qubit, or the same one reset to 0.
 
 A pseudo-random generator is a program. It starts from a seed and applies one fixed rule over and over. Its bits look fair, but the seed decides them all: same seed, same bits.
 
-You cannot tell the two apart by looking at the bits. The difference is how they are made. Real quantum devices have small flaws, so their raw bits get cleaned up before use (see [Extracting and testing randomness](/learn/randomness-extraction/)).
+A list of bits alone cannot prove which kind made it, though a weak program with few seeds can be caught by trying each seed. The difference is how they are made. Real quantum devices have small flaws, so their raw bits get cleaned up before use (see [Extracting and testing randomness](/learn/randomness-extraction/)).
 
 The qubit on this page is simulated. Its draws come from your browser's random number generator: a program, not a qubit.
 
@@ -49,9 +49,9 @@ $$
 X_{k+1} = (aX_k + c) \bmod m,
 $$
 
-with $a = 1103515245$, $c = 12345$, $m = 2^{31}$, seed $X_0$, and output bit $\lfloor X_k / 2^{30} \rfloor$ for $k \ge 1$. Its $a$ and $c$ are those of the sample `rand()` in the C standard: a weak, teaching-only choice, since each $X_k$ is the whole state and one full output predicts all later ones. These constants give the full period $2^{31}$, but any deterministic generator with finite memory repeats at some point, and every bit is a function of $X_0$. Statistical tests judge only the output. A quantum generator's claim rests on the process: in quantum theory, $|+\rangle$ fixes only the odds, not the outcome.
+with $a = 1103515245$, $c = 12345$, $m = 2^{31}$, seed $X_0$, and output bit $\lfloor X_k / 2^{30} \rfloor$ for $k \ge 1$. These are the C standard's sample `rand()` constants, weak and for teaching only: each $X_k$ is the whole state. They give the full period $2^{31}$, but any deterministic generator with finite memory repeats. Statistical tests judge only the output: no bit string alone certifies quantum origin, though data can expose a weak generator or a small known seed set. Standard quantum theory gives only the odds from $|+\rangle$ (deterministic interpretations give the same odds). Certifying a device needs a device model, such as fresh preparation and independent draws, or device-independent assumptions.
 
-In a classic device, one photon meets a balanced beam splitter with a detector on each path. Unequal detector efficiencies add bias, dead time adds correlations and dark counts add clicks with no photon, so raw bits go through a randomness extractor ([Extracting and testing randomness](/learn/randomness-extraction/)). Bell tests can certify new randomness from untrusted devices, given a little seed randomness and devices that cannot signal each other ([Device-independent randomness](/learn/di-randomness/)).
+A classic device sends one photon to a balanced beam splitter with a detector on each path. Unequal efficiencies, dead time and dark counts add bias and correlations, so raw bits go through a randomness extractor ([Extracting and testing randomness](/learn/randomness-extraction/)). Bell tests can certify new randomness from untrusted devices, given a little seed randomness and devices that cannot signal each other ([Device-independent randomness](/learn/di-randomness/)).
 
 Here the qubit is simulated: each outcome compares a number from the browser's generator with the Born probability $\tfrac12$. It matches an ideal qubit's statistics, not its physics.
 

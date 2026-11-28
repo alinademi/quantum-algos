@@ -104,6 +104,14 @@ test('different seeds give different bit lists (seeds 1 to 100)', () => {
   assert.equal(seen.size, 100);
 });
 
+test('finite seed search: 32 bits (one press) from a seeded program name their seed among seeds 1 to 100, and fresh qubit bits match none', () => {
+  // A small known seed set is a weakness: the data picks out the seed. This is a teaching example, not a randomness test.
+  const find = (bits: Bit[]) => { const hit: number[] = []; for (let s = 1; s <= 100; s++) if (matches(lcgBits(s, bits.length), bits) === bits.length) hit.push(s); return hit; };
+  for (const seed of [1, 42, 100]) assert.deepEqual(find(lcgBits(seed, BATCH)), [seed]);
+  // A fresh run of the simulated qubit equals a given list with chance 2^-32 per seed, so no seed fits.
+  assert.deepEqual(find(flips(BATCH, q.rng(77))), []);
+});
+
 test('the constants meet the full-period conditions for mod 2^31: c odd, a - 1 divisible by 4', () => {
   assert.equal(LCG.m, 2 ** 31);
   assert.equal(LCG.c % 2, 1);

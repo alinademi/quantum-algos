@@ -21,7 +21,7 @@ const seedId = 'qc-seed-' + Math.random().toString(36).slice(2, 8);
     </div>
   </div>
   <p class="tool-readout" aria-live="polite">Top row: qubits, each started as 0, then a Hadamard gate, then measured. Bottom row: a program that starts from a seed. Up to {MAX_BITS} flips each.</p>
-  <p class="note">The qubit here is simulated. Its random draws come from your browser's random number generator, a program on a normal computer, not a qubit. It gives the same odds a real qubit would, but only real quantum hardware gives quantum random bits.</p>
+  <p class="note">The qubit here is simulated. Its random draws come from your browser's random number generator, a program on a normal computer, not a qubit. It gives the same odds an ideal qubit would, but only real quantum hardware gives quantum random bits. Each flip here is a fresh start, drawn independently.</p>
 </qce-quantum-coins>
 
 <script>
