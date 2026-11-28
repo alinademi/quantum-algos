@@ -1,9 +1,9 @@
 ---
 description: "What is interference? When a result can happen two ways, their amplitudes add, and they can cancel. Turn a phase and see a result vanish."
-answer: "Interference is what happens when a result can be reached in more than one way. You add the amplitudes of all the ways, and the chance of the result is |sum|². Amplitudes can be negative or complex, so they can build each other up or cancel, and a result can even become impossible."
+answer: "Interference is what happens when a result can be reached in more than one way and nothing records which way was taken. You add the amplitudes of all the ways, and the chance of the result is |sum|². Amplitudes can be negative or complex, so they can build each other up or cancel, and a result can even become impossible."
 myth:
   claim: "Two ways to reach a result make it more likely than one."
-  truth: "Not always in quantum physics. Each way adds an amplitude, not a chance, and amplitudes can cancel. With two ways open, a result can become impossible, even though either way alone would give it some of the time."
+  truth: "Not always in quantum physics. When nothing records which way, each way adds an amplitude, not a chance, and amplitudes can cancel. With two ways open and unrecorded, a result can become impossible, even though either way alone would give it some of the time."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -13,7 +13,7 @@ import TwoWays from '../../components/tools/TwoWays.astro';
 
 Drop two pebbles in a pond. Where a bump from one meets a bump from the other, the water rises higher. Where a bump meets a dip, the water goes flat.
 
-A qubit does something like this. Start a qubit as 0. There can be two ways for it to end up as 1, and each way has a number called an amplitude. The two amplitudes add, like the bumps and dips. When they line up, the result 1 shows up more. When one is a bump and the other a dip, they cancel, and 1 never shows up, even though either way alone would give it now and then.
+A qubit does something like this. Start a qubit as 0. There can be two ways for it to end up as 1, and each way has a number called an amplitude. If nothing marks which way the qubit went, the two amplitudes add, like the bumps and dips. When they line up, the result 1 shows up more. When one is a bump and the other a dip, they cancel, and 1 never shows up, even though either way alone would give it now and then.
 
 The pond picture breaks in two places. You never see the amplitudes: each run gives just one result, one dot, and only a pile of many dots shows where the ways added up or cancelled. And there is one qubit, not two pebbles: its two ways cancel each other.
 
@@ -25,9 +25,9 @@ Start a qubit as 0 and apply a Hadamard gate: the amplitudes for 0 and for 1 are
 
 So each result has two ways in: through 0 in the middle, or through 1. Each way has amplitude 0.71 × 0.71 ≈ 0.5 in size, so alone, with the other way blocked (the qubit is lost there half the time), it would give chance 0.5² = 25%. If chances added, each result would get 50%.
 
-But amplitudes add, like arrows with a length and an angle. At φ = 0, both arrows for result 0 point the same way: 0.5 + 0.5 = 1, so you always get 0. For result 1, the second Hadamard puts a minus sign on the way through 1: 0.5 − 0.5 = 0, so 1 never shows up. At φ = 180° the results swap.
+But when nothing records the way, amplitudes add, like arrows with a length and an angle. At φ = 0, both arrows for result 0 point the same way: 0.5 + 0.5 = 1, so you always get 0. For result 1, the second Hadamard puts a minus sign on the way through 1: 0.5 − 0.5 = 0, so 1 never shows up. At φ = 180° the results swap.
 
-Only the angle between the ways, the relative phase, matters. Turn every arrow by the same angle, a global phase, and nothing changes.
+If something did record the way, chances would add: 50% for each result, at every φ. With no record, only the angle between the ways, the relative phase, matters. Turn every arrow by the same angle, a global phase, and nothing changes.
 
 </Depth>
 
@@ -49,7 +49,7 @@ so $P(0) = \cos^2(\varphi/2)$ and $P(1) = \sin^2(\varphi/2)$. For two paths with
 
 Only the relative phase $\varphi$ between the paths enters. A global phase multiplies every path alike and drops out of $|\cdot|^2$. In fact $H P(\varphi) H = e^{i\varphi/2} R_X(\varphi)$, so the final state is $\cos(\varphi/2)|0\rangle - i\sin(\varphi/2)|1\rangle$ up to a global phase.
 
-If something keeps a full record of the middle value, the paths can be told apart, the interference term vanishes, and you get the classical $\tfrac{1}{2}$. See [Mach-Zehnder interferometer](/learn/mach-zehnder/) and [Double slit](/learn/double-slit/).
+Adding amplitudes needs coherent ways with no record of which one. If something keeps a full, orthogonal record of the middle value, the paths can be told apart, the interference term vanishes, and the chances add: $\tfrac{1}{2}$. Nobody has to read the record. See [Mach-Zehnder interferometer](/learn/mach-zehnder/), [Double slit](/learn/double-slit/) and [decoherence](/learn/decoherence/).
 
 </Depth>
 
