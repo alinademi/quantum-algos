@@ -22,7 +22,7 @@ This gives four different ways to link two ideal qubits. The dice picture breaks
 
 The four Bell states are entangled two-qubit states made using H on the first qubit and [CNOT](/learn/cnot/). Started as 00, there are equal amplitudes for 00 and 11, so a measurement gives either with equal chance, never 01 or 10. Started as 10, the 11 amplitude has the opposite sign. Started as 01 or 11, the nonzero amplitudes are for 01 and 10, with plus or minus signs.
 
-The four states form a basis. Reverse the preparation, CNOT then [H](/learn/hadamard/), and measure both wires: each Bell state gives its distinct original label with certainty. This is a Bell-basis measurement.
+Their agreement depends on the measurement basis: Φ− agrees in Z but disagrees in X. The four states form a basis. Reverse the preparation, CNOT then [H](/learn/hadamard/), and measure both wires: each Bell state gives its distinct original label with certainty. This is a Bell-basis measurement.
 
 </Depth>
 
@@ -34,6 +34,6 @@ The maximal mixing of each reduced state is a signature of maximal pure-state [e
 
 </Depth>
 
-<Lab title="Prepare and decode the Bell basis" intro="Choose a two-bit label and step through the preparation or its inverse to see the amplitudes.">
+<Lab title="Prepare and decode the Bell basis" intro="Choose a Bell label, decode it or compare its correlations when measuring both wires in Z and X.">
   <GateLab id="bell-states" lab={lab} />
 </Lab>
