@@ -1,0 +1,257 @@
+---
+// Four common noise channels on one qubit: the image of the Bloch sphere under each channel's Kraus operators, where it sends
+// one start state, and 100 fresh copies measured in that start state's basis with Born-rule odds. Ideal channels, exact math.
+import { CHANNELS, STARTS, COPIES, STRENGTH, YAW, describe, valueText, vecText, startPoint, after, lenText, keepChance, percents, strength, type Channel } from '../../lib/sims/noise-channels.ts';
+const uid = 'nc-' + Math.random().toString(36).slice(2, 8);
+const CH0: Channel = 'bit', S0 = 0, P0 = STRENGTH.start / 100;
+const v0 = startPoint(S0), w0 = after(CH0, P0, v0);
+---
+<qce-noise-channels class="tool">
+  <div class="cols">
+    <canvas aria-hidden="true"></canvas>
+    <p class="key">A picture of the Bloch ball, not a measurement. Faint dots draw its surface: every pure state. The larger dots show where the noise sends each of them, so they outline what is left of the ball. The ring is the start state; the large dot is where the noise leaves it, and the line from the center is its Bloch vector (length 1 for a pure state, 0 for the fully mixed state at the center). Each of the {COPIES} dots below is one fresh copy: started in the start state, sent through the noise, measured once in the start state's basis. Filled gave the start state, open gave the opposite one. Each copy keeps its own random draw, so the slider flips dots instead of re-rolling them. These are ideal textbook channels; real devices mix them. You can start only from the six states at the ends of the axes. Drag the ball, or use Turn. Numbers are rounded.</p>
+
+    <div class="tool-controls">
+      <fieldset>
+        <legend class="label">The noise</legend>
+        <div class="choices">
+          {(Object.keys(CHANNELS) as Channel[]).map((ch) => (
+            <label><input type="radio" name={`${uid}-ch`} value={ch} data-ch checked={ch === CH0} />{CHANNELS[ch].name}</label>
+          ))}
+        </div>
+        <p class="what" data-what>{CHANNELS[CH0].what}</p>
+        <div class="slider">
+          <div class="row"><label for={`${uid}-p`} data-plabel>{CHANNELS[CH0].slider}</label><output for={`${uid}-p`} aria-live="off" data-out="p">{strength(P0)}</output></div>
+          <input id={`${uid}-p`} name="p" type="range" min={STRENGTH.min} max={STRENGTH.max} step={STRENGTH.step} value={STRENGTH.start} aria-valuetext={valueText(CH0, P0, S0)} />
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend class="label">Start state</legend>
+        <div class="choices starts">
+          {STARTS.map((s, i) => (
+            <label><input type="radio" name={`${uid}-st`} value={i} data-st checked={i === S0} /><span>{s.name}</span></label>
+          ))}
+        </div>
+      </fieldset>
+
+      <dl class="views">
+        <div><dt class="label">Start point (x, y, z)</dt><dd><code data-before>{vecText(v0)}</code></dd></div>
+        <div><dt class="label">After the noise</dt><dd><code data-after>{vecText(w0)}</code>, length <code data-len>{lenText(w0)}</code></dd></div>
+        <div><dt class="label">Chance a copy gives the start state</dt><dd><code data-keep>{percents(keepChance(CH0, P0, S0))[0]}</code></dd></div>
+      </dl>
+
+      <div class="slider">
+        <div class="row"><label for={`${uid}-y`}>Turn</label><output for={`${uid}-y`} aria-live="off" data-out="turn">{YAW}°</output></div>
+        <input id={`${uid}-y`} name="turn" type="range" min="0" max="359" step="1" value={YAW} aria-valuetext={`${YAW} degrees`} />
+      </div>
+
+      <button type="button" class="btn btn-sm btn-line again">Measure {COPIES} new copies</button>
+    </div>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">{describe(CH0, P0, S0)}</p>
+</qce-noise-channels>
+
+<script>
+  import {
+    CHANNELS, STARTS, COPIES, TILT, after, startPoint, keepChance, results, kept, describe, valueText, vecText, lenText,
+    percents, strength, camera, project, spherePoints, wrap, type Channel, type Vec,
+  } from '../../lib/sims/noise-channels.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  // Drawing only: these dots draw the sphere and its axes. They are not states or shots.
+  const SURFACE = spherePoints(640);
+  const AXES: Vec[] = [];
+  for (let k = 0; k < 3; k++) for (let i = -20; i <= 20; i++) { const v: Vec = [0, 0, 0]; v[k] = i / 20; AXES.push(v); }
+  const ROWS = 5, COLS = COPIES / ROWS, FILL = 700; // FILL: ms for a new batch to arrive
+  const ORIGIN: Vec = [0, 0, 0];
+  const times = (v: Vec, k: number): Vec => [v[0] * k, v[1] * k, v[2] * k];
+
+  type Item = { d: number; x: number; y: number; r: number; color: string; a: number; kind: 'dot' | 'ring' | 'halo' };
+
+  class NoiseChannels extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const canvas = $<HTMLCanvasElement>('canvas');
+      const pIn = $<HTMLInputElement>('input[name="p"]'), yIn = $<HTMLInputElement>('input[name="turn"]');
+      const pOut = $('[data-out="p"]'), yOut = $('[data-out="turn"]'), pLabel = $('[data-plabel]'), what = $('[data-what]');
+      const beforeEl = $('[data-before]'), afterEl = $('[data-after]'), lenEl = $('[data-len]'), keepEl = $('[data-keep]');
+      const readout = $('.tool-readout'), again = $<HTMLButtonElement>('.again');
+      const chs = [...this.querySelectorAll<HTMLInputElement>('[data-ch]')], sts = [...this.querySelectorAll<HTMLInputElement>('[data-st]')];
+
+      let ctx: CanvasRenderingContext2D | null = null, w = 0, h = 0, col = palette();
+      let ch = (chs.find((r) => r.checked)?.value ?? 'bit') as Channel, st = Number(sts.find((r) => r.checked)?.value ?? 0);
+      let k = Number(pIn.value), yaw = Number(yIn.value);
+      // One fixed uniform draw per copy, so the batch stays the same batch while the settings move.
+      let us = Array.from({ length: COPIES }, () => Math.random());
+      let image: Vec[] = [], shots: boolean[] = [], shown = COPIES, seen = false, anim = 0, pending = 0;
+      const p = () => k / 100;
+
+      function draw() {
+        if (!ctx || !w) return;
+        const g = ctx, cx = w / 2, cy = w / 2, R = w / 2 - (14 + 0.07 * w), u = R / 100;
+        const cam = camera(yaw, TILT), items: Item[] = [];
+        const put = (v: Vec, r: number, color: string, a = 1, lift = 0, kind: Item['kind'] = 'dot') => {
+          const s = project(v, cam);
+          items.push({ d: s.depth + lift, x: cx + R * s.x, y: cy - R * s.y, r, color, a, kind });
+        };
+        const shade = (v: Vec, back: number, front: number) => back + ((front - back) * (project(v, cam).depth + 1)) / 2;
+        const line = (a: Vec, b: Vec, r: number, color: string, a0: number, per = 24) => {
+          const n = Math.max(2, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) * per));
+          for (let i = 0; i <= n; i++) { const f = i / n; put([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f], r, color, a0, 0.001); }
+        };
+        g.clearRect(0, 0, w, h);
+
+        // The sphere of pure states: an outline, faint surface dots and the three axes.
+        for (let i = 0; i < 144; i++) dot(g, cx + R * Math.cos((i * Math.PI) / 72), cy + R * Math.sin((i * Math.PI) / 72), Math.max(0.6, u * 0.6), col.rule);
+        for (const v of SURFACE) put(v, Math.max(0.6, u * 0.75), col.ink2, shade(v, 0.08, 0.32));
+        for (const v of AXES) put(v, Math.max(0.7, u * 0.85), col.ink2, shade(v, 0.25, 0.7));
+
+        // What the noise leaves: the image of every surface point, from the Kraus operators.
+        for (const v of image) put(v, Math.max(0.9, u * 1.3), col.signal, shade(v, 0.3, 0.9), 0.0005);
+
+        // The start state (a ring) and where the noise leaves it (a large dot), with its Bloch vector from the center.
+        const v0 = startPoint(st), v1 = after(ch, p(), v0), r1 = Math.max(4, u * 5.5);
+        line(ORIGIN, v1, Math.max(1, u * 1.4), col.signal, 1);
+        if (Math.hypot(v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]) > 0.05) line(v0, v1, Math.max(0.8, u * 1.1), col.hot, 0.9, 12);
+        put(v0, r1 + 4, col.ink, 1, 0.05, 'ring');
+        put(v1, r1, col.signal, 1, 0.06, 'halo');
+
+        items.sort((a, b) => a.d - b.d);
+        for (const it of items) {
+          g.globalAlpha = it.a;
+          if (it.kind === 'ring') { g.lineWidth = Math.max(1.5, u * 1.6); g.strokeStyle = it.color; g.beginPath(); g.arc(it.x, it.y, it.r, 0, Math.PI * 2); g.stroke(); continue; }
+          if (it.kind === 'halo') dot(g, it.x, it.y, it.r + 2, col.plate);
+          dot(g, it.x, it.y, it.r, it.color);
+        }
+        g.globalAlpha = 1;
+
+        // Labels: the six start states at the axis ends. A label never covers the ring or the large dot:
+        // it slides outward from the center until it clears them.
+        const fs = Math.round(Math.min(14, Math.max(11, R * 0.11)));
+        const screen = (v: Vec) => { const s = project(v, cam); return [cx + R * s.x, cy - R * s.y]; };
+        const avoid = [[...screen(v0), r1 + 6], [...screen(v1), r1 + 4]];
+        g.font = `500 ${fs}px ${token('--mono')}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+        STARTS.forEach((s, i) => {
+          const half = g.measureText(s.name).width / 2 + 2;
+          let [lx, ly] = screen(times(startPoint(i), 1.2));
+          const len = Math.hypot(lx - cx, ly - cy) || 1, ux = (lx - cx) / len || 0, uy = (ly - cy) / len || -1;
+          const hit = () => avoid.some(([ax, ay, ar]) => Math.abs(lx - ax) < half + ar && Math.abs(ly - ay) < fs / 2 + ar);
+          for (let n = 0; n < 24 && hit(); n++) { lx += ux * 3; ly += uy * 3; }
+          const x = Math.min(w - half, Math.max(half, lx)), y = Math.min(w - fs, Math.max(fs, ly));
+          g.lineWidth = 4; g.lineJoin = 'round'; g.strokeStyle = col.plate; g.strokeText(s.name, x, y);
+          g.fillStyle = col.ink; g.fillText(s.name, x, y);
+        });
+
+        // The batch: one dot per fresh copy measured once. Filled gave the start state, open gave the opposite one.
+        const top = w + 4, pitch = Math.min((w - 16) / COLS, (h - top - 4) / ROWS, 16), r = pitch * 0.36;
+        const x0 = (w - COLS * pitch) / 2 + pitch / 2;
+        g.lineWidth = Math.max(1, pitch * 0.12); g.strokeStyle = col.ink2;
+        shots.forEach((s, i) => {
+          const x = x0 + (i % COLS) * pitch, y = top + (Math.floor(i / COLS) + 0.5) * pitch;
+          if (i >= shown) dot(g, x, y, r * 0.35, col.rule);
+          else if (s) dot(g, x, y, r, col.signal);
+          else { g.beginPath(); g.arc(x, y, r - g.lineWidth / 2, 0, Math.PI * 2); g.stroke(); }
+        });
+      }
+
+      const redraw = () => { if (!pending) pending = requestAnimationFrame(() => { pending = 0; draw(); }); };
+      const say = () => { readout.textContent = describe(ch, p(), st, shown === COPIES ? kept(shots) : undefined); };
+      const stop = () => { if (anim) { cancelAnimationFrame(anim); anim = 0; } shown = COPIES; };
+
+      // New settings: recompute the picture, the numbers and the batch. The spoken readout is left to say().
+      const show = () => {
+        stop();
+        const v0 = startPoint(st), v1 = after(ch, p(), v0), keep = keepChance(ch, p(), st);
+        image = SURFACE.map((v) => after(ch, p(), v));
+        shots = results(us, keep);
+        pIn.value = String(k); pOut.textContent = strength(p());
+        pIn.setAttribute('aria-valuetext', valueText(ch, p(), st));
+        pLabel.textContent = CHANNELS[ch].slider; what.textContent = CHANNELS[ch].what;
+        beforeEl.textContent = vecText(v0); afterEl.textContent = vecText(v1); lenEl.textContent = lenText(v1);
+        keepEl.textContent = percents(keep)[0];
+        draw();
+      };
+
+      const showView = () => {
+        yIn.value = String(wrap(Math.round(yaw))); yOut.textContent = `${yIn.value}°`;
+        yIn.setAttribute('aria-valuetext', `${yIn.value} degrees`);
+      };
+
+      // A new batch arrives copy by copy, unless the reader asked for less motion or the tool is off screen.
+      const measure = () => {
+        stop();
+        us = us.map(() => Math.random());
+        shots = results(us, keepChance(ch, p(), st));
+        if (reduceMotion() || !seen) { draw(); say(); return; }
+        shown = 0;
+        const t0 = performance.now();
+        const step = (now: number) => {
+          shown = Math.min(COPIES, Math.floor(((now - t0) / FILL) * COPIES));
+          draw();
+          if (shown < COPIES) anim = requestAnimationFrame(step); else { anim = 0; say(); }
+        };
+        anim = requestAnimationFrame(step);
+      };
+
+      chs.forEach((r) => r.addEventListener('change', () => { if (r.checked) { ch = r.value as Channel; show(); say(); } }));
+      sts.forEach((r) => r.addEventListener('change', () => { if (r.checked) { st = Number(r.value); show(); say(); } }));
+      pIn.addEventListener('input', () => { k = Number(pIn.value); show(); });
+      // Say the new setup once the reader lets go, not at every step of a drag.
+      pIn.addEventListener('change', say);
+      yIn.addEventListener('input', () => { yaw = Number(yIn.value); showView(); redraw(); });
+      again.addEventListener('click', measure);
+
+      // Drag sideways to turn the ball. The Turn slider does the same by keyboard. Up and down scrolls the page.
+      let drag: number | null = null;
+      canvas.addEventListener('pointerdown', (e) => { drag = e.clientX; canvas.setPointerCapture(e.pointerId); });
+      canvas.addEventListener('pointermove', (e) => {
+        if (drag === null) return;
+        yaw = wrap(yaw - (e.clientX - drag) * 0.6); drag = e.clientX;
+        showView(); redraw();
+      });
+      for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.addEventListener(t, () => { drag = null; });
+
+      const size = () => { ({ ctx, w, h } = fit(canvas)); draw(); };
+      onResize(canvas, size);
+      onTheme(() => { col = palette(); draw(); });
+      // Off screen, a batch in flight lands at once and is read out.
+      onSeen(this, (v) => { seen = v; if (!v && anim) { stop(); draw(); say(); } });
+      showView(); size(); show(); say();
+    }
+  }
+  customElements.define('qce-noise-channels', NoiseChannels);
+</script>
+
+<style>
+  qce-noise-channels { display: grid; container-type: inline-size }
+  /* Narrow: the picture, then the controls, then the key, so the ball stays near the slider. Wide: the key under the picture. */
+  .cols { display: grid; gap: var(--s4); min-width: 0; grid-template-areas: "pic" "ctl" "key" }
+  canvas { grid-area: pic; aspect-ratio: 4 / 5; max-width: 26rem; justify-self: center; touch-action: pan-y; cursor: grab }
+  canvas:active { cursor: grabbing }
+  .key { grid-area: key; font-size: .875rem; color: var(--ink-2); max-width: var(--read) }
+  .tool-controls { grid-area: ctl; display: grid; gap: var(--s4); align-content: start; align-items: start; min-width: 0 }
+  fieldset { display: grid; gap: var(--s3); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { padding: 0; margin-bottom: var(--s2) }
+  .choices { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .choices label { display: inline-flex; align-items: center; gap: var(--s2); min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font-weight: 500; cursor: pointer }
+  .choices label:hover { border-color: var(--ink) }
+  .choices label:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink) }
+  .choices input { flex: none; width: 1.125rem; height: 1.125rem; margin: 0; accent-color: var(--signal) }
+  .starts span { font: 500 1rem var(--mono) }
+  .what { font-size: .9375rem; color: var(--ink-2); max-width: var(--read); min-height: 3em }
+  .slider { display: grid; gap: var(--s1); min-width: 0 }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2) }
+  .row output { flex: none; font-size: 1.25rem }
+  .views { display: grid; gap: var(--s3); margin: 0 }
+  .views div { display: grid; gap: var(--s1); min-width: 0 }
+  dd { margin: 0; font-size: 1.0625rem; overflow-wrap: anywhere }
+  .again { justify-self: start }
+  .tool-readout { min-height: 9.6em }
+  @container (min-width: 38rem) {
+    .cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "pic ctl" "key ctl"; column-gap: var(--s5); align-items: start }
+    canvas { max-width: none }
+    .tool-readout { min-height: 6.4em }
+  }
+</style>
