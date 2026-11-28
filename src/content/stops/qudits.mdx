@@ -1,0 +1,66 @@
+---
+description: "What is a qudit? A quantum unit with d levels, not just 2. See how amplitudes, gates and cancelling change for qutrits and up."
+answer: "A qudit is a quantum system with d levels instead of a qubit's two; a qutrit has three. Its state has one amplitude per level, and a measurement gives one level, each with chance |amplitude|²."
+myth:
+  claim: "Qudits can compute things that qubits cannot."
+  truth: "Store each qudit in a few qubits and any qudit circuit can be rebuilt from qubit gates. Qudits can save parts and steps, but they compute the same things."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import QuditSteps from '../../components/tools/QuditSteps.astro';
+
+<Depth level="kid">
+
+A bit is like a light switch: off or on. A qudit is more like a dial with d clicks. A qubit has 2 clicks, a qutrit has 3.
+
+Here the picture breaks: a dial sits on one click. A qudit keeps a number called an amplitude for each click, and the amplitudes set the odds. Measure it and you get just one click.
+
+Start a qutrit as 0 and send it through a Fourier gate. Now its three amplitudes are equal, so a measurement gives 0, 1 or 2, each with the same chance.
+
+Picture each amplitude as an arrow. When the arrows for one result add up, two same-size arrows pointing opposite ways cancel. In a qutrit, three same-size arrows a third of a turn apart cancel too. The arrows are only a picture; you only ever see results.
+
+A few qubits can do anything a qudit does. A qudit can just need fewer parts.
+
+</Depth>
+
+<Depth level="student">
+
+A qubit has two levels, 0 and 1. A qudit has $d$ levels, 0 to $d-1$; with $d = 3$ it is a qutrit. An atom has many energy levels; a qubit uses two.
+
+A qutrit's state is $a|0\rangle + b|1\rangle + c|2\rangle$: one amplitude per level. The chance of each result is |amplitude|², and the three chances add up to 100%. A measurement gives one level.
+
+Started as 0, a Fourier gate (the qutrit's Hadamard gate) gives three equal amplitudes, $1/\sqrt{3} \approx 0.58$ each, so a measurement gives 0, 1 or 2, each with chance 1/3.
+
+Amplitudes can cancel in a new way: three contributions of the same size, 120° apart, add to zero, though no two point opposite ways. That is [interference](/learn/interference/) with three parts. A phase gate turns the amplitudes but keeps their size, so measuring right away still gives 1/3 each. A gate, then a measurement, tells the phases apart.
+
+Each qudit fits in a few qubits, so qudits compute nothing new. They can save parts and steps.
+
+</Depth>
+
+<Depth level="engineer">
+
+A qudit is a unit vector in $\mathbb{C}^d$:
+
+$$
+|\psi\rangle = \sum_{j=0}^{d-1} \alpha_j |j\rangle
+$$
+
+with $\sum_j |\alpha_j|^2 = 1$. A standard-basis measurement gives $j$ with probability $|\alpha_j|^2$. Up to a global phase, a pure state needs $2(d-1)$ real numbers: 2 for a qubit (the [Bloch sphere](/learn/bloch/)), 4 for a qutrit, so the sphere has no simple qutrit version. $n$ qudits span $d^n$ dimensions.
+
+With $\omega = e^{2\pi i/d}$, the Pauli gates become the shift $X|j\rangle = |j+1 \bmod d\rangle$ and the clock $Z|j\rangle = \omega^j|j\rangle$, with $ZX = \omega XZ$. The Hadamard becomes the Fourier gate:
+
+$$
+F|j\rangle = \frac{1}{\sqrt{d}} \sum_{k=0}^{d-1} \omega^{jk}|k\rangle
+$$
+
+For $d = 2$ these are $X$, $Z$ and $H$. For $d \ge 3$, $F$ is not its own inverse: $F^2|j\rangle = |{-j} \bmod d\rangle$ and $F^4 = I$.
+
+Cancellation changes shape. Since $\sum_{j=0}^{d-1} \omega^{jm} = 0$ unless $d$ divides $m$ ([roots of unity](/learn/roots-of-unity/)), $F^\dagger Z^m F = X^m$: started as $|0\rangle$, the circuit $F$, $Z^m$, $F^\dagger$ gives $m$ every time with ideal gates. Measured right after $Z^m$, every result has chance $1/d$: the phases alone show nothing, and $F^\dagger$ turns them into a result. For a qutrit, $1 + \omega + \omega^2 = 0$: three terms cancel with no two opposite.
+
+Each qudit fits in $\lceil \log_2 d \rceil$ qubits, so qudits compute nothing qubits cannot. They can save carriers and gates: a third level on the target shortens the [Toffoli gate](/learn/toffoli/). The costs can include harder gates, benchmarking and error correction (Wang et al. 2020, [arXiv:2008.00959](https://arxiv.org/abs/2008.00959)).
+
+</Depth>
+
+<Lab title="Step the phases of a qudit" intro="The qudit started as 0, then a Fourier gate. Pick d and a phase step, and see which results the inverse Fourier gate keeps and which cancel.">
+  <QuditSteps />
+</Lab>

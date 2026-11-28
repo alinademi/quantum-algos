@@ -1,0 +1,236 @@
+---
+// A qudit with d levels, started as 0, then a Fourier gate, a phase step and, if chosen, the inverse Fourier gate.
+// Each ring draws the amplitude for one result as its contributions head to tail; each dot is one copy measured
+// with the exact Born-rule odds from sims/qudits.ts.
+import { LEVELS, SHOTS, STEP, START, presets, kind, readout, valueText, circuitText } from '../../lib/sims/qudits.ts';
+const uid = 'qd-' + Math.random().toString(36).slice(2, 8);
+---
+<qce-qudit-steps class="tool">
+  <svg class="circuit" viewBox="0 0 300 56" role="img" aria-label={circuitText(START.deg, START.undo)}>
+    <text x="0" y="33">|0⟩</text>
+    <path class="wire" d="M34 28H246" />
+    <rect x="42" y="10" width="38" height="36" rx="5" /><text x="61" y="33" text-anchor="middle">F</text>
+    <rect x="90" y="10" width="96" height="36" rx="5" /><text x="138" y="33" text-anchor="middle" data-gate-step>step {START.deg}°</text>
+    <g data-gate-undo><rect x="196" y="10" width="40" height="36" rx="5" /><text x="216" y="33" text-anchor="middle">F†</text></g>
+    <rect x="246" y="10" width="46" height="36" rx="5" /><path class="meter" d="M256 38a13 13 0 0 1 26 0M269 38l7-13" />
+  </svg>
+
+  <div class="tool-controls">
+    <fieldset>
+      <legend class="label">Levels</legend>
+      {LEVELS.map((d) => <label><input type="radio" name={`${uid}-d`} value={d} checked={d === START.d} /> d = {d}{d < 4 ? `, ${kind(d)}` : ''}</label>)}
+    </fieldset>
+    <fieldset>
+      <legend class="label">Before measuring</legend>
+      <label><input type="radio" name={`${uid}-undo`} value="1" checked={START.undo} /> Inverse Fourier gate</label>
+      <label><input type="radio" name={`${uid}-undo`} value="0" checked={!START.undo} /> Nothing</label>
+    </fieldset>
+  </div>
+
+  <div class="step">
+    <div class="row">
+      <label for={`${uid}-step`}>Phase step: level j turns by j × step</label>
+      <output for={`${uid}-step`}>{START.deg}°</output>
+    </div>
+    <input id={`${uid}-step`} type="range" min={STEP.min} max={STEP.max} step={STEP.step} value={START.deg} aria-valuetext={valueText(START.d, START.deg, START.undo)} />
+    {LEVELS.map((d) => (
+      <div class="presets" role="group" aria-label={`Clock steps for d = ${d}: multiples of 360°/${d}`} data-for={d} hidden={d !== START.d}>
+        {presets(d).map((deg) => <button type="button" data-deg={deg} aria-pressed={String(d === START.d && deg === START.deg)}>{deg}°</button>)}
+      </div>
+    ))}
+  </div>
+
+  <figure>
+    <canvas aria-hidden="true"></canvas>
+    <figcaption>
+      Before the last gate, this is a picture of amplitudes, not something you can measure. Each ring belongs to one result, and the ring is size 1.
+      The thick blue arrow with a big dot at its tip is the amplitude for that result. After the inverse Fourier gate it is the sum of d thin contributions, drawn head to tail.
+      Each dot in the piles below is one fresh copy, measured once, with Born-rule odds |amplitude|². Under each pile: the result, then how many copies gave it.
+      The dashed line marks the Born-rule prediction for {SHOTS} copies. Each copy keeps its own random draw, so a dot moves only when the odds change.
+      This tool makes only states with equal-size amplitudes and evenly stepped phases. A qudit can hold any d amplitudes whose |amplitude|² add to 1.
+    </figcaption>
+  </figure>
+
+  <button class="btn btn-line" type="button" data-new>New batch of {SHOTS} copies</button>
+  <p class="tool-readout" aria-live="polite">{readout(START.d, START.deg, START.undo)}</p>
+</qce-qudit-steps>
+
+<script>
+  import { abs, type C } from '../../lib/quantum.ts';
+  import { SHOTS, START, layout, odds, contributions, chain, tally, carryStep, readout, valueText, circuitText, type Layout } from '../../lib/sims/qudits.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot, pct } from '../../lib/draw.ts';
+
+  type Colors = ReturnType<typeof palette>;
+  const REVEAL = 12; // ms per copy as a new batch appears
+  const TAU = Math.PI * 2;
+
+  /** A dotted line from (x0, y0) to (x1, y1). */
+  function line(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, gap: number, r: number, color: string) {
+    const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / gap));
+    for (let k = 0; k <= n; k++) dot(ctx, x0 + ((x1 - x0) * k) / n, y0 + ((y1 - y0) * k) / n, r, color);
+  }
+
+  /** A dotted ring of radius R. */
+  function ring(ctx: CanvasRenderingContext2D, cx: number, cy: number, R: number, r: number, color: string) {
+    const n = Math.max(24, Math.round((TAU * R) / 5));
+    for (let k = 0; k < n; k++) dot(ctx, cx + R * Math.cos((k * TAU) / n), cy + R * Math.sin((k * TAU) / n), r, color);
+  }
+
+  class QuditSteps extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const canvas = $<HTMLCanvasElement>('canvas'), slider = $<HTMLInputElement>('input[type="range"]'), out = $<HTMLOutputElement>('output');
+      const say = $('.tool-readout'), circuit = $<SVGSVGElement>('.circuit'), stepText = $('[data-gate-step]'), undoGate = $<SVGGElement>('[data-gate-undo]');
+      const levels = [...this.querySelectorAll<HTMLInputElement>('input[name$="-d"]')];
+      const modes = [...this.querySelectorAll<HTMLInputElement>('input[name$="-undo"]')];
+      const groups = [...this.querySelectorAll<HTMLElement>('.presets')];
+      const still = reduceMotion();
+      const fresh = () => Array.from({ length: SHOTS }, () => Math.random());
+
+      let d: number = START.d, deg: number = START.deg, undo: boolean = START.undo;
+      let us = fresh(); // one fixed uniform draw per copy
+      let shown = still ? SHOTS : 0, credit = 0, raf = 0, last = 0, seen = false;
+      let hush = true; // the first batch fills in quietly; the readout speaks after the reader acts
+      let ctx = canvas.getContext('2d')!, L: Layout | null = null, col: Colors = palette(), mono = token('--mono');
+
+      const text = (s: string, x: number, y: number, color: string, weight = 500) => {
+        ctx.font = `${weight} 12px ${mono}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = color;
+        ctx.fillText(s, x, y);
+      };
+
+      /** One ring: the amplitude for result k, as its parts head to tail and the sum from the center. */
+      const amplitude = (k: number, p: number) => {
+        const { at, R, labelY } = L!.rings, [cx, cy] = at[k];
+        ring(ctx, cx, cy, R, 0.9, col.rule);
+        const pts = chain(contributions(d, deg, k, undo)), xy = (a: C): [number, number] => [cx + a.re * R, cy - a.im * R];
+        // The sum first: a thick arrow from the center, or a small open ring when it is 0.
+        const end = pts[pts.length - 1], [ex, ey] = xy(end);
+        if (abs(end) * R > 1.5) { line(ctx, cx, cy, ex, ey, 3.5, 1.7, col.signal); dot(ctx, ex, ey, 4.5, col.signal); }
+        else { ctx.strokeStyle = col.signal; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx, cy, 5, 0, TAU); ctx.stroke(); }
+        // Then the contributions on top, thin, head to tail, with a dot where each one ends.
+        if (undo) {
+          for (let i = 0; i + 1 < pts.length; i++) {
+            const [x0, y0] = xy(pts[i]), [x1, y1] = xy(pts[i + 1]);
+            line(ctx, x0, y0, x1, y1, 2.2, 0.7, col.ink);
+            dot(ctx, x1, y1, 1.7, col.ink);
+          }
+        }
+        dot(ctx, cx, cy, 1.8, col.ink);
+        text(`${k}: ${pct(p)}`, cx, labelY[k], col.ink, 600);
+      };
+
+      /** One pile: the copies that gave result k, filled row by row from the base, and the Born-rule prediction. */
+      const pile = (k: number, n: number, p: number) => {
+        const g = L!.piles, x0 = g.x[k], wide = g.cols * g.pitch, r = Math.max(0.9, g.pitch * 0.36);
+        for (let j = 0; j < n; j++) dot(ctx, x0 + ((j % g.cols) + 0.5) * g.pitch, g.base - (Math.floor(j / g.cols) + 0.5) * g.pitch, r, col.signal);
+        ctx.fillStyle = col.rule; ctx.fillRect(x0, g.base + 1, wide, 1);
+        const y = g.base - ((SHOTS * p) / g.cols) * g.pitch;
+        ctx.strokeStyle = col.ink; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+        ctx.beginPath(); ctx.moveTo(x0 - 3, y); ctx.lineTo(x0 + wide + 3, y); ctx.stroke(); ctx.setLineDash([]);
+        text(String(k), x0 + wide / 2, g.labelY, col.ink, 600);
+        text(String(n), x0 + wide / 2, g.labelY + 16, col.ink2);
+      };
+
+      const paint = () => {
+        if (!L) return;
+        const p = odds(d, deg, undo), n = tally(us, p, shown);
+        ctx.clearRect(0, 0, L.w, L.h);
+        for (let k = 0; k < d; k++) { amplitude(k, p[k]); pile(k, n[k], p[k]); }
+      };
+
+      const size = () => {
+        const w = canvas.getBoundingClientRect().width;
+        if (!w) return;
+        L = layout(w, d);
+        canvas.style.height = `${L.h}px`;
+        ({ ctx } = fit(canvas));
+        col = palette(); mono = token('--mono');
+        paint();
+      };
+
+      // The readout speaks once a batch is complete: on release of the slider, a button press or a new choice.
+      const speak = () => { if (!hush && shown >= SHOTS) say.textContent = readout(d, deg, undo, tally(us, odds(d, deg, undo))); };
+
+      const step = (now: number) => {
+        raf = 0;
+        credit += Math.max(0, Math.min(64, now - last)) / REVEAL; last = now;
+        const k = Math.floor(credit); credit -= k;
+        shown = Math.min(SHOTS, shown + k);
+        paint();
+        if (shown < SHOTS) { if (seen) raf = requestAnimationFrame(step); }
+        else speak();
+      };
+      const kick = () => { if (!raf && seen && shown < SHOTS) { last = performance.now(); raf = requestAnimationFrame(step); } };
+
+      const sync = () => {
+        slider.value = String(deg); out.textContent = `${deg}°`;
+        slider.setAttribute('aria-valuetext', valueText(d, deg, undo));
+        groups.forEach((g) => {
+          const mine = Number(g.dataset.for) === d;
+          g.hidden = !mine;
+          g.querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.setAttribute('aria-pressed', String(mine && Number(b.dataset.deg) === deg)));
+        });
+        stepText.textContent = `step ${deg}°`;
+        undoGate.style.display = undo ? '' : 'none';
+        circuit.setAttribute('aria-label', circuitText(deg, undo));
+        paint();
+      };
+
+      slider.addEventListener('input', () => { deg = Number(slider.value); sync(); });
+      slider.addEventListener('change', () => { hush = false; speak(); });
+      groups.forEach((g) => g.addEventListener('click', (e) => {
+        const b = (e.target as Element).closest<HTMLButtonElement>('button[data-deg]');
+        if (!b) return;
+        deg = Number(b.dataset.deg); hush = false; sync(); speak();
+      }));
+      levels.forEach((r) => r.addEventListener('change', () => {
+        if (!r.checked) return;
+        const next = Number(r.value);
+        deg = carryStep(d, next, deg); d = next; hush = false;
+        size(); sync(); speak();
+      }));
+      modes.forEach((r) => r.addEventListener('change', () => { if (r.checked) { undo = r.value === '1'; hush = false; sync(); speak(); } }));
+      $('[data-new]').addEventListener('click', () => {
+        us = fresh(); hush = false;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        shown = still ? SHOTS : 0; credit = 0;
+        paint();
+        if (still) speak(); else kick();
+      });
+
+      onResize(this, size);
+      onTheme(size);
+      onSeen(this, (v) => { seen = v; if (v) kick(); });
+      size(); sync();
+    }
+  }
+  customElements.define('qce-qudit-steps', QuditSteps);
+</script>
+
+<style>
+  .circuit { width: 100%; max-width: 22rem; height: auto }
+  .circuit text { fill: var(--ink); font: 500 15px var(--mono) }
+  .circuit rect { fill: var(--paper); stroke: var(--ink); stroke-width: 2 }
+  .wire, .meter { fill: none; stroke: var(--ink); stroke-width: 2 }
+
+  fieldset { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { float: left; width: 100%; margin-bottom: var(--s2); padding: 0 }
+  .tool-controls { align-items: start; gap: var(--s3) var(--s5) }
+  fieldset label { display: inline-flex; align-items: center; gap: .5rem; min-height: 2.75rem; padding: 0 .9rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); cursor: pointer }
+  fieldset label:hover, fieldset label:has(:checked) { border-color: var(--ink) }
+  fieldset input { width: 1.1rem; height: 1.1rem; margin: 0; accent-color: var(--signal) }
+
+  .step { display: grid; gap: var(--s1); max-width: 32rem }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .row output { flex: none; font-size: 1.25rem }
+  .presets { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s1) }
+  .presets[hidden] { display: none }
+  .presets button { min-width: 4rem; min-height: 2.75rem; padding: 0 .9rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer }
+  .presets button:hover { border-color: var(--ink) }
+  .presets button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+
+  figure { display: grid; gap: var(--s2); margin: 0; min-width: 0 }
+  canvas { height: 20rem; max-width: 44rem }
+  figcaption { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  [data-new] { justify-self: start }
+</style>
