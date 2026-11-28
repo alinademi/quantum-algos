@@ -12,7 +12,7 @@ import { lab } from '../../lib/sims/gates.ts';
 
 <Depth level="kid">
 
-Imagine two waves on a pond. They can meet and make a bigger wave, or cancel each other. Now imagine a device that changes their shapes according to a fixed rule. It does not throw away their combined strength: if you know the rule, you can reverse it and get the original waves back.
+Imagine two waves on a pond. They can meet and make a bigger wave, or cancel each other. Now imagine a device that changes their shapes according to a fixed rule. It redistributes their combined strength without losing any. Its rule also has a reverse, so you can get the original waves back.
 
 A qubit also carries numbers called amplitudes. A quantum gate changes those numbers without losing information. Try a gate, then run its exact reverse, and you get the original qubit back. The picture breaks because qubit amplitudes are complex numbers, not physical ripples of water; the strength here means total probability.
 
@@ -28,7 +28,7 @@ A gate has an inverse: use the inverse after the gate and the entire state retur
 
 <Depth level="engineer">
 
-A gate on $n$ qubits is a $2^n$ by $2^n$ matrix $U$ satisfying $U^\dagger U=I$. This preserves inner products and hence normalization. The inverse is $U^\dagger$. For a circuit applying $U$ then $V$, the resulting matrix is $VU$. A general physical operation can be a channel rather than a unitary, but the ideal gates here are unitaries.
+A gate on $n$ qubits is a $2^n$ by $2^n$ matrix $U$ satisfying $U^\dagger U=I$. This preserves inner products and hence normalization. The inverse is $U^\dagger$. For example H has rows $(1,1)/\sqrt2$ and $(1,-1)/\sqrt2$. It sends $(1,1)^T/\sqrt2$ to $(1,0)^T$ and $(1,-1)^T/\sqrt2$ to $(0,1)^T$. These inputs have identical Z-basis odds but H followed by measurement distinguishes them; the measured odds alone were not the state. For a circuit applying $U$ then $V$, the resulting matrix is $VU$. A general physical operation can be a channel rather than a unitary, but the ideal gates here are unitaries.
 
 </Depth>
 
