@@ -14,7 +14,7 @@ import { lab } from '../../lib/sims/controlled-gates.ts';
 
 Imagine a switch that decides whether a machine changes a second object. You can arrange it so the machine runs when the switch is on, or when it is off. The change might flip a token, turn an arrow or change the timing of a wave. The switch chooses which rule is applied, but the machine never reads it aloud.
 
-In the quantum version the switch itself has amplitudes, and the rule changes the appropriate contributions to the joint state without recording a result. The picture breaks because the switch does not have a hidden classical value, and a change controlled this way can also change the relative phase of the switch.
+In the quantum version the switch itself has amplitudes, and the rule changes the appropriate contributions to the joint state without recording a result. Even complicated controlled changes can be assembled from simpler connections and local turns. The picture breaks because the switch does not have a hidden classical value, and a change controlled this way can also change the relative phase of the switch.
 
 </Depth>
 
@@ -22,7 +22,7 @@ In the quantum version the switch itself has amplitudes, and the rule changes th
 
 A controlled gate applies a chosen operation to its target when the control is 1, and does nothing on the other branch. CZ negates the |11⟩ amplitude. CY applies Y, which exchanges target amplitudes and adds factors of i or −i. Controlled phase CP(φ) multiplies |11⟩ by a phase e^(iφ).
 
-Build CZ by H on the target, CNOT and H. Build CY by S†, CNOT and S on the target. For CP use half-angle phase gates and two CNOTs. To activate on 0, surround the ordinary controlled gate with X on its control. The lab compares complete matrices, not only a selected input.
+Build CZ by H on the target, CNOT and H. Build CY by S†, CNOT and S on the target. For CP use half-angle phase gates and two CNOTs. To activate on 0, surround the ordinary controlled gate with X on its control. The lab compares complete matrices. Try |+⟩ on both wires: CX followed by H on the control gives 0, but C(−X) followed by H gives 1 when you measure the control.
 
 </Depth>
 
