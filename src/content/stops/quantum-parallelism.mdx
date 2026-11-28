@@ -1,5 +1,5 @@
 ---
-description: "One coherent oracle call can evaluate a function on a superposition of inputs, but a measurement does not reveal every value."
+description: "Explore how one quantum query changes amplitudes for several inputs, yet one measurement returns just one pair."
 answer: "One coherent oracle call can evaluate a function on a superposition of inputs, but a measurement does not reveal every value."
 myth:
   claim: "Quantum parallelism means reading all function outputs in a single shot."
@@ -12,13 +12,17 @@ import { lab } from '../../lib/sims/quantum-parallelism.ts';
 
 <Depth level="kid">
 
-A secret box acts on a mix of many possible questions. The answers are part of a shared wave. When you read it, you get just one pair.
+Imagine asking a secret box many questions, each with its own amplitude, in one wave. The box changes the wave so that each question is linked to its answer. You cannot pull out a list containing all the answers. Reading the wave once gives you only one question and its answer. Ask again with a freshly prepared wave and you may get a different pair.
+
+What makes this useful is that waves can be brought together afterward so their contributions reinforce or cancel. The picture breaks here: a quantum box does not answer many separate classical callers. It acts on one shared quantum state.
 
 </Depth>
 
 <Depth level="student">
 
-With two input qubits in |+⟩ and an output in 0, the oracle maps all four input amplitudes into corresponding input-output pairs. The lab lists the classical truth table only for comparison, not as information extracted by a quantum measurement.
+Prepare two input qubits with equal amplitudes for the four bit strings and a target in |0⟩. A single [oracle](/learn/oracles/) call links each input to the function value, preserving the four amplitudes. A standard-basis measurement gives one input-output pair selected at random, each with chance 1/4. A fresh preparation is needed for each shot.
+
+The truth table in this tool is supplied by the simulator for comparison, not read out of the quantum state. Changing the initial [multi-qubit state](/learn/multi-qubit/) changes the odds. An algorithm needs additional gates that make the contributions interfere in a useful way; merely querying a superposition is not a speedup.
 
 </Depth>
 
