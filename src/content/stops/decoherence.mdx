@@ -1,0 +1,64 @@
+---
+description: "Particles of air or light bump a qubit and keep a record. Its interference fades to plain odds, yet the joint state stays quantum. Try it live."
+answer: "Decoherence is the fading of a quantum system's interference as it becomes entangled with its surroundings. The surroundings end up holding a record, so the system alone gives plain odds, while the system and its surroundings together are still in one quantum state."
+myth:
+  claim: "Decoherence makes the qubit secretly turn into 0 or 1."
+  truth: "Standard quantum mechanics says no: the bumps pick no result. The qubit and its surroundings share one entangled state, so the qubit alone looks like plain odds, and undoing every bump would bring the interference back."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import FadingStripes from '../../components/tools/FadingStripes.astro';
+
+<Depth level="kid">
+
+Start a qubit as 0, then a Hadamard gate. Now it has equal amplitudes for 0 and 1, so a measurement gives either with equal chance. A second Hadamard makes it 0 every time: the two contributions to the amplitude for 1 cancel. That canceling is interference.
+
+Now let particles of air or light bump it between the gates. Each bump leaves a faint mark on the particle: one mark for 0, another for 1. Bump by bump, the surroundings build a record, even if nobody reads it. The bigger the record, the weaker the canceling, until, after the second gate, the qubit gives 0 or 1 like a coin flip. That is decoherence.
+
+Think of a secret leaking to a crowd. The picture breaks here: in quantum theory, no answer was picked. The qubit and the crowd share one quantum state. Undo every bump and the canceling comes back. With real air, nobody can.
+
+</Depth>
+
+<Depth level="student">
+
+Start a qubit as 0, then a Hadamard gate: equal amplitudes, about 0.71, for 0 and 1. A second Hadamard gives 0 every time: the two contributions to the amplitude for 1 cancel. With a [phase](/learn/phase/) $\varphi$ before it, the chance of 0 swings from 100% to 0% and back as $\varphi$ turns: stripes.
+
+Now particles bump it between the gates. A bump turns a particle only if the qubit is 1. With amplitudes for both, the two become [entangled](/learn/entanglement/): the particle holds a record.
+
+At strength 45°, each bump keeps $0.924$ of the stripes: $0.924^{10} \approx 0.45$ after 10 bumps, about $0.02$ after 50. The 0/1 odds stay even. With no stripes left, the qubit alone acts like a [plain mix](/learn/mixed-states/), a coin flip, in every test.
+
+In quantum theory, nothing was picked: qubit and particles share one state. Undo every bump and the stripes return. With real air, nobody can.
+
+</Depth>
+
+<Depth level="engineer">
+
+The ideal qubit starts in $|0\rangle$; $H$ gives $|+\rangle$. Each of $N$ environment qubits starts in $|0\rangle$ and meets it through a controlled $R_Y(\theta)$: nothing on $|0\rangle$, a turn on $|1\rangle$. Then (Schlosshauer eq. 1)
+
+$$
+|\Psi\rangle = \tfrac{1}{\sqrt2}\big(|0\rangle|E_0\rangle + |1\rangle|E_1\rangle\big),
+$$
+
+$$
+r = \langle E_0|E_1\rangle = \cos^N\tfrac{\theta}{2}.
+$$
+
+The overlap falls exponentially in $N$, as eq. 7 has it fall in time. The [partial trace](/learn/partial-trace/) over the environment leaves $\rho = \tfrac12(I + rX)$: populations stay $\tfrac12$, coherences shrink to $r/2$. Then $P(\varphi)$ and $H$ give
+
+$$
+p(0) = \tfrac12\,(1 + r\cos\varphi),
+$$
+
+so the fringe visibility is $V = r$ (eq. 5). At $\theta = 180°$ one bump on a fresh particle acts like a CNOT: a full record.
+
+The environment alone predicts a 0/1 measurement of the qubit made right after the bumps, in place of the phase and second Hadamard, with best chance $\tfrac12(1 + D)$, $D = \sqrt{1 - r^2}$. Englert's bound $V^2 + D^2 \le 1$ (1996) holds with equality here, because the joint state is pure.
+
+At $r = 0$, $\rho = I/2$: no measurement on the qubit alone tells it from a 50/50 mix. Yet $|\Psi\rangle$ is pure: the mixture is improper, and the coherence sits in the joint state. Only an operation that reaches the environment too, such as running each bump backwards, brings the fringe back. With many uncontrolled particles that is impossible in practice.
+
+Classical noise on the qubit also fades fringes on average. If it is known or slow, an operation on the qubit alone can undo it, as a spin echo does. Fast flips on the qubit can also stop a slow environment from making the record, but cannot erase one already made. Decoherence explains why interference vanishes, not why one result occurs: see the [measurement problem](/learn/measurement-problem/).
+
+</Depth>
+
+<Lab title="Bump a qubit, fade its stripes" intro="Add particles that bump the qubit and see the stripes fade toward coin-flip odds. Then undo every bump and see them come back.">
+  <FadingStripes />
+</Lab>

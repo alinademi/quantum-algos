@@ -1,0 +1,245 @@
+---
+// Decoherence: a qubit started as 0, then a Hadamard gate, is bumped by n particles that each keep a faint record of 0 versus 1,
+// then a phase phi and a second Hadamard test its interference. Honest physics: each dot is one Born-rule shot of the exact
+// formula p(0) = (1 + r cos phi)/2, with r = cos^n(theta/2) the overlap of the particles' two states, checked against the full state in the tests.
+import { BUMPS, STRENGTH, PER, SHOTS, report, bumpsValueText, strengthValueText, stripesText, recordText, overlap } from '../../lib/sims/decoherence.ts';
+const uid = 'fs-' + Math.random().toString(36).slice(2, 8);
+const r0 = overlap(BUMPS.start, STRENGTH.start);
+---
+<qce-fading-stripes class="tool">
+  <figure>
+    <canvas aria-hidden="true"></canvas>
+    <figcaption>
+      <span class="key">
+        <span class="k0">read 0</span><span class="k1">read 1</span><span class="kt">theory</span><span class="kc">coin flip</span>
+      </span>
+      <span>Each column is {PER} shots at one phase φ, from 0° to 360°. Each shot is a fresh qubit: started as 0, then a Hadamard gate, the bumps, the phase φ and a second Hadamard, then measured. Dots that read 0 stack up from the bottom; rings that read 1 hang down from the top. The up and down of the dots as φ turns are the stripes. The dashed line is what a plain coin flip gives: half read 0.</span>
+    </figcaption>
+  </figure>
+
+  <dl class="stats">
+    <div><dt>Stripes left</dt><dd data-stripes>{stripesText(r0)}</dd></div>
+    <div><dt>Record in the particles (guessing a 0/1 read made right after the bumps)</dt><dd data-record>{recordText(r0)}</dd></div>
+  </dl>
+
+  <div class="control">
+    <div class="row">
+      <label for={`${uid}-n`}>Particles that bump the qubit</label>
+      <output for={`${uid}-n`} aria-live="off" data-n-out>{BUMPS.start}</output>
+    </div>
+    <input id={`${uid}-n`} data-n type="range" min={BUMPS.min} max={BUMPS.max} step={BUMPS.step} value={BUMPS.start}
+      aria-valuetext={bumpsValueText(BUMPS.start, STRENGTH.start, false)} aria-describedby={`${uid}-n-hint`} />
+    <p class="hint" id={`${uid}-n-hint`}>Each particle, such as an air molecule or a bit of light, bumps the qubit once, between the two Hadamard gates.</p>
+  </div>
+
+  <div class="control">
+    <div class="row">
+      <label for={`${uid}-s`}>Bump strength</label>
+      <output for={`${uid}-s`} aria-live="off" data-s-out>{STRENGTH.start}°</output>
+    </div>
+    <input id={`${uid}-s`} data-s type="range" min={STRENGTH.min} max={STRENGTH.max} step={STRENGTH.step} value={STRENGTH.start}
+      aria-valuetext={strengthValueText(STRENGTH.start)} aria-describedby={`${uid}-s-hint`} />
+    <p class="hint" id={`${uid}-s-hint`}>How far a bump turns its particle if the qubit is 1. If the qubit is 0, the particle is left alone. At 180°, one bump leaves a full record.</p>
+  </div>
+
+  <div class="tool-controls">
+    <label class="switch"><input type="checkbox" role="switch" data-undo aria-describedby={`${uid}-u-hint`} /><span class="track" aria-hidden="true"></span>Undo every bump</label>
+    <button class="btn btn-line" type="button" data-send>Send {SHOTS} new shots</button>
+  </div>
+  <p class="hint" id={`${uid}-u-hint`}>Undo runs each bump backwards, last first. That needs full control of every particle, which real surroundings never give.</p>
+
+  <p class="tool-readout" aria-live="polite">{report(BUMPS.start, STRENGTH.start, false)}</p>
+  <p class="note">A simulation of ideal qubits in a toy model. Each particle starts as 0, and a bump is a controlled turn of that particle, with the qubit in control. Real surroundings bump in many other ways, and can also flip the qubit or take its energy; these bumps only record 0 versus 1, so the qubit's own odds of 0 and 1 stay even. Each shot is a Born-rule draw from your browser's random numbers. A shot keeps its draw when you move a slider, so dots flip instead of re-rolling.</p>
+</qce-fading-stripes>
+
+<script>
+  import {
+    PHASES, PER, draws, order, rate, result, zeros, chance0, shownOverlap, report, bumpsValueText, strengthValueText,
+    stripesText, recordText, layout, xOf, ySlot, yCount, type Layout,
+  } from '../../lib/sims/decoherence.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  // How long a new dot stays large and blue, in ms.
+  const FRESH = 450;
+  type Shot = { u: number; t: number };
+
+  class FadingStripes extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const canvas = $<HTMLCanvasElement>('canvas'), readout = $('.tool-readout');
+      const nIn = $<HTMLInputElement>('[data-n]'), sIn = $<HTMLInputElement>('[data-s]'), undoIn = $<HTMLInputElement>('[data-undo]');
+      const nOut = $('[data-n-out]'), sOut = $('[data-s-out]'), stripesOut = $('[data-stripes]'), recordOut = $('[data-record]');
+      const send = $<HTMLButtonElement>('[data-send]');
+
+      let ctx = canvas.getContext('2d')!, L: Layout | null = null, pal = palette(), mono = token('--mono');
+      let n = Number(nIn.value), deg = Number(sIn.value), undo = false, r = shownOverlap(n, deg, undo);
+      // This batch: one draw per shot, the order they land in, and the shots landed so far in each column.
+      let us: number[][] = [], queue: [number, number][] = [];
+      const landed: Shot[][] = PHASES.map(() => []);
+      let acc = 0, raf = 0, last = 0, seen = false, done = false, lastLand = -Infinity, count = 0;
+
+      // ---- Drawing
+
+      const text = (s: string, x: number, y: number, align: CanvasTextAlign, color: string, weight = 500) => {
+        ctx.font = `${weight} 11px ${mono}`; ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.fillStyle = color;
+        ctx.fillText(s, x, y);
+      };
+
+      const ring = (x: number, y: number, rad: number, color: string) => {
+        ctx.strokeStyle = color; ctx.lineWidth = 1.25; ctx.beginPath(); ctx.arc(x, y, rad, 0, Math.PI * 2); ctx.stroke();
+      };
+
+      const paint = (now = performance.now()) => {
+        if (!L) return;
+        const { colW, r: dr } = L, left = xOf(L, 0) - colW / 2, right = xOf(L, 360) + colW / 2;
+        ctx.clearRect(0, 0, L.w, L.h);
+
+        // Axis: counts of 0 on the left, phases below.
+        for (const k of [0, PER / 2, PER]) text(String(k), L.x0 - 8, yCount(L, k), 'right', pal.ink2);
+        for (const phi of [0, 90, 180, 270]) text(`${phi}°`, xOf(L, phi), L.base + 12, 'center', pal.ink2);
+        text('360°', right, L.base + 12, 'right', pal.ink2);
+        text('phase φ', (left + right) / 2, L.base + 26, 'center', pal.ink2, 600);
+        ctx.strokeStyle = pal.rule; ctx.lineWidth = 1; ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(left, L.base + 0.5); ctx.lineTo(right, L.base + 0.5); ctx.stroke();
+
+        // Shots: 0s stack up from the bottom, 1s hang down from the top, each in the order it landed. Empty slots in between.
+        PHASES.forEach((phi, c) => {
+          const x = xOf(L!, phi), p0 = chance0(phi, r), shots = landed[c];
+          let lo = 0, hi = 0;
+          for (const s of shots) {
+            const zero = result(s.u, p0) === 0, slot = zero ? lo++ : PER - 1 - hi++, y = ySlot(L!, slot), age = (now - s.t) / FRESH;
+            if (age < 1) dot(ctx, x, y, dr * (1.8 - 0.8 * Math.max(0, age)), pal.signal);
+            else if (zero) dot(ctx, x, y, dr, pal.ink);
+            else ring(x, y, dr * 0.8, pal.ink2);
+          }
+          for (let k = lo; k < PER - hi; k++) dot(ctx, x, ySlot(L!, k), Math.max(0.6, dr * 0.3), pal.rule);
+        });
+
+        // Coin flip: half read 0. Drawn over the dots, on a paper halo so it stays visible.
+        const mid = yCount(L, PER / 2);
+        ctx.strokeStyle = pal.paper; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(left, mid); ctx.lineTo(right, mid); ctx.stroke();
+        ctx.strokeStyle = pal.ink2; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(left, mid); ctx.lineTo(right, mid); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Theory: the expected count of 0s, PER (1 + r cos phi)/2.
+        ctx.strokeStyle = pal.signal; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+        ctx.beginPath();
+        for (let phi = 0; phi <= 360; phi += 3) {
+          const x = xOf(L, phi), y = yCount(L, PER * chance0(phi, r));
+          if (phi === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      };
+
+      const size = () => {
+        const w = canvas.getBoundingClientRect().width;
+        if (!w) return;
+        L = layout(w);
+        canvas.style.height = `${L.h}px`;
+        ({ ctx } = fit(canvas));
+        pal = palette(); mono = token('--mono');
+        paint();
+      };
+
+      // ---- Words
+
+      // Shots at phi = 0 (column 0) and phi = 180 (column 12) that read 0, once the whole batch has landed.
+      const got = (): [number, number] => [zeros(us[0], chance0(0, r)), zeros(us[12], chance0(180, r))];
+      const say = () => { readout.textContent = report(n, deg, undo, done ? got() : undefined); };
+
+      // Visible values and slider texts follow every step; the live readout speaks only on release and on presses.
+      const show = () => {
+        r = shownOverlap(n, deg, undo);
+        nOut.textContent = String(n); sOut.textContent = `${deg}°`;
+        stripesOut.textContent = stripesText(r); recordOut.textContent = recordText(r);
+        nIn.setAttribute('aria-valuetext', bumpsValueText(n, deg, undo));
+        sIn.setAttribute('aria-valuetext', strengthValueText(deg));
+        paint();
+      };
+
+      // ---- A batch lands
+
+      const land = (t: number) => {
+        const [c, k] = queue.pop()!;
+        landed[c].push({ u: us[c][k], t }); lastLand = t; count++;
+      };
+
+      // Shots land at rate(landed) per second: one by one at first, then faster. Off screen, wait.
+      // With reduced motion, the whole batch lands at once and the end state is drawn.
+      const step = (now: number) => {
+        raf = 0;
+        const dt = last ? Math.min(now - last, 50) : 16;
+        last = now;
+        if (queue.length > 0) {
+          const still = reduceMotion();
+          let k = queue.length;
+          if (!still) { acc += (rate(count) * dt) / 1000; k = Math.min(queue.length, Math.floor(acc)); acc -= k; }
+          for (let i = 0; i < k; i++) land(still ? -Infinity : now);
+          if (queue.length === 0) { done = true; say(); }
+        }
+        paint(now);
+        if (seen && (queue.length > 0 || now - lastLand < FRESH)) raf = requestAnimationFrame(step); else last = 0;
+      };
+      const kick = () => { if (!raf && seen) raf = requestAnimationFrame(step); };
+
+      const batch = () => {
+        us = draws(Math.random); queue = order(Math.random);
+        landed.forEach((col) => (col.length = 0));
+        acc = 0.75; count = 0; done = false; lastLand = -Infinity;
+        paint(); kick();
+      };
+
+      nIn.addEventListener('input', () => { n = Number(nIn.value); show(); });
+      sIn.addEventListener('input', () => { deg = Number(sIn.value); show(); });
+      nIn.addEventListener('change', say);
+      sIn.addEventListener('change', say);
+      undoIn.addEventListener('change', () => { undo = undoIn.checked; show(); say(); });
+      send.addEventListener('click', () => { batch(); say(); });
+
+      // A reloaded page can keep slider and switch values; start from what the controls show.
+      undo = undoIn.checked;
+      show();
+      onResize(canvas, size);
+      onTheme(size);
+      onSeen(canvas, (v) => { seen = v; if (v) kick(); });
+      batch();
+      // Speak only if the restored controls differ from the text the page was built with.
+      const first = report(n, deg, undo);
+      if (readout.textContent !== first) readout.textContent = first;
+    }
+  }
+  customElements.define('qce-fading-stripes', FadingStripes);
+</script>
+
+<style>
+  figure { display: grid; gap: var(--s2); margin: 0; min-width: 0 }
+  canvas { height: 13rem; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r) }
+  figcaption { display: grid; gap: var(--s2); max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  .key { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s4); font: 500 .875rem var(--mono) }
+  .key > span { display: inline-flex; align-items: center; gap: .4rem }
+  .key > span::before { content: ""; flex: none }
+  .key > .k0::before { width: .5rem; height: .5rem; border-radius: 50%; background: var(--ink) }
+  .key > .k1::before { width: .4rem; height: .4rem; border-radius: 50%; box-shadow: inset 0 0 0 1.25px var(--ink-2) }
+  .key > .kt::before { width: 1.1rem; height: 2px; background: var(--signal) }
+  .key > .kc::before { width: 1.1rem; height: 0; border-top: 1.5px dashed var(--ink-2) }
+
+  .stats { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s5); margin: 0 }
+  .stats div { display: grid; gap: var(--s1) }
+  .stats dt { font-size: .875rem; color: var(--ink-2) }
+  .stats dd { margin: 0; font: 600 1.125rem var(--mono) }
+
+  .control { display: grid; gap: var(--s1); max-width: 28rem }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .hint, .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+
+  .switch { position: relative; display: inline-flex; align-items: center; gap: .7rem; min-height: 2.75rem; font-weight: 600; cursor: pointer }
+  .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0 }
+  .track { position: relative; flex: none; width: 3rem; height: 1.75rem; border-radius: 1rem; background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--ink-2); transition: background .2s }
+  .track::after { content: ""; position: absolute; top: .25rem; left: .25rem; width: 1.25rem; height: 1.25rem; border-radius: 50%; background: var(--ink-2); transition: transform .2s }
+  .switch input:checked + .track { background: var(--signal); box-shadow: none }
+  .switch input:checked + .track::after { background: var(--paper); transform: translateX(1.25rem) }
+  .switch input:focus-visible + .track { outline: 3px solid var(--signal); outline-offset: 3px }
+  @media (prefers-reduced-motion: reduce) { .track, .track::after { transition: none } }
+</style>
