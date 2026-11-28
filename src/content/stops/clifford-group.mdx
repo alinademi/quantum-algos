@@ -26,7 +26,7 @@ Imagine a toolkit that changes a fixed set of direction markings without inventi
 
 The Clifford group is the normalizer of the n-qubit Pauli group: $UPU^\dagger$ is Pauli for every Pauli P. H, S and CNOT generate it up to global phase. For example $TXT^\dagger=(X+Y)/\sqrt2$ is not a Pauli. This conjugation closure enables tracking stabilizers without an exponential state vector, but Clifford gates can still create entanglement.
 
-The ideas used here build on [Phase gates](/learn/phase-gates/), [Pauli gates](/learn/pauli/).
+For the [phase gate](/learn/phase-gates/) S, conjugation maps X to Y, Y to −X and Z to Z. Compare this with H: X maps to Z, Y to −Y and Z to X. These signed [Pauli gates](/learn/pauli/) are exactly what the simulator tracks.
 
 </Depth>
 
