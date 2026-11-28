@@ -13,9 +13,15 @@ import { B1, B2 } from './topological-model.ts';
 import { gaussian } from './cv-model.ts';
 
 import { checkLabs, close, state, matrix, phase, all, value } from './gate-lab-checks.ts';
-import {red,spiderCX,greenCopy} from './zx-calculus.ts';
+import {red,spiderCX,greenCopy,controlFusion} from './zx-calculus.ts';
 const {run,last}=await checkLabs(['zx-calculus']);
 test('ZX color change and fusion preserve full matrices (all control settings checked above)',()=>{
  matrix(q.matMul(q.P(.3),q.P(.7)),q.P(1));matrix(q.matMul(q.H,q.matMul(q.P(Math.PI),q.H)),q.X);
 });
 test('red projectors independently equal H P H; multi-leg contraction is CNOT',()=>{for(const a of [0,.73,Math.PI])matrix(red(a),q.matMul(q.H,q.matMul(q.P(a),q.H)));matrix(spiderCX(),g.control(q.X));for(let i=0;i<2;i++)state(q.matVec(greenCopy,q.basis(1,i)),q.basis(2,3*i));});
+test('control phase fusion through CNOT matches independent matrices for arbitrary angles',()=>{
+ for(const a of [0,.3,Math.PI])for(const b of [.7,-.2,Math.PI/2]){
+  const {left,right,gap}=controlFusion(a,b),cx=g.control(q.X),target=q.matMul(q.kron(q.P(a+b),q.I),cx);
+  matrix(g.fullMatrix(2,left),target);matrix(g.fullMatrix(2,right),target);close(gap,0);
+ }
+});
