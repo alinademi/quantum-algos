@@ -11,3 +11,5 @@ test('Pauli strings are orthogonal, and commute according to anticommuting site 
   close(ab.reduce((s,r,i)=>s+r[i].re,0),a===b?4:0);
  }
 });
+
+test('three-wire example has two minus signs for XZI and ZXI, one for XZI and ZZI',async()=>{const {lab}=await import('./pauli-strings.ts');const p=q.kron(q.X,q.kron(q.Z,q.I));matrix(pauli('XZI'),p);for(const [b,k] of [['ZXI',2],['ZZI',1]] as const){const step=lab.run({a:'XZI',b}).at(-1)!;close(Number(step.rows!.find(r=>r.label==='Anticommuting site count')!.value),k);}});

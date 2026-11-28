@@ -1,13 +1,13 @@
 import { kron,matMul,scale } from '../quantum.ts';
-import { G,choice,product,sequence,op,row,matrixGap,eye, type Lab } from './gate-lab.ts';
+import { G,choice,product,sequence,op,row,matrixGap,matrixRows, type Lab } from './gate-lab.ts';
 export const pauli=(s:string)=>[...s].map(x=>G[x]).reduce(kron);
 export const antiCount=(a:string,b:string)=>[...a].filter((x,i)=>x!=='I'&&b[i]!=='I'&&x!==b[i]).length;
 export const lab:Lab={
- controls:[choice('a','String P',['XZ','XX','XY','ZI','YY','IZ','ZZ']),choice('b','String Q',['ZX','ZI','ZZ','XX','YY','II','XY'])],
+ controls:[choice('a','String P',['XZI','XXI','XYZ','ZII','YYI','IZZ','ZZI','III']),choice('b','String Q',['ZXI','ZZI','ZII','XXI','YYI','III','XYI','XYZ'])],
  run:v=>{
-  const p=pauli(v.a),q=pauli(v.b),s=sequence(product('+','0'),[op(v.a,p,0,1),op(v.b,q,0,1)],'Q follows P on the selected state.');
+  const p=pauli(v.a),q=pauli(v.b),s=sequence(product('+','0','1'),[op(v.a,p,0,1,2),op(v.b,q,0,1,2)],'Q follows P on the selected state.');
   const count=antiCount(v.a,v.b),sign=count%2?-1:1;
-  s.at(-1)!.rows=[row('Anticommuting site count',count),row('Relation',sign===-1?'PQ = −QP':'PQ = QP'),row('Matrix check',matrixGap(matMul(p,q),matMul(q,p).map(r=>r.map(z=>scale(z,sign)))))];
+  s.at(-1)!.rows=[row('Sites with local minus sign',[...v.a].map((x,i)=>x!=='I'&&v.b[i]!=='I'&&x!==v.b[i]?'q'+i:'').filter(Boolean).join(', ')||'None'),row('Anticommuting site count',count),row('Relation',sign===-1?'PQ = −QP':'PQ = QP'),row('Matrix check',matrixGap(matMul(p,q),matMul(q,p).map(r=>r.map(z=>scale(z,sign))))),...matrixRows(matMul(p,q)).map(r=>({...r,label:'PQ '+r.label.toLowerCase()})),...matrixRows(matMul(q,p)).map(r=>({...r,label:'QP '+r.label.toLowerCase()}))];
   return s;
  }
 };
