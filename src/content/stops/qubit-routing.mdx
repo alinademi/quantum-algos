@@ -1,5 +1,5 @@
 ---
-description: "Qubit routing modifies a quantum circuit to respect the available interactions between physical qubits while tracking the logical wire placement."
+description: "Place qubit states on a four-site line and route a CNOT through neighboring swaps."
 answer: "Qubit routing modifies a quantum circuit to respect the available interactions between physical qubits while tracking the logical wire placement."
 myth:
   claim: "A SWAP means copying both qubits to new locations."
@@ -12,13 +12,13 @@ import { lab } from '../../lib/sims/qubit-routing.ts';
 
 <Depth level="kid">
 
-Suppose wires form a line, and only neighbors can talk. Move one wire’s quantum state closer to the other by swapping it with neighbors.
+Imagine four desks in a row, each holding a special object. A rule permits only objects on neighboring desks to interact. If two far-apart objects need to interact, exchange an object with its neighbor until it sits beside the other one. Perform the desired action, and exchange the objects back if you need their original positions. Better still, place objects that often interact beside each other from the beginning. The extra exchanges cost time, and planning their order matters. The picture breaks because you cannot copy an unknown quantum object to another desk. A swap exchanges its entire state, including any relationship with other objects.
 
 </Depth>
 
 <Depth level="student">
 
-On a four-site line, a CNOT between 0 and 3 needs a route. Move the control toward the target using two SWAPs, perform CNOT, then reverse the swaps. A SWAP can be expressed using three CNOTs assuming both directions are available.
+A [device's connectivity](/learn/connectivity/) tells us which physical qubits can directly interact. A good initial placement maps logical qubits that interact often to neighboring sites, reducing SWAPs. On the line 0–1–2–3, a logical CNOT from 0 to 3 can use two SWAPs to move the control's state to site 2, then the neighboring CNOT, then reverse the SWAPs to restore layout. If both CNOT directions are permitted, each [SWAP](/learn/toffoli/) uses three CNOTs. A [transpiler](/learn/transpilation/) can instead keep track of the new permutation. Compare distances and [costs](/learn/circuit-cost/) in the lab; the simpler restore-layout route is exact but not always optimal.
 
 </Depth>
 
