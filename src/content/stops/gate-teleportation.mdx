@@ -2,8 +2,8 @@
 description: "Inject a T gate from a prepared magic state and compare the conditional output with and without correction."
 answer: "Gate teleportation uses a prepared resource state, entangling operations, measurement and a classical correction to implement a desired gate."
 myth:
-  claim: "Once you have a magic state, no correction is needed to inject T."
-  truth: "One measurement outcome implements T† up to phase; an S correction makes it T for arbitrary inputs."
+  claim: "Fault-tolerant chips apply T directly, just like H."
+  truth: "In many codes T uses a prepared magic state and measurement-dependent correction, unlike cheaper Clifford gates such as H."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -18,7 +18,7 @@ Imagine a machine that struggles to perform one special instruction on your data
 
 <Depth level="student">
 
-In many error-correcting architectures, [Clifford gates](/learn/clifford-group/) are relatively cheap while T is expensive. Prepare the magic state T|+⟩ offline, often purifying noisy copies by magic-state distillation. Apply CNOT from the data to this helper and measure the helper. Outcome 0 leaves T on the data; outcome 1 leaves T† up to global phase, so apply S to correct it. Both occur with probability 1/2. This is a form of [gate teleportation](/learn/teleportation/), transferring a desired operation using a resource state and classical feed-forward. It supplies a non-Clifford operation for [universality](/learn/universal/), but does not remove the cost of preparing the resource.
+In many error-correcting architectures, [Clifford gates](/learn/clifford-group/) are relatively cheap while T is expensive. Prepare the magic state T|+⟩ offline, often purifying noisy copies by magic-state distillation. Apply CNOT from the data to this helper and measure the helper. Outcome 0 leaves T on the data; outcome 1 leaves T† up to global phase, so apply S to correct it. Both occur with probability 1/2. This is a form of [teleportation](/learn/teleportation/), transferring a desired operation using a resource state and classical feed-forward. It supplies a non-Clifford operation for [universality](/learn/universal/), but does not remove the cost of preparing the resource.
 
 </Depth>
 
