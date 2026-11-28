@@ -30,7 +30,7 @@ export const lab:Lab={
   const definite=!v.input.includes('+'),value=definite?f(v.f,parseInt(v.input,2)):null;
   const note=phase?(v.f==='zero'?'The phase is unchanged.':v.f==='one'?'All amplitudes gain the same minus sign, an unobservable global phase.':definite?'f(x) = '+value+'; the factor '+(value?'−1':'+1')+' is a global phase on this definite input.':'The marked inputs gain a minus sign relative to unmarked inputs. A later interference gate and measurement can reveal that difference.'):'The elementary gates XOR the function into the target, preserving the input.';
   const s=sequence(start,ops,note),last=s.at(-1)!;
-  if(!ops.length)last.note+=' No gate is needed. '+note;
+  if(!ops.length)last.note='Started as '+last.start+'. The zero function is the identity: no gate is required and all amplitudes are unchanged.';
   last.rows=[...(last.rows??[]),row('Elementary gates',ops.length),...['00','01','10','11'].map((x,i)=>row('f('+x+') (classical truth table)',f(v.f,i))),row('Matrix gap to direct oracle',matrixGap(fullMatrix(bit?3:2,ops),bit?bitOracle(v.f):phaseOracle(v.f)))];
   return s;
  }

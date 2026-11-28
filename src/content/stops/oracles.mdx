@@ -24,7 +24,7 @@ An oracle is a function supplied as a reversible [circuit](/learn/circuits/), of
 
 <Depth level="engineer">
 
-The bit oracle is $U_f|x,y\rangle=|x,y\oplus f(x)\rangle$, hence $U_f^2=I$. A phase oracle is $O_f|x\rangle=(-1)^{f(x)}|x\rangle$. Since X has eigenvalue −1 on |−⟩, $U_f(|x\rangle|{-}\rangle)=(O_f|x\rangle)|{-}\rangle$. A classical AND can be computed into a clean helper with [Toffoli](/learn/toffoli/), and XOR into a target with CNOTs. Build a reversible circuit for the function, XOR its answer into y, then reverse the computation to [uncompute](/learn/uncomputation/) the helpers. Otherwise garbage entangled with the input can spoil later interference. AND on two bits is one Toffoli with target y, and its phase oracle is CZ. Oracle query counts treat the oracle as a primitive; actual construction can be expensive.
+The bit oracle is $U_f|x,y\rangle=|x,y\oplus f(x)\rangle$, hence $U_f^2=I$. A phase oracle is $O_f|x\rangle=(-1)^{f(x)}|x\rangle$. Since X has eigenvalue −1 on |−⟩, $U_f(|x\rangle|{-}\rangle)=(O_f|x\rangle)|{-}\rangle$. Compute classical AND into a clean helper using [Toffoli](/learn/toffoli/), and XOR using CNOTs. Build a reversible circuit for the function, XOR its answer into y, then reverse the computation to [uncompute](/learn/uncomputation/) the helpers. Otherwise garbage entangled with the input can spoil later interference. For the two-bit AND example the phase oracle is CZ. Oracle query counts treat the oracle as a primitive; actual construction can be expensive.
 
 </Depth>
 
