@@ -1,5 +1,5 @@
 ---
-description: "Classical computers can simulate quantum circuits, but the required resources depend strongly on the state representation and circuit structure."
+description: "Calculate dense state-vector memory and compare it with compact descriptions of structured quantum states."
 answer: "Classical computers can simulate quantum circuits, but the required resources depend strongly on the state representation and circuit structure."
 myth:
   claim: "Classical simulation of n qubits always needs exactly 2ⁿ complex numbers."
@@ -12,19 +12,21 @@ import { lab } from '../../lib/sims/classical-simulation.ts';
 
 <Depth level="kid">
 
-A detailed list of every possible quantum basis state gets huge as you add wires. Sometimes a pattern in the list lets you describe it much more simply.
+Imagine writing a list of all possible patterns of light switches. One switch has two patterns, two have four and three have eight. Every extra switch doubles the list. A general quantum state attaches a complex number to each pattern, so a complete list rapidly becomes too big for an ordinary computer. Sometimes a short rule describes the whole list, like saying every entry is the same, or saying only the all-off and all-on entries are nonzero. Other patterns cannot be compressed so easily. The picture breaks because the numbers in the quantum list are wave amplitudes, not independent probabilities, and a simulator must also preserve their phases.
 
 </Depth>
 
 <Depth level="student">
 
-For a dense state vector on n qubits, store 2ⁿ complex amplitudes. At 16 bytes per amplitude this needs 16 × 2ⁿ bytes, before overhead. Product states, certain tensor networks and stabilizer states can have compact descriptions. A GHZ state has only two nonzero amplitudes.
+A dense state vector for n [qubits](/learn/multi-qubit/) stores 2ⁿ complex amplitudes. At 16 bytes each, 30 qubits need 16 GiB before overhead, and every added qubit doubles the cost. But a [tensor product](/learn/tensor-product/) of n single-qubit states needs only n small descriptions. A [stabilizer state](/learn/stabilizer-states/) has n signed Pauli rules. Tensor networks can represent states with restricted [entanglement](/learn/entanglement/) efficiently, depending on bond dimension and circuit structure. GHZ has only two nonzero amplitudes despite being entangled. Use the powers-of-two memory calculator and compare the four-wire examples. A classical simulator's resource cost depends on which representation and task it uses.
 
 </Depth>
 
 <Depth level="engineer">
 
 A generic pure-state vector requires exponentially many parameters; a dense density matrix has $4^n$ complex entries. Stabilizer tableaux use polynomial space, and tensor networks can exploit bounded bond dimension or favorable circuit structure. These are representation-dependent bounds, not a universal limit on exact or approximate simulation of a particular circuit. A state-vector simulator and a sampling algorithm need not store the same representation.
+
+The ideas used here build on [Reading a circuit](/learn/circuits/), [Powers and logs](/learn/powers-and-logs/).
 
 </Depth>
 
