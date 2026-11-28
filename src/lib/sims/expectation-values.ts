@@ -80,7 +80,7 @@ export function spread(s: State, o: Obs): number {
   return clean(Math.sqrt(Math.max(0, sandwich(s, matMul(A, A)).re - e * e)));
 }
 
-/** Standard deviation of the average of n shots: ΔA/√n. It halves when n grows four times. */
+/** The typical error of an average of n independent shots, its standard deviation ΔA/√n. It halves when n grows four times. */
 export const miss = (sd: number, n: number): number => sd / Math.sqrt(n);
 
 // ---- Shots
@@ -169,6 +169,9 @@ const val = (x: number, d: number) => `${exact(x, d) ? '' : 'about '}${num(x, d)
 /** A count with a thousands comma: "1,000". */
 export const count = (n: number): string => n.toLocaleString('en-US');
 
+/** The realized error |average − ⟨A⟩| to 3 decimals; never "0" for an error that is not 0. */
+export const errText = (err: number): string => (err < 1e-12 ? '0' : err < 0.0005 ? 'under 0.001' : num(err, 3));
+
 /** The readout: what the two pictures show, in words. Odds, <A> and the spread are exact math; counts are the shots so far. */
 export function describe(deg: number, o: Obs, t: Tally): string {
   const s = prepare(deg), [p, q] = odds(s, o), e = expectation(s, o), sd = spread(s, o), [m1, m2] = meaning(o);
@@ -185,8 +188,8 @@ export function describe(deg: number, o: Obs, t: Tally): string {
   const counts = `${count(t.n)} shots: ${count(t.plus)} gave +1 and ${count(neg)} gave −1, so their average is ${val(avg, 3)}.`;
   const full = t.n >= CAP ? ' The run is full.' : '';
   if (sd === 0) return `${head} ${counts} ${sure}, so the average is exactly ${A}.${full}`;
-  const w = miss(sd, t.n), inside = Math.abs(avg - e) <= w;
-  return `${head} ${counts} Averages of ${count(t.n)} shots spread about ${num(w, 3)} around ${A} (one standard deviation, the shaded band). This one is ${inside ? 'inside the band.' : 'outside the band. That is normal: about 1 in 3 averages land outside.'}${full}`;
+  const w = miss(sd, t.n), err = Math.abs(avg - e), inside = err <= w;
+  return `${head} ${counts} Typical error of an average of ${count(t.n)} shots: about ${num(w, 3)} (one standard deviation, the shaded band). Realized error here: ${errText(err)}, so this one is ${inside ? 'inside the band.' : 'outside the band. That is normal: for many shots, about 1 in 3 averages land outside.'}${full}`;
 }
 
 /** The slider's spoken value: "60 degrees. Exact average of Z: 0.5". */

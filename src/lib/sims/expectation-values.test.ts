@@ -354,7 +354,8 @@ test('every readout names the start state and the observable, and states only tr
       if (t.n === 1) assert.ok(text.includes(sd === 0 ? 'eigenstate' : `never ⟨${o}⟩ itself`), text);
       if (t.n >= 2 && sd > 0) {
         const inside = Math.abs(ev.average(t.plus, t.n) - e) <= ev.miss(sd, t.n);
-        assert.ok(text.includes(inside ? 'This one is inside the band.' : 'This one is outside the band. That is normal: about 1 in 3 averages land outside.'), text);
+        assert.ok(text.includes(inside ? 'so this one is inside the band.' : 'so this one is outside the band. That is normal: for many shots, about 1 in 3 averages land outside.'), text);
+        assert.ok(text.includes(`Realized error here: ${ev.errText(Math.abs(ev.average(t.plus, t.n) - e))},`), text);
         if (inside) assert.ok(!text.includes('That is normal'), text);
       }
       if (t.n >= 2 && sd === 0) assert.ok(text.includes('exactly'), text);
@@ -362,7 +363,7 @@ test('every readout names the start state and the observable, and states only tr
     }
   }
   assert.equal(ev.describe(60, 'Z', { n: 100, plus: 77 }),
-    'Started as 0, then RY(60°). Measuring Z: +1 (result 0) has chance 0.75 and −1 (result 1) has chance 0.25, so ⟨Z⟩ is 0.5. 100 shots: 77 gave +1 and 23 gave −1, so their average is 0.54. Averages of 100 shots spread about 0.087 around ⟨Z⟩ (one standard deviation, the shaded band). This one is inside the band.');
+    'Started as 0, then RY(60°). Measuring Z: +1 (result 0) has chance 0.75 and −1 (result 1) has chance 0.25, so ⟨Z⟩ is 0.5. 100 shots: 77 gave +1 and 23 gave −1, so their average is 0.54. Typical error of an average of 100 shots: about 0.087 (one standard deviation, the shaded band). Realized error here: 0.04, so this one is inside the band.');
   assert.ok(ev.describe(90, 'Z', { n: 0, plus: 0 }).startsWith('Started as 0, then RY(90°), which gives |+⟩.'));
 });
 
@@ -383,5 +384,44 @@ test('display glue changes only spaces into no-break joins, so the text reads th
 test('an average outside the band is called normal, with the 1 in 3 rate', () => {
   // Started as 0, then RY(60°), measuring Z: 100 shots with 90 giving +1 average 0.8, far outside 0.5 ± 0.087.
   assert.equal(ev.describe(60, 'Z', { n: 100, plus: 90 }),
-    'Started as 0, then RY(60°). Measuring Z: +1 (result 0) has chance 0.75 and −1 (result 1) has chance 0.25, so ⟨Z⟩ is 0.5. 100 shots: 90 gave +1 and 10 gave −1, so their average is 0.8. Averages of 100 shots spread about 0.087 around ⟨Z⟩ (one standard deviation, the shaded band). This one is outside the band. That is normal: about 1 in 3 averages land outside.');
+    'Started as 0, then RY(60°). Measuring Z: +1 (result 0) has chance 0.75 and −1 (result 1) has chance 0.25, so ⟨Z⟩ is 0.5. 100 shots: 90 gave +1 and 10 gave −1, so their average is 0.8. Typical error of an average of 100 shots: about 0.087 (one standard deviation, the shaded band). Realized error here: 0.3, so this one is outside the band. That is normal: for many shots, about 1 in 3 averages land outside.');
+});
+
+test('realized error is 0 when the average equals ⟨Z⟩ despite float dust: 75 of 100 shots at RY(60°)', () => {
+  assert.ok(ev.describe(60, 'Z', { n: 100, plus: 75 }).includes('Realized error here: 0,'));
+});
+
+test('realized error text: 0 only when exact, "under 0.001" for a tiny real error, else 3 decimals', () => {
+  assert.equal(ev.errText(0), '0');
+  assert.equal(ev.errText(1e-6), 'under 0.001');
+  assert.equal(ev.errText(0.04), '0.04');
+  assert.equal(ev.errText(0.3), '0.3');
+});
+
+test('1 in 3 is for many shots only: with 2 shots at 75% the band holds all but 1/16 of the averages', () => {
+  // Started as 0, then RY(60°), Z: averages of 2 shots are 1 (9/16), 0 (6/16), −1 (1/16); the band is 0.5 ± 0.612.
+  const sd = ev.spread(ev.prepare(60), 'Z'), w = ev.miss(sd, 2);
+  const law = averageLaw(0.75, 2), out = law.filter((x) => Math.abs(x.value - 0.5) > w).reduce((t, x) => t + x.weight, 0);
+  close(out, 1 / 16, 1e-12);
+  // 1 in 3 is only the large-N limit: at N = 100 the exact share outside is about 0.30.
+  const big = averageLaw(0.75, 100), w100 = ev.miss(sd, 100);
+  const out100 = big.filter((x) => Math.abs(x.value - 0.5) > w100 + 1e-12).reduce((t, x) => t + x.weight, 0);
+  close(out100, 0.29837209700956446, 1e-9);
+});
+
+test('shots needed: round up; a standard-error target is not a guarantee, and Hoeffding N >= 2 ln(2/δ)/ε² bounds the exact miss chance', () => {
+  // Started as 0, then RY(60°), Z: ΔZ = √3/2. For ε = 0.1, (ΔZ/ε)² = 75 exactly, and for ε = 0.07 it is 153.06, so 154 shots.
+  const sd = ev.spread(ev.prepare(60), 'Z');
+  close((sd / 0.1) ** 2, 75, 1e-9);
+  assert.equal(Math.ceil((sd / 0.07) ** 2), 154);
+  assert.ok(ev.miss(sd, 154) <= 0.07 && ev.miss(sd, 153) > 0.07);
+  // At N = (ΔA/ε)² the exact chance of missing by more than ε is far above 5%: the target is a standard error, not a 95% guarantee.
+  const eps = 0.1, e = 0.5, miss75 = averageLaw(0.75, 75).filter((x) => Math.abs(x.value - e) > eps + 1e-9).reduce((t, x) => t + x.weight, 0);
+  close(miss75, 0.28534697291272193, 1e-9); // about 29%, not 5%
+  // Hoeffding for ±1 results: N >= 2 ln(2/δ)/ε² makes the exact miss chance at most δ.
+  for (const delta of [0.1, 0.05, 0.01]) for (const eps2 of [0.1, 0.2, 0.3]) for (const p of [0.5, 0.75, 0.9]) {
+    const N = Math.ceil((2 * Math.log(2 / delta)) / eps2 ** 2), mean = 2 * p - 1;
+    const exactMiss = averageLaw(p, N).filter((x) => Math.abs(x.value - mean) > eps2 + 1e-9).reduce((t, x) => t + x.weight, 0);
+    assert.ok(exactMiss <= delta, `${delta} ${eps2} ${p}: ${exactMiss}`);
+  }
 });

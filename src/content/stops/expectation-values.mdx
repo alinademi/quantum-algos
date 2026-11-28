@@ -1,6 +1,6 @@
 ---
 description: "An expectation value is the average result of one measurement repeated on many fresh copies of a state. Compute ⟨ψ|A|ψ⟩, then estimate it live."
-answer: "An expectation value is the average result you get when you measure an observable on many fresh copies of the same state. It equals ⟨ψ|A|ψ⟩: each possible result times its chance, added up. The average of N shots lands near it, with a spread that shrinks like 1/√N."
+answer: "An expectation value is the average result you get when you measure an observable on many fresh copies of the same state. It equals ⟨ψ|A|ψ⟩: each possible result times its chance, added up. The average of N independent shots lands near it, with a typical spread that shrinks like 1/√N."
 myth:
   claim: "The expectation value is the result you should expect from one measurement."
   truth: "It is an average over many runs, not a result. Measuring Z gives only +1 or −1, yet ⟨Z⟩ can be 0, a value no single shot ever shows."
@@ -13,7 +13,7 @@ import ShotAverage from '../../components/tools/ShotAverage.astro';
 
 Roll a die many times. Add up the points and divide by the number of rolls. You get close to 3.5, though no face shows 3.5. That number is the average.
 
-A qubit can play the same game. Measure it, and call result 0 "+1" and result 1 "−1". One try gives +1 or −1, nothing in between. Now make many qubits the same way: start each at 0, then turn it with the same gate. Measure each one once. The average of all those tries settles near one number, called the expectation value. More tries, closer.
+A qubit can play the same game. Measure it, and call result 0 "+1" and result 1 "−1". One try gives +1 or −1, nothing in between. Now make many qubits the same way: start each at 0, then turn it with the same gate. Measure each one once. The average of all those tries settles near one number, called the expectation value. More tries, usually closer.
 
 Where the die picture breaks: a die's chances are plain chances. A qubit's chances come from its amplitudes, and qubits made the same way give a different average when you ask them a different question.
 
@@ -27,7 +27,7 @@ Take a qubit that started as 0, then went through a rotation gate, RY(60°). Its
 
 ⟨Z⟩ = (+1)(3/4) + (−1)(1/4) = 1/2
 
-No single shot gives 1/2. Each gives +1 or −1. Measure many fresh copies and average the results: the average lands near 1/2. For this state and Z, the average's spread (one standard deviation) is about 0.09 after 100 shots and 0.009 after 10,000. So 100 times more shots make the spread 10 times smaller.
+No single shot gives 1/2. Each gives +1 or −1. Measure many fresh copies and average the results: the average lands near 1/2. For this state and Z, the average's typical spread (one standard deviation, for independent shots) is about 0.09 after 100 shots and 0.009 after 10,000. So 100 times more shots make the spread 10 times smaller.
 
 Measure X instead, and the same qubit has a different average: ⟨X⟩ = √3/2 ≈ 0.87.
 
@@ -41,7 +41,7 @@ $$
 \langle A\rangle = \sum_k a_k\,p_k = \langle\psi|A|\psi\rangle .
 $$
 
-A global phase cancels in $\langle\psi|A|\psi\rangle$. A projector gives $\langle\Pi_k\rangle = p_k$, so every probability is an expectation value. Started as $|0\rangle$, then $R_Y(\theta)$, the state is $\cos\tfrac{\theta}{2}|0\rangle + \sin\tfrac{\theta}{2}|1\rangle$, and
+A global phase cancels in $\langle\psi|A|\psi\rangle$. For a mixed state it is $\mathrm{tr}(A\rho)$ ([density matrix](/learn/density-matrix/)). A projector gives $\langle\Pi_k\rangle = p_k$, so every probability is an expectation value. Started as $|0\rangle$, then $R_Y(\theta)$, the state is $\cos\tfrac{\theta}{2}|0\rangle + \sin\tfrac{\theta}{2}|1\rangle$, and
 
 $$
 \langle Z\rangle = \cos\theta, \qquad \langle X\rangle = \sin\theta .
@@ -51,9 +51,9 @@ For any qubit with [Bloch vector](/learn/bloch/) $\vec r$, $\langle \hat n\cdot\
 
 One shot's result has standard deviation $\Delta A$, where $(\Delta A)^2 = \langle A^2\rangle - \langle A\rangle^2$. A Pauli observable has $A^2 = I$, so $\Delta A = \sqrt{1 - \langle A\rangle^2}$. It is zero only for eigenstates of $A$. This $\Delta A$ is the one in the [uncertainty principle](/learn/uncertainty/).
 
-$N$ shots on fresh copies are independent, so their average has mean $\langle A\rangle$ and standard deviation $\Delta A/\sqrt{N}$. Reaching a standard deviation $\epsilon$ takes $N = (\Delta A/\epsilon)^2$ shots.
+$N$ shots on fresh, identically prepared copies are independent, so their average has mean $\langle A\rangle$ and standard deviation $\Delta A/\sqrt{N}$. This needs independent shots: drift or links between runs break it, and one extra shot can still move a particular average farther away. A standard deviation of at most $\epsilon$ takes $N = \lceil(\Delta A/\epsilon)^2\rceil$ shots, but a single run can still miss by more than $\epsilon$. For $\pm 1$ results, $N \ge 2\ln(2/\delta)/\epsilon^2$ makes the chance of missing by more than $\epsilon$ at most $\delta$ (Hoeffding).
 
-Expectation values are linear: $\langle \alpha A + \beta B\rangle = \alpha\langle A\rangle + \beta\langle B\rangle$. So a Hamiltonian written as a sum of Pauli strings, $H = \sum_j c_j P_j$, is estimated term by term. Terms that do not commute need separate measurement settings. Commuting terms can share one: directly when they commute qubit by qubit, like $Z\otimes Z$ and $Z\otimes I$, otherwise with an extra circuit before measuring. One tool example: Qiskit's [Estimator primitive](https://quantum.cloud.ibm.com/docs/en/guides/primitives) estimates such expectation values for states prepared by circuits. [VQE](/learn/vqe/) minimizes such an energy.
+Expectation values are linear: $\langle \alpha A + \beta B\rangle = \alpha\langle A\rangle + \beta\langle B\rangle$. So a Hamiltonian written as a sum of Pauli strings, $H = \sum_j c_j P_j$, is estimated term by term. Terms that do not commute cannot all be sharp together, so the usual method measures them in separate settings (joint but unsharp measurements exist; they are a different method). Commuting terms can share one: directly when they commute qubit by qubit, like $Z\otimes Z$ and $Z\otimes I$, otherwise with an extra circuit before measuring. One tool example: Qiskit's [Estimator primitive](https://quantum.cloud.ibm.com/docs/en/guides/primitives) estimates such expectation values for states prepared by circuits. [VQE](/learn/vqe/) minimizes such an energy.
 
 </Depth>
 
