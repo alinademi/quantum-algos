@@ -1,0 +1,54 @@
+---
+description: "Copenhagen, many worlds, pilot wave, collapse models and QBism tell one double-slit run five ways. See where they agree and where collapse differs."
+answer: "Interpretations are different stories about what a quantum experiment means, such as one double-slit shot. Copenhagen-style views, many worlds, pilot-wave theory and QBism give the same predictions as standard quantum mechanics; collapse models differ for large, well-isolated objects."
+myth:
+  claim: "Each interpretation predicts something different, so an experiment will soon pick the right one."
+  truth: "Copenhagen-style views, many worlds, pilot-wave theory and QBism give the same predictions as standard quantum mechanics. Collapse models differ, most clearly for large objects kept isolated. Interference tests cannot reach that yet; other tests have ruled out stronger collapse rates, but not GRW's original one."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import FiveStories from '../../components/tools/FiveStories.astro';
+
+<Depth level="kid">
+
+Picture one magic trick and five friends who each explain it. The trick is the double slit. One tiny particle flies at a wall with two slits and lands as one dot. After many particles, the dots make stripes. All five friends agree on the stripes and on the odds for each dot.
+
+They disagree about what happens in between. One says the wave is only a tool for the odds. One says every possible dot happens, each in its own branch. One says the particle always has a place and a wave steers it. One says the wave really collapses at random moments. One says the wave is your bet on what you will see.
+
+The trick picture breaks here: nobody can check the stories against these stripes. The collapse friend is the exception. In that friend's story, a big enough object, kept isolated, would stop making stripes. No test has reached that size yet.
+
+</Depth>
+
+<Depth level="student">
+
+Start: one object flies at two slits, with equal amplitudes for the two. Standard quantum mechanics gives each dot's odds: |amplitude|². In the tool, about 80 of 100 dots land in the bright bands. With no stripes, it would be 50.
+
+Four stories keep this rule, so their odds agree. Copenhagen-style: the wave is a tool for the odds. Many worlds: no collapse, each result in its own branch. Pilot wave: the particle always has a place, steered by a wave through both slits. QBism: the wave is one agent's belief.
+
+Collapse models, such as GRW, change the rules. Each particle is hit at random, alone about once in 300 million years. Imagine a speck of 10¹⁶ particles on two paths for 1 second: it is hit in 63 tries out of 100. A hit picks one path and the stripes fade. Standard quantum mechanics says they stay, if nothing records the path. Tests have not reached this size. Why one result happens: the [measurement problem](/learn/measurement-problem/).
+
+</Depth>
+
+<Depth level="engineer">
+
+The tool's wave: two Gaussian packets at $\pm D/2$, width $\sigma$, in free flight ($\hbar = m = 1$). With $\tau = t/(2\sigma^2)$, each spreads to width $\sigma\sqrt{1+\tau^2}$, and
+
+$$
+|\psi|^2 \approx \tfrac12\left(|g_L|^2 + |g_R|^2\right) + |g_L||g_R|\cos kx,
+$$
+
+with $k = D\tau/\big(2\sigma^2(1+\tau^2)\big)$. Every story gives $p(x) = |\psi(x)|^2$ for this one-particle wave (GRW too: one particle almost never gets a hit).
+
+Not everything (Bell: the wave function is not everything, or not right). Copenhagen-style views and QBism treat the state as a tool for the odds, not a picture of a physical thing. Pilot-wave theory adds positions with $\dot x = \hbar\,\mathrm{Im}(\psi'/\psi)/m$. Then $\partial_t|\psi|^2 + \partial_x(|\psi|^2\dot x) = 0$, so starting places with $|\psi|^2$ odds keep them (equivariance). In one dimension, the path from quantile $u$ stays at quantile $u$. The theory is nonlocal, as the [Bell test](/learn/bell-test/) shows it must be: one particle's speed depends at once on where the others are. It still sends no signal.
+
+Not right. GRW multiplies one particle's wave by a Gaussian of width $r_C = 10^{-7}$ m at rate $\lambda = 10^{-16}\,\mathrm{s}^{-1}$ (Stanford Encyclopedia). For $N$ particles on paths farther apart than $r_C$, one hit picks a path, so the stripes keep visibility $e^{-N\lambda t}$. Standard quantum mechanics gives 1. For $N = 10^{16}$, $t = 1$ s: $e^{-1} \approx 37\%$.
+
+Neither. Many worlds keeps unitary change only, with branches weighted by $|\psi|^2$, and gives up one result per run. Everettians derive why the weight acts as a chance; critics doubt it.
+
+Every story but GRW matches standard quantum mechanics (pilot wave with its usual starting odds). Interference with molecules of over 10,000 nucleons has been seen, and cannot yet test GRW's rate. Heating and X-ray emission tests have ruled out stronger rates, but not GRW's original one (Stanford Encyclopedia, "Collapse Theories", section 7). Related: [decoherence](/learn/decoherence/).
+
+</Depth>
+
+<Lab title="Fire shots, then switch the story" intro="Fire a few hundred shots, then switch stories: the dots stay put, because the odds agree. Then pick Collapse and slide the size up.">
+  <FiveStories />
+</Lab>
