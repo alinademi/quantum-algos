@@ -1,5 +1,5 @@
 ---
-description: "Every one-qubit unitary is a global phase times a sequence of three rotations around Z, Y and Z."
+description: "Build a general one-qubit gate from three rotations and compare the result with its direct matrix."
 answer: "Every one-qubit unitary is a global phase times a sequence of three rotations around Z, Y and Z."
 myth:
   claim: "Three angles encode three independently measurable bits."
@@ -12,19 +12,25 @@ import { lab } from '../../lib/sims/single-qubit-unitary.ts';
 
 <Depth level="kid">
 
-You can point an arrow in a new direction by making a few simple turns. A qubit gate can likewise be made from three turns, with an overall phase.
+Imagine trying to turn a small globe from one position to another. You can turn it around a vertical line, then a horizontal line, then the vertical line again. With the right three angles you can reach any orientation. Some choices reach the same orientation in different ways.
+
+An ideal qubit has a similar picture: three turns are enough to describe any single-qubit gate, apart from a common change to all its amplitude signs or timing that cannot be seen when the gate acts alone. The picture breaks because the globe has a literal orientation. The qubit has complex amplitudes, and its rotation angles describe a mathematical operation.
 
 </Depth>
 
 <Depth level="student">
 
-A general one-qubit gate can use a Z turn, then a Y turn, then another Z turn. Two gates that differ only by a global phase act the same when used alone. The same three angles work for every input state, not just 0.
+Every one-qubit [unitary matrix](/learn/unitary-matrices/) can be written as a global phase times three [rotations](/learn/rotations/): first RZ(λ), then RY(θ), then RZ(φ). The angles describe an operation on every input, not only one starting qubit.
+
+A compact gate called U(θ,φ,λ) in one common convention produces the same result up to global phase. Both describe arbitrary one-qubit operations once an overall phase is allowed. Choose three angles in the lab, inspect each step and compare the Euler product and U matrices. The direct matrices can differ by a common factor even though all measurements of an unconditional gate agree. Relative phase, unlike global phase, is observable.
 
 </Depth>
 
 <Depth level="engineer">
 
-One common convention is $U(\theta,\phi,\lambda)=e^{i(\phi+\lambda)/2}R_Z(\phi)R_Y(\theta)R_Z(\lambda)$. Its first column is $(\cos(\theta/2),e^{i\phi}\sin(\theta/2))^T$ and its second is $(-e^{i\lambda}\sin(\theta/2),e^{i(\phi+\lambda)}\cos(\theta/2))^T$. This covers U(2) up to an additional global phase; the chronological order starts with $R_Z(\lambda)$.
+A common convention (OpenQASM 3 and Qiskit) is $U(\theta,\phi,\lambda)=e^{i(\phi+\lambda)/2}R_Z(\phi)R_Y(\theta)R_Z(\lambda)$. Its first column is $(\cos(\theta/2),e^{i\phi}\sin(\theta/2))^T$; its second is $(-e^{i\lambda}\sin(\theta/2),e^{i(\phi+\lambda)}\cos(\theta/2))^T$.
+
+OpenQASM 2 uses the Euler product without the prefactor (Cross et al., eq. 2); the conventions differ only by a global phase. Chronological order is rightmost matrix first. These rotations cover SU(2), and multiplying by a phase covers U(2). The [phase gate](/learn/phase-gates/) and RZ conventions likewise differ by a global phase. Do not discard phases when making controlled versions without checking the relative phase between control branches.
 
 </Depth>
 
