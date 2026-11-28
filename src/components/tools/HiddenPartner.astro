@@ -75,7 +75,7 @@ const l0 = fromPercent(ODDS.start), psi0 = turned(l0, turnRad(TURN.start)), [b0,
 
       function draw() {
         if (!ctx || !w) return;
-        const g = ctx, R = Math.min(w / 2 - 34, 140), cx = w / 2, cy = R + 24, top = 2 * R + 56;
+        const g = ctx, R = Math.min(w / 2 - 52, 140), cx = w / 2, cy = R + 42, top = 2 * R + 92;
         g.clearRect(0, 0, w, h);
         const text = (s: string, x: number, y: number, align: CanvasTextAlign, color: string, font = `500 12px ${mono}`) => {
           g.font = font; g.textAlign = align; g.textBaseline = 'middle'; g.fillStyle = color; g.fillText(s, x, y);
@@ -85,10 +85,10 @@ const l0 = fromPercent(ODDS.start), psi0 = turned(l0, turnRad(TURN.start)), [b0,
         // The slice: a rim of dots, two dotted axes, the four named states.
         for (let k = 0; k < 120; k++) dot(g, cx + R * Math.cos((k * Math.PI) / 60), cy + R * Math.sin((k * Math.PI) / 60), 1.2, pal.ink2);
         for (let i = -20; i <= 20; i++) { dot(g, cx, cy - (i / 20) * R, 0.9, pal.rule); dot(g, cx + (i / 20) * R, cy, 0.9, pal.rule); }
-        text('|0⟩', cx, cy - R - 13, 'center', pal.ink);
-        text('|1⟩', cx, cy + R + 13, 'center', pal.ink);
-        text('|+⟩', cx + R + 8, cy, 'left', pal.ink);
-        text('|−⟩', cx - R - 8, cy, 'right', pal.ink);
+        text('|0⟩', cx, cy - R - 31, 'center', pal.ink);
+        text('|1⟩', cx, cy + R + 31, 'center', pal.ink);
+        text('|+⟩', cx + R + 26, cy, 'left', pal.ink);
+        text('|−⟩', cx - R - 26, cy, 'right', pal.ink);
 
         // The two states A is left in, the line between them, and rho on it.
         const bs = branches(psi).filter((b) => b.state);
@@ -182,8 +182,8 @@ const l0 = fromPercent(ODDS.start), psi0 = turned(l0, turnRad(TURN.start)), [b0,
       const size = () => {
         const cw = canvas.getBoundingClientRect().width;
         if (!cw) return;
-        const R = Math.min(cw / 2 - 34, 140);
-        h = 2 * R + 56 + 78;
+        const R = Math.min(cw / 2 - 52, 140);
+        h = 2 * R + 92 + 78;
         canvas.style.height = `${h}px`;
         ({ ctx, w } = fit(canvas)); w = cw;
         pal = palette(); mono = token('--mono'); sans = token('--sans');
