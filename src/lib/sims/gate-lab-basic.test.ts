@@ -104,7 +104,7 @@ test('observed estimators preserve sample fluctuations and use the ideal varianc
  close(g.estimateShots([1,0],[100,0],[1,-1]).standardError,0);
 });
 
-test('display hides roundoff-scale probability but preserves small real probabilities',()=>{assert.equal(g.displayProbability(1e-32),0);assert.equal(g.displayProbability(1e-8),1e-8);assert.equal(g.displayProbability(1+1e-15),1);});
+test('display hides roundoff-scale probability but preserves small real probabilities',()=>{assert.equal(g.displayProbability(1e-32),0);assert.equal(g.displayProbability(1e-16),0);assert.equal(g.displayProbability(1-4e-16),1);assert.equal(g.displayProbability(1e-8),1e-8);assert.equal(g.displayProbability(1+1e-15),1);});
 
 test('integer rows never round exact counts to six significant digits',()=>{assert.equal(g.row('count',1118481).value,'1118481');assert.equal(g.row('slots',1125899906842624).value,'1125899906842624');});
 

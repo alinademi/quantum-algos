@@ -16,7 +16,7 @@ export const defaults = (lab: Lab): Values => Object.fromEntries(lab.controls.ma
 export const deg = (x: string | number) => Number(x) * Math.PI / 180;
 export const angles = ['0', '30', '45', '60', '90', '120', '180', '270', '360'];
 // Finite-angle examples: hide roundoff-scale probabilities in the display, never in the sampler.
-export const displayProbability=(p:number)=>p<1e-24?0:Math.min(1,p);
+export const displayProbability=(p:number)=>p<1e-15?0:p>1-1e-15?1:p;
 export const num = (x: number) => Math.abs(x) < 1e-12 ? '0' : Number(x.toPrecision(6)).toString();
 export function complex(a: C): string {
   if (Math.abs(a.im) < 1e-12) return num(a.re);
