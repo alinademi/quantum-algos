@@ -1,0 +1,27 @@
+<qce-spider-rewrite class="tool">
+ <div class="tool-controls"><label>Diagram <select><option>Fusion</option><option>CNOT</option></select></label><button type="button" class="btn">Rewrite diagram</button></div>
+ <canvas aria-hidden="true"></canvas>
+ <p class="tool-readout" aria-live="polite"></p>
+ <p class="note">These dots are tensor-network nodes, not measurement shots. Z and X labels distinguish the spider types without relying on color.</p>
+</qce-spider-rewrite>
+<script>
+ import {spiderCX} from '../../lib/sims/zx-calculus.ts';
+ import {matrixGap,control} from '../../lib/sims/gate-lab.ts';
+ import {P,X,matMul} from '../../lib/quantum.ts';
+ import {fit,palette,dot,onResize,onTheme,onSeen} from '../../lib/draw.ts';
+ class SpiderRewrite extends HTMLElement{
+  connectedCallback(){
+   const select=this.querySelector('select')!,button=this.querySelector('button')!,canvas=this.querySelector('canvas')!,read=this.querySelector('.tool-readout')!;let simplified=false,seen=true;
+   const draw=()=>{if(!seen)return;const {ctx,w,h}=fit(canvas);if(w<40)return;const p=palette(),x=w/2,a=w*.3,b=w*.7,y=h/2;ctx.clearRect(0,0,w,h);
+    const line=(x1:number,y1:number,x2:number,y2:number)=>{ctx.strokeStyle=p.ink;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();};
+    const node=(x:number,y:number,label:string,kind:string)=>{dot(ctx,x,y,18,kind==='Z'?p.signal:p.hot);ctx.font='bold 13px monospace';ctx.textAlign='center';ctx.fillStyle=p.paper;ctx.fillText(kind,x,y+4);ctx.fillStyle=p.ink;ctx.font='12px monospace';ctx.fillText(label,x,y+34);};
+    if(select.value==='Fusion'){line(12,y,w-12,y);if(simplified)node(x,y,'135°','Z');else {node(a,y,'45°','Z');node(b,y,'90°','Z');}}
+    else {const y1=h*.28,y2=h*.67;line(12,y1,w-12,y1);line(12,y2,w-12,y2);line(x,y1,x,y2);if(simplified){dot(ctx,x,y1,5,p.ink);ctx.strokeStyle=p.ink;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y2,13,0,Math.PI*2);ctx.stroke();line(x-13,y2,x+13,y2);line(x,y2-13,x,y2+13);}else{node(x,y1,'copy','Z');node(x,y2,'merge','X');}}
+   };
+   const report=()=>{const cx=select.value==='CNOT';const gap=cx?matrixGap(spiderCX(),control(X)):matrixGap(matMul(P(Math.PI/2),P(Math.PI/4)),P(3*Math.PI/4));read.textContent=cx?'For every two-qubit input: normalized Z copy joined to X merge equals CNOT; max entry difference '+gap.toExponential(1)+'.':'For every one-qubit input: Z spiders at 45° and 90° fuse to 135°; max entry difference '+gap.toExponential(1)+'.';button.textContent=simplified?'Show original diagram':'Rewrite diagram';draw();};
+   button.addEventListener('click',()=>{simplified=!simplified;report();});select.addEventListener('change',()=>{simplified=false;report();});onResize(this,draw);onTheme(draw);onSeen(this,v=>{seen=v;if(v)draw();});report();
+  }
+ }
+ customElements.define('qce-spider-rewrite',SpiderRewrite);
+</script>
+<style>qce-spider-rewrite{display:grid;gap:var(--s3)}canvas{width:100%;height:12rem}select{min-height:2.75rem;background:var(--paper);color:var(--ink);font:inherit}.note{font-size:.875rem;color:var(--ink-2)}</style>

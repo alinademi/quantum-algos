@@ -1,5 +1,5 @@
 ---
-description: "ZX-calculus represents quantum operations by diagrams with Z and X spiders; valid diagram rewrites preserve their mathematical meaning."
+description: "Simplify spider diagrams by fusion or color change, and build a CNOT from connected multi-leg spiders."
 answer: "ZX-calculus represents quantum operations by diagrams with Z and X spiders; valid diagram rewrites preserve their mathematical meaning."
 myth:
   claim: "Any rearrangement of a quantum diagram is a valid rewrite."
@@ -7,27 +7,29 @@ myth:
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
+import SpiderRewrite from '../../components/tools/SpiderRewrite.astro';
 import GateLab from '../../components/tools/GateLab.astro';
 import { lab } from '../../lib/sims/zx-calculus.ts';
 
 <Depth level="kid">
 
-Instead of writing large matrices, draw colored nodes and wires. Some connected nodes of the same color can be merged, adding their phase labels.
+Imagine replacing a long circuit drawing with dots and connecting lines. Each dot has a type and an angle written beside it. Two connected dots of the same type can sometimes become a single dot whose angle is their sum. A certain change of coordinates switches one type of dot to the other. Dots can also connect several wires; two such dots joined in a particular way describe a controlled flip. These rules make it possible to simplify a drawing without changing the calculation. The picture breaks because these are not ordinary diagrams: each dot represents a mathematical map, and only valid rewrite rules preserve that map.
 
 </Depth>
 
 <Depth level="student">
 
-A green spider with one input and one output is P(α). A red spider is its X-basis version H P(α) H. Two spiders of the same color in series fuse by adding angles. H gates change the color of a one-input one-output spider. Diagrams can also have multiple inputs and outputs.
+ZX diagrams use two kinds of spiders: Z and X. A one-input one-output Z spider is the phase gate P(α); an X spider is its version in the X basis. Two connected same-type spiders fuse by adding their angles. Applying H on all legs changes a spider's type. A multi-leg Z spider with zero angle copies standard-basis labels, and a multi-leg X spider similarly uses the X basis. Connect a Z copy to an X merge to obtain CNOT, with a normalization scalar. These [circuit identities](/learn/circuit-identities/) preserve the represented maps when their scalar conventions are respected, so they can simplify circuits, including [Clifford](/learn/clifford-group/) circuits.
 
 </Depth>
 
 <Depth level="engineer">
 
-In the usual unnormalized convention a Z spider with m inputs and n outputs denotes $|0\rangle^{\otimes n}\langle0|^{\otimes m}+e^{i\alpha}|1\rangle^{\otimes n}\langle1|^{\otimes m}$. X spiders use the X basis. Spider fusion joins connected same-color spiders under its rule; color change conjugates by H on all legs. For the one-to-one examples here the equalities hold exactly, including scalars. General ZX derivations need careful treatment of disconnected scalars. See the [ZX-calculus textbook](https://zxcalculus.com/).
+In the unnormalized convention a Z spider with m inputs and n outputs is $|0\rangle^{\otimes n}\langle0|^{\otimes m}+e^{i\alpha}|1\rangle^{\otimes n}\langle1|^{\otimes m}$. X spiders use |+⟩ and |−⟩ instead. Connected same-type spiders fuse by summing phases. H on every leg changes color. Joining a 1-to-2 Z spider on the control with a 2-to-1 X spider on the target gives CNOT divided by √2; multiplying by √2 restores its exact matrix. Scalar-free diagrams commonly omit that scalar, but quantitative probabilities require normalization. The examples test the independently defined maps against their rewrites. See [van de Wetering's review](https://arxiv.org/abs/2012.13966).
 
 </Depth>
 
-<Lab title="Check a diagram rewrite" intro="Choose green fusion, red fusion or color change. Compare the original and rewritten maps.">
+<Lab title="Check a diagram rewrite" intro="Choose a rewrite or a multi-leg CNOT example and compare the original and simplified maps.">
+  <SpiderRewrite />
   <GateLab id="zx-calculus" lab={lab} />
 </Lab>
