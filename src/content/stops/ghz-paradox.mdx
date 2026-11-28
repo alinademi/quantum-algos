@@ -1,6 +1,6 @@
 ---
 description: "Three players, no talking, one parity rule. Any plan made in advance wins at most 3 rounds in 4 on average; ideal qubits in a GHZ state win every round."
-answer: "The GHZ game is a test for three players who cannot talk: each gets one bit and answers one bit, and the team wins if the answers add up to an even number when all three got 0, and to an odd number otherwise. A plan made in advance wins at most 3 rounds in 4 on average; players sharing three ideal qubits in a GHZ state win every round."
+answer: "The GHZ game is a test for three players who cannot talk. The referee picks one of four questions, 000, 011, 101 or 110, each equally likely. Each player gets one bit and answers one bit; the team wins if the answers add up to an even number for 000, and to an odd number for the rest. A plan made in advance wins at most 3 rounds in 4 on average; players sharing three ideal qubits in a GHZ state win every round."
 myth:
   claim: "Entangled qubits let the players send each other signals."
   truth: "No signal is sent. Each player's own answer comes out 0 or 1 at random, whatever the others were asked. Only the three answers taken together always fit the rule."
@@ -28,13 +28,13 @@ The quantum team shares three qubits that started as 000; a Hadamard gate and tw
 </Depth>
 
 <Depth level="engineer">
-The referee draws $rst$ uniformly from $\{000, 011, 101, 110\}$. The players, who cannot communicate, return $a, b, c$ and win if
+The referee draws $rst$ uniformly from $\{000, 011, 101, 110\}$; only these four inputs are used, and all eight would be a different game. The players, who cannot communicate, return $a, b, c$ and win if
 
 $$
 a \oplus b \oplus c = r \lor s \lor t.
 $$
 
-**Classical.** Shared randomness only mixes deterministic strategies $a(r), b(s), c(t)$, so the best of those is the best overall. The four win conditions
+**Classical.** With no communication, shared randomness only mixes deterministic strategies $a(r), b(s), c(t)$, so the best of those is the best overall. The four win conditions
 
 $$
 \begin{aligned}
@@ -60,7 +60,7 @@ $$
 
 So the product of outcomes, $(-1)^{a \oplus b \oplus c}$, is $+1$ for 000 and $-1$ otherwise: the team wins with probability 1. The outcomes are uniform over the four strings of the right parity, so each single bit, and each pair, is uniform. Nothing is signalled.
 
-**Paradox.** Suppose each qubit carried results $x_i, y_i = \pm 1$ for $X$ and $Y$, fixed in advance and not changed by the other players' choices. The three $-1$ predictions multiply to $x_1 x_2 x_3 (y_1 y_2 y_3)^2 = x_1 x_2 x_3 = -1$, but $XXX$ predicts $+1$. Unlike the [CHSH test](/learn/bell-test/), this uses only predictions that hold with certainty.
+**Paradox.** Suppose each qubit carried results $x_i, y_i = \pm 1$ for $X$ and $Y$, fixed in advance and not changed by the other players' choices. The three $-1$ predictions multiply to $x_1 x_2 x_3 (y_1 y_2 y_3)^2 = x_1 x_2 x_3 = -1$, but $XXX$ predicts $+1$. This rules out local values fixed in advance, not every deterministic theory. Unlike the [CHSH test](/learn/bell-test/), it uses only predictions that hold with certainty.
 
 With noise, say the GHZ state with probability $v$ and the fully mixed state $I/8$ otherwise (white noise; $I/8$ wins half the time), the win probability is $(1 + v)/2$. It beats $3/4$ exactly when $v > 1/2$.
 </Depth>
