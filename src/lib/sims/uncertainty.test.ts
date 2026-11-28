@@ -192,6 +192,28 @@ test('commuting observables can both be sharp: Z and 2I + 3Z have bound 0 everyw
   assert.equal(u.spread(s, Z), 0); assert.equal(u.spread(s, B), 0);
 });
 
+test('noncommuting does not always mean no shared eigenvector: in 3 levels A = diag(0, 1, -1) and B = 0 ⊕ X do not commute, yet |0> makes both spreads 0', () => {
+  const n = q.c(0), one = q.c(1);
+  const A: q.Matrix = [[n, n, n], [n, one, n], [n, n, q.c(-1)]];
+  const B: q.Matrix = [[n, n, n], [n, n, one], [n, one, n]];
+  const AB = q.matMul(A, B), BA = q.matMul(B, A);
+  // [A, B] is not 0: on the block it is [Z, X] = 2iY.
+  const comm = AB.map((row, i) => row.map((x, j) => q.sub(x, BA[i][j])));
+  assert.ok(comm.some((row) => row.some((x) => q.abs(x) > 1)));
+  const zero: q.State = [one, n, n];
+  close(q.norm2(q.matVec(A, zero)), 0);
+  close(q.norm2(q.matVec(B, zero)), 0);
+  close(u.spread(zero, A), 0);
+  close(u.spread(zero, B), 0);
+  close(u.bound(zero, A, B), 0);
+  // Other states do not make both sharp: the spreads are not both 0 on the block.
+  const blockState = q.normalize([n, one, q.c(0, 1)]);
+  assert.ok(u.spread(blockState, A) * u.spread(blockState, B) >= u.bound(blockState, A, B) - 1e-12);
+  assert.ok(u.spread(blockState, A) > 0 || u.spread(blockState, B) > 0);
+  // The qubit pair Z, X is different: no unit vector is sharp for both (checked by the Y argument above and here on a grid).
+  for (const a of GRID) { const s = u.stateAt(a); assert.ok(u.spread(s, Z) > 1e-9 || u.spread(s, X) > 1e-9); }
+});
+
 test('a floor that never vanishes: dZ² + dX² = 1 + <Y>² >= 1 for pure states, and >= 1 for mixed states too', () => {
   for (const a of GRID) { const e = u.exact(a); close(e.dZ ** 2 + e.dX ** 2, 1 + e.y ** 2, 1e-12); }
   // Mixed: rho = (I + r·σ)/2 with |r| <= 1. Spread from tr(rho A²) - tr(rho A)².

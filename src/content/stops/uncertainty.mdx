@@ -13,7 +13,7 @@ import TwoSpreads from '../../components/tools/TwoSpreads.astro';
 
 A short clap happens at one clear moment, but it has no clear pitch. A long whistle has a clear pitch, but no single moment. No sound has both.
 
-A qubit has a trade like that. Make many copies of a qubit, all started as 0. Ask some copies "up or down?" and others "left or right?". Each copy answers one question, once. "Up or down?" gets "up" every time. "Left or right?" gets left or right at random, about half each. Change the start: if one question gets nearly sure answers, the other one's answers must scatter. Quantum theory says no qubit state gives sure answers to both.
+A qubit has a trade like that. Make many copies of a qubit, all started as 0. Ask some copies "up or down?" and others "left or right?". Each copy answers one question, once. "Up or down?" gets "up" every time. "Left or right?" gets left or right at random, about half each. Change the start: if one question gets nearly sure answers, the other one's answers must scatter. Quantum theory says no qubit state gives sure answers to both of these two questions.
 
 Where the picture breaks: you hear a whole sound, but a qubit gives one answer per copy, so the scatter only shows over many copies. And no copy is asked twice, so this is not one question spoiling the next.
 
@@ -45,7 +45,7 @@ $$
 \Delta A\,\Delta B \ge \tfrac{1}{2}\left|\langle[A, B]\rangle\right|
 $$
 
-If both spreads are 0, $|\psi\rangle$ is a common eigenvector, so $[A, B]|\psi\rangle = 0.$ For Paulis, $[Z, X] = 2iY$ and $Y$ has eigenvalues $\pm 1,$ so $[Z, X]$ sends no state to 0: $Z$ and $X$ are never both sharp. With Bloch vector $\vec r,$ $(\Delta Z)^2 = 1 - r_z^2,$ $(\Delta X)^2 = 1 - r_x^2,$ and
+If both spreads are 0, $|\psi\rangle$ is a common eigenvector, so $[A, B]|\psi\rangle = 0.$ For Paulis, $[Z, X] = 2iY$ and $Y$ has eigenvalues $\pm 1,$ so $[Z, X]$ sends no state to 0: $Z$ and $X$ are never both sharp. Not commuting alone does not forbid both being sharp: with $A = \mathrm{diag}(0, 1, -1)$ and $B = 0 \oplus X$ (zero on $|0\rangle$, $X$ on $|1\rangle, |2\rangle$), $[A, B] \neq 0$, yet $|0\rangle$ is an eigenvector of both, so both spreads are 0 there and the bound is 0. With Bloch vector $\vec r,$ $(\Delta Z)^2 = 1 - r_z^2,$ $(\Delta X)^2 = 1 - r_x^2,$ and
 
 $$
 \Delta Z\,\Delta X \ge |r_y|
