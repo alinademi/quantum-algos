@@ -1,9 +1,9 @@
 ---
 description: "What is a qudit? A quantum unit with d levels, not just 2. See how amplitudes, gates and cancelling change for qutrits and up."
-answer: "A qudit is a quantum system with d levels instead of a qubit's two; a qutrit has three. Its state has one amplitude per level, and a measurement gives one level, each with chance |amplitude|²."
+answer: "A qudit is a quantum system with d levels instead of a qubit's two; a qutrit has three. A pure qudit state has one amplitude per level, and an ideal measurement of the levels gives one level, each with chance |amplitude|²."
 myth:
   claim: "Qudits can compute things that qubits cannot."
-  truth: "Store each qudit in a few qubits and any qudit circuit can be rebuilt from qubit gates. Qudits can save parts and steps, but they compute the same things."
+  truth: "Store each qudit in a few qubits and qubit gates can run any qudit circuit, with some extra cost. Qudits can save parts and steps, but they compute the same things."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -27,25 +27,25 @@ A few qubits can do anything a qudit does. A qudit can just need fewer parts.
 
 A qubit has two levels, 0 and 1. A qudit has $d$ levels, 0 to $d-1$; with $d = 3$ it is a qutrit. An atom has many energy levels; a qubit uses two.
 
-A qutrit's state is $a|0\rangle + b|1\rangle + c|2\rangle$: one amplitude per level. The chance of each result is |amplitude|², and the three chances add up to 100%. A measurement gives one level.
+A qutrit's pure state is $a|0\rangle + b|1\rangle + c|2\rangle$: one amplitude per level. In an ideal measurement of the levels, the chance of each result is |amplitude|², and the three chances add up to 100%. It gives one level.
 
 Started as 0, a Fourier gate (the qutrit's Hadamard gate) gives three equal amplitudes, $1/\sqrt{3} \approx 0.58$ each, so a measurement gives 0, 1 or 2, each with chance 1/3.
 
 Amplitudes can cancel in a new way: three contributions of the same size, 120° apart, add to zero, though no two point opposite ways. That is [interference](/learn/interference/) with three parts. A phase gate turns the amplitudes but keeps their size, so measuring right away still gives 1/3 each. A gate, then a measurement, tells the phases apart.
 
-Each qudit fits in a few qubits, so qudits compute nothing new. They can save parts and steps.
+Each qudit fits in a few qubits, so qudits compute nothing new, though qubits pay some extra cost. Qudits can save parts and steps.
 
 </Depth>
 
 <Depth level="engineer">
 
-A qudit is a unit vector in $\mathbb{C}^d$:
+A pure qudit state is a unit vector in $\mathbb{C}^d$; a mixed state is a $d \times d$ density matrix. For the pure case:
 
 $$
 |\psi\rangle = \sum_{j=0}^{d-1} \alpha_j |j\rangle
 $$
 
-with $\sum_j |\alpha_j|^2 = 1$. A standard-basis measurement gives $j$ with probability $|\alpha_j|^2$. Up to a global phase, a pure state needs $2(d-1)$ real numbers: 2 for a qubit (the [Bloch sphere](/learn/bloch/)), 4 for a qutrit, so the sphere has no simple qutrit version. $n$ qudits span $d^n$ dimensions.
+with $\sum_j |\alpha_j|^2 = 1$. An ideal standard-basis measurement has $d$ outcomes and gives $j$ with probability $|\alpha_j|^2$. Up to a global phase, a pure state needs $2(d-1)$ real numbers: 2 for a qubit (the [Bloch sphere](/learn/bloch/)), 4 for a qutrit, so the sphere has no simple qutrit version. $n$ qudits span $d^n$ dimensions.
 
 With $\omega = e^{2\pi i/d}$, the Pauli gates become the shift $X|j\rangle = |j+1 \bmod d\rangle$ and the clock $Z|j\rangle = \omega^j|j\rangle$, with $ZX = \omega XZ$. The Hadamard becomes the Fourier gate:
 
@@ -57,7 +57,7 @@ For $d = 2$ these are $X$, $Z$ and $H$. For $d \ge 3$, $F$ is not its own invers
 
 Cancellation changes shape. Since $\sum_{j=0}^{d-1} \omega^{jm} = 0$ unless $d$ divides $m$ ([roots of unity](/learn/roots-of-unity/)), $F^\dagger Z^m F = X^m$: started as $|0\rangle$, the circuit $F$, $Z^m$, $F^\dagger$ gives $m$ every time with ideal gates. Measured right after $Z^m$, every result has chance $1/d$: the phases alone show nothing, and $F^\dagger$ turns them into a result. For a qutrit, $1 + \omega + \omega^2 = 0$: three terms cancel with no two opposite.
 
-Each qudit fits in $\lceil \log_2 d \rceil$ qubits, so qudits compute nothing qubits cannot. They can save carriers and gates: a third level on the target shortens the [Toffoli gate](/learn/toffoli/). The costs can include harder gates, benchmarking and error correction (Wang et al. 2020, [arXiv:2008.00959](https://arxiv.org/abs/2008.00959)).
+Each qudit fits in $\lceil \log_2 d \rceil$ qubits, so a qubit machine can simulate any qudit circuit, with overhead. Exact gate synthesis depends on the allowed gates; a universal qubit set reaches any qudit unitary to any accuracy. So qudits compute nothing qubits cannot. They can save carriers and gates: a third level on the target shortens the [Toffoli gate](/learn/toffoli/). The costs can include harder gates, benchmarking and error correction (Wang et al. 2020, [arXiv:2008.00959](https://arxiv.org/abs/2008.00959)).
 
 </Depth>
 
