@@ -1,5 +1,5 @@
 ---
-description: "A controlled-U gate applies U to its target in a chosen control branch and leaves the other branch unchanged."
+description: "Build controlled Y, Z and phase gates from CNOT and single-qubit gates, including controls on zero."
 answer: "A controlled-U gate applies U to its target in a chosen control branch and leaves the other branch unchanged."
 myth:
   claim: "Replacing U by a globally phase-shifted U never affects a controlled gate."
@@ -12,19 +12,25 @@ import { lab } from '../../lib/sims/controlled-gates.ts';
 
 <Depth level="kid">
 
-A coherent switch decides which branch gets a gate. The switch itself is not read. A control in superposition can connect the two qubits.
+Imagine a switch that decides whether a machine changes a second object. You can arrange it so the machine runs when the switch is on, or when it is off. The change might flip a token, turn an arrow or change the timing of a wave. The switch chooses which rule is applied, but the machine never reads it aloud.
+
+In the quantum version the switch itself has amplitudes, and the rule changes the appropriate contributions to the joint state without recording a result. The picture breaks because the switch does not have a hidden classical value, and a change controlled this way can also change the relative phase of the switch.
 
 </Depth>
 
 <Depth level="student">
 
-CZ multiplies |11⟩ by −1. CY flips the target with Y instead of X. Controlled phase gates give a chosen phase to |11⟩. An open control activates on 0 instead of 1.
+A controlled gate applies a chosen operation to its target when the control is 1, and does nothing on the other branch. CZ negates the |11⟩ amplitude. CY applies Y, which exchanges target amplitudes and adds factors of i or −i. Controlled phase CP(φ) multiplies |11⟩ by a phase e^(iφ).
+
+Build CZ by H on the target, CNOT and H. Build CY by S†, CNOT and S on the target. For CP use half-angle phase gates and two CNOTs. To activate on 0, surround the ordinary controlled gate with X on its control. The lab compares complete matrices, not only a selected input.
 
 </Depth>
 
 <Depth level="engineer">
 
 For control-on-one, $C(U)=|0\rangle\langle0|\otimes I+|1\rangle\langle1|\otimes U$. Control-on-zero conjugates by X on the control. $CZ=(I\otimes H)CX(I\otimes H)$ and $CY=(I\otimes S)CX(I\otimes S^\dagger)$. For CP, apply $P(\phi/2)$ to each wire, CNOT, $P(-\phi/2)$ on target, then CNOT. Comparing complete matrices checks the control phase as well.
+
+The ideas used here build on [CNOT](/learn/cnot/), [Phase gates](/learn/phase-gates/), [Rotation gates](/learn/rotations/).
 
 </Depth>
 
