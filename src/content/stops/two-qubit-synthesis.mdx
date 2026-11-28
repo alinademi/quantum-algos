@@ -1,5 +1,5 @@
 ---
-description: "Any two-qubit unitary can be synthesized using at most three CNOTs plus arbitrary one-qubit gates, up to global phase."
+description: "Vary three interaction angles in the general three-CNOT form, and compare gates that need fewer CNOTs."
 answer: "Any two-qubit unitary can be synthesized using at most three CNOTs plus arbitrary one-qubit gates, up to global phase."
 myth:
   claim: "Every two-qubit gate needs exactly three CNOTs."
@@ -12,19 +12,19 @@ import { lab } from '../../lib/sims/two-qubit-synthesis.ts';
 
 <Depth level="kid">
 
-Two-qubit gates can be complex, but there is a surprisingly small maximum number of CNOTs needed when arbitrary one-qubit gates are allowed. Some gates need fewer.
+Imagine a machine that changes two pieces together. Even if the change seems very complicated, you can split it into turns of the separate pieces, a small connecting section, then more separate turns. Surprisingly, the connecting section needs at most three uses of a particular two-piece instruction. Some changes need fewer: turning the two pieces separately needs none, and exchanging them needs three in the usual construction. Change the three adjustable angles in the connecting section and you get different joint transformations. The picture breaks because quantum operations act on complex amplitudes and the separate turns before and after can be arbitrary, not just ordinary mechanical rotations.
 
 </Depth>
 
 <Depth level="student">
 
-A SWAP can be made with three CNOTs. A ZZ rotation can be made with CNOT, a Z rotation, then CNOT. A gate made only of independent one-qubit operations needs zero CNOTs.
+Any two-qubit unitary can be written as local one-qubit gates, a central interaction, then more local gates, up to global phase. The central interaction has three angles associated with XX, YY and ZZ and has a circuit using at most three CNOTs. The lab lets you set those angles and compares the whole circuit with the three combined interactions. Some gates need fewer: local H and T need zero, CNOT needs one, a generic nontrivial ZZ rotation can use two, and SWAP needs three. This special two-qubit result is stronger than the general [decomposition](/learn/decomposition/) bound, and it helps compilers translate [two-qubit gates](/learn/two-qubit-gates/).
 
 </Depth>
 
 <Depth level="engineer">
 
-Up to local unitaries and phase, a two-qubit unitary has Cartan form $e^{-i(aXX+bYY+cZZ)}$. The three interaction terms commute. A general synthesis needs at most three CNOTs with arbitrary one-qubit gates, and some gates require three ([Vidal and Dawson](https://arxiv.org/abs/quant-ph/0307177)). In this convention SWAP is the canonical point $(\pi/4,\pi/4,\pi/4)$ times a global phase. The lab uses selected exact examples rather than solving the general KAK factorization.
+Up to global phase, any two-qubit U has the KAK form $(u_1\otimes u_2)A(v_1\otimes v_2)$, where $A=e^{-i(aXX+bYY+cZZ)}$. The three Pauli products commute. The general example implements A using three CNOTs and local rotations, accounting for a global phase of $e^{-i\pi/4}$. Surrounding it by arbitrary local unitaries does not add CNOTs. Some gates need three CNOTs, including SWAP; its canonical exponential at $(\pi/4,\pi/4,\pi/4)$ equals $e^{-i\pi/4}$ times SWAP. The lab accepts independently chosen canonical angles and compares complete matrices; it does not extract the KAK factors from arbitrary input matrices.
 
 </Depth>
 
