@@ -1,6 +1,6 @@
 ---
 description: "Measure a qubit in the X, Y or any basis, and see why the same state gives different odds in each one. Try it live in your browser."
-answer: "Measuring in another basis asks a qubit a different two-answer question. The result is one of two opposite points on the Bloch sphere, such as |+⟩ or |−⟩ instead of |0⟩ or |1⟩, and the same state gives different odds in different bases."
+answer: "Measuring a qubit in another basis asks it a different two-answer question. The result is one of two opposite points on the Bloch sphere, such as |+⟩ or |−⟩ instead of |0⟩ or |1⟩, and the same state gives different odds in different bases."
 myth:
   claim: "Measuring a qubit tells you what state it was in."
   truth: "It gives one of the two answers your basis allows, nothing more. A qubit started as |0⟩ and one started as |+⟩ can both give 0, so one shot cannot tell them apart."
@@ -24,7 +24,7 @@ A measurement picks between two opposite points on the [Bloch sphere](/learn/blo
 
 Take a qubit that started as 0. In the Z basis it gives 0 every time. For the X basis, write it with X states: |0⟩ = (|+⟩ + |−⟩)/√2. Each amplitude is 1/√2, so each chance is |1/√2|² = 1/2. Same qubit, new basis, new odds.
 
-A shortcut: if the state is at angle $a$ from one end of the axis, that end comes up with chance $\cos^2(a/2)$. After the measurement, the qubit sits at the end it gave.
+A shortcut for a state on the surface of the sphere: if it is at angle $a$ from one end of the axis, that end comes up with chance $\cos^2(a/2)$. After the measurement, the qubit sits at the end it gave.
 
 A circuit's standard measurement is in the Z basis and reads 0 or 1. To measure in X, apply a [Hadamard gate](/learn/hadamard/) first: result 0 means |+⟩, 1 means |−⟩. The qubit is then left as |0⟩ or |1⟩; apply H again to leave it as |+⟩ or |−⟩.
 </Depth>
@@ -40,13 +40,13 @@ $$
 |{\pm i}\rangle = \tfrac{1}{\sqrt{2}}\left(|0\rangle \pm i|1\rangle\right).
 $$
 
-Orthogonal states sit at opposite points of the [Bloch sphere](/learn/bloch/), so every qubit basis is an axis, with unit vector $\hat n$ pointing to $|b_0\rangle$. For a state with Bloch vector $\vec r$,
+Orthogonal states sit at opposite points of the [Bloch sphere](/learn/bloch/), so every orthonormal qubit basis is an axis, with unit vector $\hat n$ pointing to $|b_0\rangle$. (A general measurement, a [POVM](/learn/povm/), need not be an axis.) For a state with Bloch vector $\vec r$,
 
 $$
-p_0 = \frac{1 + \vec r \cdot \hat n}{2} = \cos^2\frac{\gamma}{2},
+p_0 = \frac{1 + \vec r \cdot \hat n}{2},
 $$
 
-where $\gamma$ is the angle between $\vec r$ and $\hat n$. So $|0\rangle$ is certain in Z but 50/50 in X and Y. The states $|{+}\rangle$ and $|{-}\rangle$ differ only in [relative phase](/learn/phase/): Z gives both 50/50, while X tells them apart every time. A global phase changes no $p_k$ in any basis.
+which holds for pure and mixed states. For a pure state $|\vec r| = 1$, so $p_0 = \cos^2\frac{\gamma}{2}$, where $\gamma$ is the angle between $\vec r$ and $\hat n$. The fully mixed state, $\vec r = 0$, gives $1/2$ in every basis. So $|0\rangle$ is certain in Z but 50/50 in X and Y. The states $|{+}\rangle$ and $|{-}\rangle$ differ only in [relative phase](/learn/phase/): Z gives both 50/50, while X tells them apart every time. A global phase changes no $p_k$ in any basis.
 
 To measure in $\{|b_0\rangle, |b_1\rangle\}$ with only a Z measurement, apply $U = |0\rangle\langle b_0| + |1\rangle\langle b_1|$ first, since $|\langle k|U|\psi\rangle|^2 = |\langle b_k|\psi\rangle|^2$. For X, $U = H$, the [Hadamard gate](/learn/hadamard/). For Y, $U = HS^\dagger$: first $S^\dagger$, then $H$. For the axis at polar angle $\theta$ and azimuth $\varphi$ (the lab's tilt and turn), $U = R_Y(-\theta)\,R_Z(-\varphi)$ works up to phases: first $R_Z(-\varphi)$, then $R_Y(-\theta)$. Apply $U^\dagger$ afterwards if you need the qubit left in $|b_k\rangle$.
 </Depth>
