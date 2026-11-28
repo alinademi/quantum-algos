@@ -1,5 +1,5 @@
 ---
-description: "Rotation gates turn the Bloch vector around X, Y or Z by a chosen angle."
+description: "Choose an axis and angle to turn an ideal qubit, then reverse the rotation to return to the starting state."
 answer: "Rotation gates turn the Bloch vector around X, Y or Z by a chosen angle."
 myth:
   claim: "An angle of 360 degrees always gives the identity matrix."
@@ -12,19 +12,25 @@ import { lab } from '../../lib/sims/rotations.ts';
 
 <Depth level="kid">
 
-A gate can turn the arrow used to picture a qubit. The direction of the turn and its size are separate choices. Turn backward to undo it.
+Imagine an arrow fixed to a ball. You can spin the ball about a left-right line, a front-back line, or a vertical line. Choose how far you turn it. A quarter turn is different from a half turn. You can also turn backwards by exactly the same amount and put the arrow back where it started.
+
+If the arrow starts on the vertical line, spinning around that line does not move it. Turning around either horizontal line does. The picture breaks because an ideal qubit is described by complex amplitudes; a full turn of the picture returns its arrow but may multiply all amplitudes by the same invisible sign.
 
 </Depth>
 
 <Depth level="student">
 
-Starting at 0, an X or Y rotation by 90 degrees produces equal measurement odds, but different complex amplitudes. A Z rotation changes the relative phase. An inverse rotation uses the negative angle.
+A rotation gate turns the [Bloch arrow](/learn/bloch/) by θ around a chosen axis. RX uses x, RY uses y, and RZ uses z. Use any angle, positive or negative. A rotation by 180° has the same Bloch effect as the corresponding [Pauli](/learn/pauli/) gate.
+
+Start in |0⟩. A 90° rotation about X or Y gives amplitudes of equal size, so a 0/1 measurement gives either result with equal chance. The two states have different phases. A Z rotation on |0⟩ changes only global phase. The negative angle undoes the gate. A 360° turn returns the arrow but gives −I on amplitudes; 720° gives I.
 
 </Depth>
 
 <Depth level="engineer">
 
-For a Pauli $P$, $R_P(\theta)=e^{-i\theta P/2}=\cos(\theta/2)I-i\sin(\theta/2)P$. Since $P^2=I$, this follows directly by separating even and odd terms in the exponential. $R_P(2\pi)=-I$, $R_P(4\pi)=I$. The rotation is right-handed in the usual Bloch coordinates, with $\hbar=1$ in the exponent convention.
+For a Pauli $P$, $R_P(\theta)=e^{-i\theta P/2}$, so $R_P(\theta)=\cos(\theta/2)I-i\sin(\theta/2)P$ as $P^2=I$. These are right-handed active rotations of the Bloch vector. The inverse is $R_P(-\theta)$. At $\theta=\pi$, $R_P(\pi)=-iP$; $R_P(2\pi)=-I$ and $R_P(4\pi)=I$. A global phase is unobservable in an unconditional gate, but may matter in a controlled gate.
+
+For example $R_Y(\theta)|0\rangle=\cos(\theta/2)|0\rangle+\sin(\theta/2)|1\rangle$. The 1 odds are therefore $\sin^2(\theta/2)$. The displayed Bloch coordinates follow the same rotation of the input's vector.
 
 </Depth>
 
