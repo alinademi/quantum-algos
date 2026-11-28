@@ -18,7 +18,7 @@ Imagine sending instructions to a small factory. First choose which workbench re
 
 <Depth level="student">
 
-A transpiler takes a logical [circuit](/learn/circuits/) and makes it executable on a chosen target. Layout assigns logical wires to physical qubits. Routing inserts SWAPs when a gate needs distant sites. In our three-site line, a remote CNOT uses a swap, a neighboring CNOT and an inverse swap. Optimization uses [identities](/learn/circuit-identities/), such as canceling identical adjacent CNOTs. Translation replaces each logical gate with [native operations](/learn/native-gates/). Scheduling assigns legal layers or physical times. The lab restores the initial layout, then checks the full matrix up to global phase. Real transpilers may keep a final permutation, use different heuristics, and optimize for different cost or error objectives.
+A transpiler takes a logical [circuit](/learn/circuits/) and makes it executable on a chosen target. Layout assigns logical wires to physical qubits. Routing inserts SWAPs when a gate needs distant sites. In our three-site line, a remote CNOT uses a swap, a neighboring CNOT and an inverse swap. Placing q0 and q2 next to each other instead avoids both swaps. Optimization uses [identities](/learn/circuit-identities/), such as canceling identical adjacent CNOTs. Translation replaces each logical gate with [native operations](/learn/native-gates/). Scheduling assigns legal layers or physical times. The lab restores the initial layout, then checks the full matrix up to global phase. Real transpilers may keep a final permutation, use different heuristics, and optimize for different cost or error objectives.
 
 </Depth>
 
@@ -30,6 +30,6 @@ A [universal gate set](/learn/universal/) allows a compiler to translate gates, 
 
 </Depth>
 
-<Lab title="Compile for a line of qubits" intro="Toggle the cancellation pass and follow the routing, translation and scheduling costs.">
+<Lab title="Compile for a line of qubits" intro="Choose the initial placement and cancellation pass, then compare the routing, translation and scheduling costs.">
   <GateLab id="transpilation" lab={lab} />
 </Lab>
