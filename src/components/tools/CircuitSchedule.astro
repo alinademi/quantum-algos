@@ -9,7 +9,7 @@ import { recipes } from '../../lib/sims/circuit-cost.ts';
   <canvas aria-hidden="true"></canvas>
   <dl data-counts></dl>
   <p class="tool-readout" aria-live="polite"></p>
-  <p class="note">This is a logical schedule diagram, not a measurement experiment. Each column is one ideal unit-duration layer. The same gate on two wires occupies both rows. Hardware constraints can change the schedule.</p>
+  <p class="note">This is a logical schedule diagram, not a measurement experiment. Each column is one layer of the selected schedule. Circuit depth is the earliest-layer depth for the fixed order, not the length of a deliberately serial schedule. The same gate on two wires occupies both rows. Hardware constraints can change the schedule.</p>
 </qce-circuit-schedule>
 <script>
   import { recipes,layers,lab } from '../../lib/sims/circuit-cost.ts';

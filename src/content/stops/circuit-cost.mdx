@@ -17,13 +17,13 @@ Imagine three workbenches and a list of tasks. Some tasks use one bench, some ne
 
 <Depth level="student">
 
-The width of a [circuit](/learn/circuits/) is the number of qubit wires allocated. Gate count is the number of operations. Depth counts sequential layers when gates on disjoint wires may run together. For example two H gates on different wires fit in one layer, but a later CNOT depends on earlier gates on its own wires. Counting CNOT and T separately matters because they can be more expensive than simple local gates on some architectures. Compare a serial schedule with the parallel one in the lab: width and gate count stay unchanged while depth may shrink. These measures help describe how a resource grows with input size ([asymptotic cost](/learn/big-o/)); real hardware time requires durations and constraints.
+The width of a [circuit](/learn/circuits/) is the number of qubit wires allocated. Gate count is the number of operations. Depth counts sequential layers when gates on disjoint wires may run together. For example two H gates on different wires fit in one layer, but a later CNOT depends on earlier gates on its own wires. Counting CNOT and T separately matters because they can be more expensive than simple local gates on some architectures. Compare a serial schedule with the parallel one in the lab: width and gate count stay unchanged while the chosen schedule may use more layers than the circuit depth. These measures help describe how a resource grows with input size ([asymptotic cost](/learn/big-o/)); real hardware time requires durations and constraints.
 
 </Depth>
 
 <Depth level="engineer">
 
-For a fixed ordered list of nonempty wire sets, assign each gate the earliest layer later than the last layer on any of its wires. The maximum assigned layer is the depth for that dependency ordering and unit-duration model. Commutation-based rewrites can change this value. Hardware duration, connectivity, measurement, classical latency and error are separate costs.
+Width counts all allocated wires, including helpers. Gate count is the number of operations in the chosen basis. CNOT count tracks two-qubit gates, which are often noisier than single-qubit gates; T count and T depth measure expensive magic-state resources in many fault-tolerant architectures. T depth counts sequential layers requiring T or T†, and optimization can reduce it. For a fixed ordered list of nonempty wire sets, assign each gate the earliest layer later than the last layer on any of its wires. The maximum assigned layer is the depth for that dependency ordering and unit-duration model, independent of a deliberately serial schedule. A serial schedule may contain more layers. Commutation-based rewrites can change this value. Hardware duration, connectivity, measurement, classical latency and error are separate costs.
 
 </Depth>
 
