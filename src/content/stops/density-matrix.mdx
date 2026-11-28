@@ -1,9 +1,9 @@
 ---
 description: "A density matrix ρ describes any quantum state, pure or mixed. Mix two qubit states and see the point move inside the Bloch ball."
-answer: "A density matrix ρ is a matrix that describes any quantum state, pure or a random mix of pure states. Making |ψ⟩ with chance p, else |φ⟩, gives ρ = p|ψ⟩⟨ψ| + (1 − p)|φ⟩⟨φ|, and ρ alone sets the odds of every measurement."
+answer: "A density matrix ρ is a matrix that describes any quantum state, pure or mixed. A random mix, |ψ⟩ with chance p, else |φ⟩, gives ρ = p|ψ⟩⟨ψ| + (1 − p)|φ⟩⟨φ|, and ρ alone sets the odds of every measurement on that system."
 myth:
   claim: "A density matrix tells you which states went into the mix."
-  truth: "It does not. Half |0⟩, half |1⟩ and half |+⟩, half |−⟩ give the same ρ = I/2, and in quantum theory no measurement, even on many copies, can tell those two recipes apart."
+  truth: "It does not. Half |0⟩, half |1⟩ and half |+⟩, half |−⟩ give the same ρ = I/2, and in quantum theory no measurement, even on many independently made copies, can tell those two recipes apart."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -17,7 +17,7 @@ A density matrix is a grid of four numbers that holds all you can learn by measu
 
 For one qubit, the grid is also a point in a ball. The same state every time puts the point on the skin. Mixing different states pulls it inside. At the center, every basis gives its two results with equal chance.
 
-Where the picture breaks: with everyday things, you could check each one to learn the recipe. Here, a machine that makes 0 or 1 by a fair coin and one that makes + or − by a fair coin give the same grid. In quantum theory, no measurement can tell them apart, not even on many qubits.
+Where the picture breaks: with everyday things, you could check each one to learn the recipe. Here, a machine that makes 0 or 1 by a fair coin and one that makes + or − by a fair coin give the same grid. In quantum theory, no measurement can tell them apart, not even on many qubits, if each is made with its own coin flip.
 
 </Depth>
 
@@ -27,7 +27,7 @@ A density matrix ρ ("rho") describes a qubit as a 2 by 2 grid. For a pure state
 
 Making |0⟩ with chance ½, else |+⟩, mixes the grids the same way: ρ = ½|0⟩⟨0| + ½|+⟩⟨+|. Its diagonal is ¾ and ¼, and both other entries are ¼.
 
-No ρ gives a negative chance in any measurement. For one qubit, each ρ is a point in a ball of radius 1. Pure states sit on the surface, the [Bloch sphere](/learn/bloch/); a mix of different states sits inside, at the weighted average of its points. Half |0⟩, half |1⟩ and half |+⟩, half |−⟩ both give the center, I/2: same ρ, same odds in every measurement.
+No ρ gives a negative chance in any measurement. For one qubit, each ρ is a point in a ball of radius 1. Pure states sit on the surface, the [Bloch sphere](/learn/bloch/); a mix of different states sits inside, at the weighted average of its points. Half |0⟩, half |1⟩ and half |+⟩, half |−⟩ both give the center, I/2: same ρ, same odds in every measurement on the qubit. Half of an entangled pair also has a ρ, with no coin involved.
 
 </Depth>
 
@@ -39,7 +39,7 @@ $$
 \rho = \textstyle\sum_k p_k\,|\psi_k\rangle\langle\psi_k|.
 $$
 
-A measurement with projectors $\Pi_m$ gives $p(m) = \operatorname{tr}(\Pi_m\rho)$, so the diagonal holds the odds in the computational basis, and a unitary acts as $\rho \mapsto U\rho U^\dagger$. Ensembles with the same $\rho$ give the same odds in every measurement, so $\rho$ holds all that measurement can reveal. By the spectral theorem every $\rho$ is a mix of orthogonal pure states, its eigenvectors, weighted by its eigenvalues.
+A measurement with projectors $\Pi_m$ gives $p(m) = \operatorname{tr}(\Pi_m\rho)$, so the diagonal holds the odds in the computational basis, and a unitary acts as $\rho \mapsto U\rho U^\dagger$. Ensembles with the same $\rho$ give the same odds in every measurement on that system, so $\rho$ holds all that measurement of it can reveal. For $N$ independently prepared copies the joint state is $\rho^{\otimes N}$; if the preparations are correlated, as with one coin toss for all copies, the same $\rho$ does not fix the joint state. By the spectral theorem every $\rho$ can be written as a mix of orthogonal pure states, its eigenvectors, weighted by its eigenvalues. $\rho$ describes a state whatever its origin: a preparation list or part of a larger pure state.
 
 For a qubit,
 

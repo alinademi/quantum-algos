@@ -403,3 +403,19 @@ test('sphere points lie on the unit sphere and a segment runs from a to b', () =
   const s = d.segment([0, 0, 1], [1, 0, 0], 4);
   assert.equal(s.length, 5); closeVec(s[0], [0, 0, 1]); closeVec(s[4], [1, 0, 0]); closeVec(s[2], [0.5, 0, 0.5]);
 });
+
+test('same rho on one qubit, different joint state on two: independent coins give rho (x) rho, one shared coin does not', () => {
+  const k0 = q.ket0(), k1 = q.ket1();
+  const proj = (s: q.State): q.Matrix => s.map((x) => s.map((y) => q.mul(x, q.conj(y))));
+  const mix = (a: q.Matrix, b: q.Matrix): q.Matrix => a.map((row, i) => row.map((x, j) => q.scale(q.add(x, b[i][j]), 0.5)));
+  const r0 = proj(k0), r1 = proj(k1), rho = mix(r0, r1);
+  // Independent coins: rho (x) rho. Shared coin: half |00><00| + half |11><11|.
+  const indep = q.kron(rho, rho), shared = mix(proj(q.tensor(k0, k0)), proj(q.tensor(k1, k1)));
+  // Each qubit alone is I/2 in both.
+  const first = (m: q.Matrix): q.Matrix => [[q.add(m[0][0], m[1][1]), q.add(m[0][2], m[1][3])], [q.add(m[2][0], m[3][1]), q.add(m[2][2], m[3][3])]];
+  closeM(first(indep), rho);
+  closeM(first(shared), rho);
+  // But the joint states differ: in the 0/1 test the two results agree with chance 1/2 (independent) or 1 (shared).
+  close(indep[0][0].re + indep[3][3].re, 0.5);
+  close(shared[0][0].re + shared[3][3].re, 1);
+});
