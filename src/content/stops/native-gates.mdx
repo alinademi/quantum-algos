@@ -1,5 +1,5 @@
 ---
-description: "Native gates are the operations a target device or execution model offers directly. A compiler translates other gates into the target basis."
+description: "Translate H, X and CNOT into alternative example hardware gate bases and verify their matrices."
 answer: "Native gates are the operations a target device or execution model offers directly. A compiler translates other gates into the target basis."
 myth:
   claim: "Every device supports the same native gates and each takes the same time."
@@ -12,19 +12,19 @@ import { lab } from '../../lib/sims/native-gates.ts';
 
 <Depth level="kid">
 
-Machines have their own small set of instructions. To use a new machine, rewrite your instructions using the ones it understands.
+Imagine two workshops with different tools. One can connect pieces by pressing them together, while the other uses a different kind of connection. You give both workshops the same finished-shape instructions, but each must translate them into its own available actions. Two short turns may replace one larger turn, and a connection plus a few local turns may replace a different kind of connection. Both workshops can make the same final transformation even though their lists of tasks differ. The picture breaks because quantum gates change amplitudes and their overall phase may differ without changing the observed results. Real workshops also differ in speed and accuracy.
 
 </Depth>
 
 <Depth level="student">
 
-For this lab imagine a device with RZ, SX and CZ. SX is a square root of X; two SX gates make X. A sequence of RZ, SX and RZ makes H up to global phase. A CZ with H before and after on its target makes CNOT.
+A device has a set of [native gates](/learn/qubit-control/) it can execute directly. In one example basis RZ, SX and CZ are available, while another offers RZ, SX, X and ECR. Two SX gates make X; RZ(90°), SX, RZ(90°) make H up to global phase. H on the target around CZ implements [CNOT](/learn/cnot/). ECR, with different local gates, can implement the same CNOT. Try both bases and compare the complete matrices. These are mathematical illustrations of [two-qubit gate families](/learn/two-qubit-gates/), not calibrated schedules. A [universal](/learn/universal/) native basis can implement other gates exactly or approximately; a compiler uses the particular device's instructions and topology.
 
 </Depth>
 
 <Depth level="engineer">
 
-Here $SX=HSH$, so $SX^2=X$. $R_Z(\pi/2)SX R_Z(\pi/2)=e^{-i\pi/4}H$. Conjugating CZ by H on the target gives CX, and replacing those Hs gives the stated global phase. This basis is a mathematical example, not a claim about a particular currently available backend. For a real device consult its target instructions and calibration data.
+Here $SX=HSH$, so $SX^2=X$. $R_Z(\pi/2)SX R_Z(\pi/2)=e^{-i\pi/4}H$. Conjugating CZ by H on the target gives CX. Each native H carries $e^{-i\pi/4}$, so that native CX carries $e^{-i\pi/2}$. In the q0-left ECR convention, CX is X on q0, ECR, then $R_Z(\pi/2)$ on q0 and SX on q1, with no additional global phase. These exact identities illustrate two possible bases; real devices have specific calibrated operations, coupling directions, durations and errors. Consult the target instructions rather than assuming one basis fits every chip.
 
 </Depth>
 
