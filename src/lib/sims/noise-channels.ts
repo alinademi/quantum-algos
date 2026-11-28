@@ -170,7 +170,7 @@ export const CHANNELS: Record<Channel, { name: string; phrase: string; sym: stri
   },
   phase: {
     name: 'Phase flip', phrase: 'a phase flip', sym: 'p', slider: 'Flip chance p',
-    what: 'Also called dephasing. With chance p, a Z gate hits the qubit: 0 and 1 stay, but the amplitude for 1 changes sign. States on the z axis stay put.',
+    what: 'Also called dephasing. With chance p, a Z gate hits the qubit: 0 and 1 stay, but the amplitude for 1 changes sign. You never learn whether it hit, so superpositions fade; at p = 1 it always hits, a known Z gate. States on the z axis stay put.',
   },
   depol: {
     name: 'Depolarizing', phrase: 'depolarizing noise', sym: 'p', slider: 'Replace chance p',

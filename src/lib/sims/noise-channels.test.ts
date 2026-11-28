@@ -143,6 +143,20 @@ test('phase flip at p = 1/2 is complete dephasing: it zeros the off-diagonal ent
   }
 });
 
+test('phase flip: off-diagonal entries scale by 1 - 2p at every slider stop; p = 1 returns them in size with the sign flipped (a known Z gate, not noise)', () => {
+  for (const p of PS) for (const v of FEW) {
+    const r = rhoOf(v), out = applyKraus(kraus('phase', p), r), f = 1 - 2 * p;
+    close(out[0][1].re, f * r[0][1].re); close(out[0][1].im, f * r[0][1].im);
+    close(out[1][0].re, f * r[1][0].re); close(out[1][0].im, f * r[1][0].im);
+  }
+  // At p = 1 the coherence is not lost: |+> goes to |-> and the same map undoes it (Z twice is I), so a known Z is reversible.
+  const plus = rhoOf(startPoint(2)), minus = applyKraus(kraus('phase', 1), plus);
+  closeV(blochOf(minus), startPoint(3));
+  closeM(applyKraus(kraus('phase', 1), minus), plus);
+  // The lab says so on screen.
+  assert.match(CHANNELS.phase.what, /never learn whether it hit/); assert.match(CHANNELS.phase.what, /known Z gate/);
+});
+
 test('bit flip at p = 1/2 squashes the ball onto the x axis; phase flip onto the z axis', () => {
   for (const v of BALL) {
     closeV(after('bit', 0.5, v), [v[0], 0, 0]);

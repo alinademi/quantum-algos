@@ -3,7 +3,7 @@ description: "See bit flip, phase flip, depolarizing and amplitude damping noise
 answer: "Common noise channels are simple models of qubit errors: bit flip (a random X gate), phase flip (a random Z gate), depolarizing (now and then the state is swapped for a plain 50/50 mix) and amplitude damping (1 can decay to 0). Each one shrinks, squashes or shifts the Bloch ball in its own way."
 myth:
   claim: "Quantum noise just flips bits, like noise in a normal computer."
-  truth: "Qubits also get phase flips, which have no classical twin. A phase flip leaves 0 and 1 alone, yet it spoils every superposition of them."
+  truth: "Qubits also get phase flips, which have no classical twin. A phase flip leaves 0 and 1 alone, yet when you do not know whether it happened, it spoils superpositions of them. If it always happens, it is just a known Z gate."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -13,7 +13,7 @@ import NoiseChannels from '../../components/tools/NoiseChannels.astro';
 
 Picture a qubit's state as an arrow from the middle of a ball to a spot on its skin: 0 at the top, 1 at the bottom. Where it points sets the odds of a result.
 
-Noise is a random kick, and you never learn which kick happened. A bit flip swaps 0 and 1 now and then. A phase flip leaves 0 and 1 alone but spoils a superposition like |+⟩ (start as 0, then a Hadamard gate). Depolarizing now and then swaps the state for a fair coin toss. Amplitude damping lets 1 lose energy and drop to 0.
+Noise is a random kick, and you never learn which kick happened. A bit flip swaps 0 and 1 now and then. A phase flip leaves 0 and 1 alone, but if you do not know whether it happened, it spoils a superposition like |+⟩ (start as 0, then a Hadamard gate). If it always happens, it is just a known turn. Depolarizing now and then swaps the state for a fair coin toss. Amplitude damping lets 1 lose energy and drop to 0.
 
 Not knowing the kicks, you average over them. The average arrow is usually shorter, so results are less certain. A state the noise leaves alone, like |+⟩ under a bit flip, keeps its full arrow.
 
@@ -26,7 +26,7 @@ Where the picture breaks: real noise is often the qubit getting entangled with i
 Every one-qubit state is a point in the Bloch ball ([density matrices](/learn/density-matrix/)). Pure states sit on the surface, mixed states inside. The center is a plain 50/50 mix in every basis. In these ideal textbook models, noise maps the ball into itself:
 
 - **Bit flip**: with chance p, an X gate. The x axis stays; y and z scale by 1 − 2p.
-- **Phase flip**, or dephasing: with chance p, a Z gate. The z axis stays; x and y scale by 1 − 2p.
+- **Phase flip**, or dephasing: with chance p, a Z gate. The z axis stays; x and y scale by 1 − 2p. At p = 1 it is a known Z gate, a half turn, not noise.
 - **Depolarizing**: with chance p, the qubit is swapped for the center mix. Every direction scales by 1 − p.
 - **Amplitude damping**: 1 decays to 0 with chance γ. The ball shrinks, more top to bottom than across, and slides up toward |0⟩.
 
@@ -39,7 +39,7 @@ Started as 0, then a Hadamard gate, the qubit is |+⟩, at x = 1. A phase flip w
 A [channel](/learn/channels/) acts as $\mathcal{E}(\rho) = \sum_k K_k \rho K_k^\dagger$ with $\sum_k K_k^\dagger K_k = I$. Write $\rho = \tfrac12(I + xX + yY + zZ)$. Each channel below moves the Bloch vector $r$ by an affine map, so the ball becomes an ellipsoid inside it, or at the extremes a line or a point.
 
 - **Bit flip**, $K = \sqrt{1-p}\,I,\ \sqrt{p}\,X$: $(x, y, z) \mapsto (x,\ (1-2p)y,\ (1-2p)z)$.
-- **Phase flip**, $K = \sqrt{1-p}\,I,\ \sqrt{p}\,Z$: $(x, y, z) \mapsto ((1-2p)x,\ (1-2p)y,\ z)$. At $p = \tfrac12$ the off-diagonal entries of $\rho$ vanish: complete dephasing. Phase damping, $K_0 = |0\rangle\langle 0| + \sqrt{1-\lambda}\,|1\rangle\langle 1|$ and $K_1 = \sqrt{\lambda}\,|1\rangle\langle 1|$, is the same map with $1 - 2p = \sqrt{1-\lambda}$.
+- **Phase flip**, $K = \sqrt{1-p}\,I,\ \sqrt{p}\,Z$: $(x, y, z) \mapsto ((1-2p)x,\ (1-2p)y,\ z)$. The off-diagonal entries of $\rho$ scale by $1-2p$: they vanish at $p = \tfrac12$ (complete dephasing), and at $p = 1$ they return in size with the sign flipped, since a known $Z$ is a unitary gate. Phase damping, $K_0 = |0\rangle\langle 0| + \sqrt{1-\lambda}\,|1\rangle\langle 1|$ and $K_1 = \sqrt{\lambda}\,|1\rangle\langle 1|$, is the same map with $1 - 2p = \sqrt{1-\lambda}$.
 - **Depolarizing**, $\rho \mapsto (1-p)\rho + p\,I/2$: $r \mapsto (1-p)\,r$. In Pauli form it is $(1 - \tfrac{3p}{4})\rho$ plus $\tfrac{p}{4}$ times each of $X\rho X$, $Y\rho Y$, $Z\rho Z$. Other texts let $p$ be the total chance of an X, Y or Z, which is our $3p/4$: $\rho \mapsto (1-p)\rho + \tfrac{p}{3}(X\rho X + Y\rho Y + Z\rho Z)$, so $r \mapsto (1 - \tfrac{4p}{3})\,r$.
 - **Amplitude damping**, $K_0 = |0\rangle\langle 0| + \sqrt{1-\gamma}\,|1\rangle\langle 1|$ and $K_1 = \sqrt{\gamma}\,|0\rangle\langle 1|$: $x, y$ scale by $\sqrt{1-\gamma}$, and $z \mapsto \gamma + (1-\gamma)z$.
 
