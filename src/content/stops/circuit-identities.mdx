@@ -1,5 +1,5 @@
 ---
-description: "Circuit identities are replacements of gate sequences that implement the same operation, sometimes up to a stated global phase."
+description: "Try equivalent gate sequences and a counterexample that agrees on one input but differs as a matrix."
 answer: "Circuit identities are replacements of gate sequences that implement the same operation, sometimes up to a stated global phase."
 myth:
   claim: "Two circuits that agree on one input are equivalent."
@@ -12,19 +12,25 @@ import { lab } from '../../lib/sims/circuit-identities.ts';
 
 <Depth level="kid">
 
-Two sets of instructions can do the same job. If two flips cancel, remove them. But test the replacement on more than just one input.
+Imagine two instruction cards for moving a toy. One says turn left twice and then right twice. The other says do nothing. The two cards always have the same effect if those turns undo each other. You can replace one card with the other and save work.
+
+But two different cards might happen to give the same answer for one toy position and not for another. Check every input, and for quantum instructions check the amplitudes and their phases too. The picture breaks because a real quantum circuit acts on a joint wave of possibilities, not just on a list of positions. Equal measured odds alone do not establish that two instructions are equivalent.
 
 </Depth>
 
 <Depth level="student">
 
-H X H equals Z. Two CNOTs with identical wires cancel. A CZ gate is symmetric in its two wires. Hadamards on both wires before and after a CNOT reverse the direction of control.
+Circuit identities let us replace a sequence by another with the same operation. H X H equals Z. Two CNOTs on the same wires cancel. CZ is symmetric between its two wires. H on both wires before and after a CNOT reverses the direction of the control.
+
+To prove a replacement, compare the complete matrices, not one selected input. For example Z and I agree exactly on |0⟩, but Z turns |+⟩ into |−⟩. Z and I give the same 0/1 odds on every input, yet are not the same gate. The lab compares both sequences and their maximum matrix-entry difference.
 
 </Depth>
 
 <Depth level="engineer">
 
 Use $HXH=Z$, $H^2=I$, $CX^2=I$. In two-qubit notation, $(H\otimes H)CX_{0,1}(H\otimes H)=CX_{1,0}$. Equality of all matrix entries establishes equality on arbitrary superpositions and entangled inputs. Equality only up to a global phase needs care if a subcircuit is controlled.
+
+The ideas used here build on [Reading a circuit](/learn/circuits/), [Controlled gates](/learn/controlled-gates/).
 
 </Depth>
 
