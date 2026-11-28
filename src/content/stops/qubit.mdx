@@ -1,9 +1,9 @@
 ---
 description: "What is a qubit? A quantum system with two levels, |0⟩ and |1⟩. See how it differs from a bit, and try a half flip no coin can copy."
-answer: "A qubit is the quantum version of a bit: a system with two levels, |0⟩ and |1⟩. Reading it gives 0 or 1, but its state is set by two amplitudes, and they allow steps no bit can take."
+answer: "A qubit is the quantum version of a bit: a system with two levels, |0⟩ and |1⟩. An ideal reading gives 0 or 1, but its state, when pure, is set by two amplitudes, and they allow steps no bit can take."
 myth:
   claim: "A qubit can store endless information, because its state can be anything between 0 and 1."
-  truth: "Its state can take endless values, but a reading gives one bit, 0 or 1. Holevo's theorem says one qubit, with no entanglement shared beforehand, gives at most one bit of information about how it was set."
+  truth: "Its state can take endless values, but a standard reading gives one bit, 0 or 1. Holevo's theorem says that from one qubit, with no entanglement shared beforehand, any measurement gives at most one bit of information about how it was set."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -13,9 +13,9 @@ import QubitVsBit from '../../components/tools/QubitVsBit.astro';
 
 A bit is like a light switch: off or on, 0 or 1. Check it as often as you like, and it stays the same.
 
-A qubit is a tiny thing with two states, which we call 0 and 1. It could be an atom in a low or a high energy state. Read a qubit, and you also get just 0 or 1.
+A qubit is a tiny thing with two states, which we call 0 and 1. It could be an atom in a low or a high energy state. Read a qubit the usual way, and you also get just 0 or 1.
 
-Here is the twist. A qubit can take a half flip. Start at 0 and do it once: the reading is 0 or 1 at random, like a coin toss. Do it twice, with no reading in between: you get 1 every time. A coin tossed twice is still random. So the coin picture breaks here: a qubit is more than a coin hiding 0 or 1.
+Here is the twist. A qubit can take a half flip. Start at 0 and do it once: the reading is 0 or 1 at random, like a coin toss. Do it twice on an ideal qubit, with no reading in between: you get 1 every time. A coin tossed twice is still random. So the coin picture breaks here: a qubit is more than a coin hiding 0 or 1.
 
 </Depth>
 
@@ -25,23 +25,23 @@ A bit is 0 or 1. A qubit is a quantum system with two levels, written |0⟩ and 
 
 A qubit in |0⟩ reads 0 every time, and one in |1⟩ reads 1. A flip (the NOT gate) swaps them. So far, just like a bit.
 
-But a qubit's state is set by two amplitudes, one for 0 and one for 1. The chance of reading 0 is |amplitude for 0|². A reading still gives one bit.
+But in the ideal case a qubit's state is set by two amplitudes, one for 0 and one for 1. The chance of reading 0 is |amplitude for 0|². A standard reading still gives one bit.
 
-Amplitudes allow a half flip. Started as 0, one half flip gives 0 or 1 with 50% each; two in a row, with no reading between, give 1 every time. On a bit, the only step with 50/50 odds from both 0 and 1 is a coin toss, and two tosses still give 50/50. More at [Superposition](/learn/superposition/).
+Amplitudes allow a half flip. On an ideal qubit started as 0, one half flip gives 0 or 1 with 50% each; two in a row, with no reading between, give 1 every time. On a bit, the only step with 50/50 odds from both 0 and 1 is a coin toss, and two tosses still give 50/50. More at [Superposition](/learn/superposition/).
 
 </Depth>
 
 <Depth level="engineer">
 
-A qubit is a two-level quantum system. Its state is a unit vector in $\mathbb{C}^2$:
+A qubit is a two-level quantum system. A pure qubit state is a unit vector in $\mathbb{C}^2$, up to a global phase (mixed states are [density matrices](/learn/density-matrix/)):
 
 $$
 |\psi\rangle = \alpha|0\rangle + \beta|1\rangle = \begin{pmatrix} \alpha \\ \beta \end{pmatrix}, \qquad |\alpha|^2 + |\beta|^2 = 1
 $$
 
-The basis states $|0\rangle = (1, 0)^\mathsf{T}$ and $|1\rangle = (0, 1)^\mathsf{T}$ stand for the bit values. Physical qubits include an electron's spin, a photon's polarization, and two levels picked from an atom's many.
+The basis states $|0\rangle = (1, 0)^\mathsf{T}$ and $|1\rangle = (0, 1)^\mathsf{T}$ stand for the bit values.
 
-A random bit is a probability vector $(p_0, p_1)$, and its steps are stochastic matrices. A qubit has complex amplitudes instead, and its steps are unitary matrices. Measuring in the standard basis gives 0 with probability $|\alpha|^2$ and 1 with probability $|\beta|^2$ (Born rule). No measurement of one qubit yields more than one bit of information about how it was prepared ([Holevo bound](/learn/holevo-bound/)), if no entanglement was shared beforehand; with a shared Bell pair, one sent qubit carries two bits ([superdense coding](/learn/superdense/)). A global phase, $|\psi\rangle \to e^{i\gamma}|\psi\rangle$, cannot be seen; the relative phase of $\alpha$ and $\beta$ can.
+A random bit is a probability vector $(p_0, p_1)$, and its steps are stochastic matrices. A qubit has complex amplitudes instead, and its closed-system steps are unitary matrices (noisy steps need not be: [noise channels](/learn/noise-channels/)). An ideal measurement in the standard basis gives 0 with probability $|\alpha|^2$ and 1 with probability $|\beta|^2$ (Born rule). A general measurement ([POVM](/learn/povm/)) can have more than two outcomes, but no measurement of one qubit yields more than one bit of information about how it was prepared ([Holevo bound](/learn/holevo-bound/)), if no entanglement was shared beforehand; with a shared Bell pair, one sent qubit carries two bits ([superdense coding](/learn/superdense/)). A global phase, $|\psi\rangle \to e^{i\gamma}|\psi\rangle$, cannot be seen; the relative phase of $\alpha$ and $\beta$ can.
 
 The gap shows in a square root of NOT, often written $\sqrt{X}$ ($H$ the Hadamard gate, $S = \mathrm{diag}(1, i)$):
 
@@ -49,9 +49,9 @@ $$
 R = HSH = \frac{1}{2}\begin{pmatrix} 1+i & 1-i \\ 1-i & 1+i \end{pmatrix}, \qquad R^2 = X
 $$
 
-$R|0\rangle$ and $R|1\rangle$ each read 0 or 1 with probability $\tfrac12$. The only stochastic matrix that sends both 0 and 1 to $(\tfrac12, \tfrac12)$ is $C = \tfrac12\begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix}$, and $C^2 = C$. In fact no stochastic $M = \begin{pmatrix} a & b \\ 1-a & 1-b \end{pmatrix}$ has $M^2 = X$: $(M^2)_{00} = a^2 + b(1-a)$ is zero only when $a = b = 0$, and then $M^2 = \begin{pmatrix} 0 & 0 \\ 1 & 1 \end{pmatrix}$.
+$R|0\rangle$ and $R|1\rangle$ each read 0 or 1 with probability $\tfrac12$. The only stochastic matrix that sends both 0 and 1 to $(\tfrac12, \tfrac12)$ is $C = \tfrac12\begin{pmatrix} 1 & 1 \\ 1 & 1 \end{pmatrix}$, and $C^2 = C$. In fact no two-state stochastic $M = \begin{pmatrix} a & b \\ 1-a & 1-b \end{pmatrix}$ has $M^2 = X$: $(M^2)_{00} = a^2 + b(1-a)$ is zero only when $a = b = 0$, and then $M^2 = \begin{pmatrix} 0 & 0 \\ 1 & 1 \end{pmatrix}$.
 
-Bits can also be copied; an unknown qubit state cannot ([no-cloning](/learn/no-cloning/)).
+Bits can also be copied; an arbitrary unknown qubit state cannot ([no-cloning](/learn/no-cloning/)).
 
 </Depth>
 
