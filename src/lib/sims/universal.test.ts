@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
 import * as g from './gate-lab.ts';
-import { checkLabs, close, state, matrix, phase } from './gate-lab-checks.ts';
-const {run,last}=await checkLabs(['universal']);
+import { checkLabs,state,phase } from './gate-lab-checks.ts';
+const {last}=await checkLabs(['universal']);
 test('each live decomposition matches the independent target with its stated phase',()=>{
  for(const target of ['Hadamard','CZ','Phase π/4']){
   const u=target==='Hadamard'?q.kron(q.H,q.I):target==='CZ'?g.control(q.Z):q.kron(q.T,q.I);

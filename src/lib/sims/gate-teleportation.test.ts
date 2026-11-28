@@ -1,18 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import * as q from '../quantum.ts';
-import * as g from './gate-lab.ts';
-import { unitaryError } from './gates.ts';
-import { pauli } from './pauli-strings.ts';
-import { evolveGenerators, prep } from './stabilizer-states.ts';
-import { expect } from './gottesman-knill.ts';
-import { search } from './solovay-kitaev.ts';
-import { shift } from './qtm.ts';
-import { evolution } from './adiabatic.ts';
-import { B1, B2 } from './topological-model.ts';
-import { gaussian } from './cv-model.ts';
 
-import { checkLabs, close, state, matrix, phase, all, value } from './gate-lab-checks.ts';
+import { checkLabs,close,state,value } from './gate-lab-checks.ts';
 const {run,last}=await checkLabs(['gate-teleportation', 'mbqc']);
 test('magic-state injection and one-way measurement: corrected branches attain target fidelity; omission can fail',()=>{
  for(const input of ['0','1','+','−','+i'])for(const id of ['gate-teleportation','mbqc']){

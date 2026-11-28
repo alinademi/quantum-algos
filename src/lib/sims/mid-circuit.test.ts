@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
-import * as g from './gate-lab.ts';
 
 import { checkLabs,close,state } from './gate-lab-checks.ts';
 const {run,last}=await checkLabs(['mid-circuit', 'deferred-measurement']);

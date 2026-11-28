@@ -6,7 +6,7 @@ import { conjugate } from './clifford-group.ts';
 import { presets,mergedTCount } from './clifford-t.ts';
 
 import { checkLabs,close,matrix,value } from './gate-lab-checks.ts';
-const {labs,last}=await checkLabs(['clifford-t']);
+const {last}=await checkLabs(['clifford-t']);
 test('Clifford conjugation maps to signed Paulis; T does not preserve X or Y',()=>{
  assert.equal(conjugate('H','YI'),'−YI');assert.equal(conjugate('S','XI'),'YI');assert.equal(conjugate('CNOT','XI'),'XX');assert.equal(conjugate('CNOT','IZ'),'ZZ');
  assert.equal(conjugate('T','XI'),'Not a signed Pauli string');assert.equal(conjugate('T','ZI'),'ZI');

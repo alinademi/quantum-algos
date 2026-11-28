@@ -5,7 +5,7 @@ import * as g from './gate-lab.ts';
 import { circuits } from './circuit-identities.ts';
 
 import { checkLabs,close,state,matrix } from './gate-lab-checks.ts';
-const {run,last}=await checkLabs(['circuit-identities']);
+const {last}=await checkLabs(['circuit-identities']);
 test('circuit identities agree on all basis columns',()=>{
  for(const name of ['HXH','Reverse CNOT','CZ symmetry','Cancel CNOTs']){const [a,b]=circuits(name);matrix(g.fullMatrix(2,a),g.fullMatrix(2,b));}
 });

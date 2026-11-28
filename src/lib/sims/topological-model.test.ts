@@ -5,7 +5,7 @@ import * as g from './gate-lab.ts';
 import { B1, B2 } from './topological-model.ts';
 
 import { checkLabs,matrix,phase,value } from './gate-lab-checks.ts';
-const {run,last}=await checkLabs(['topological-model']);
+const {last}=await checkLabs(['topological-model']);
 test('Ising braid relation holds and order matters',()=>{
  matrix(g.fullMatrix(1,[B1,B2,B1]),g.fullMatrix(1,[B2,B1,B2]));
  assert.ok(g.matrixGap(g.fullMatrix(1,[B1,B2]),g.fullMatrix(1,[B2,B1]))>.1);

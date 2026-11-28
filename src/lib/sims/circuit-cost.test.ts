@@ -1,11 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import * as q from '../quantum.ts';
-import * as g from './gate-lab.ts';
 import { layers, recipes } from './circuit-cost.ts';
 
 import { checkLabs,value } from './gate-lab-checks.ts';
-const {labs,last}=await checkLabs(['circuit-cost', 'transpilation']);
+const {last}=await checkLabs(['circuit-cost', 'transpilation']);
 test('circuit layers depend on occupied wires, with parallel disjoint gates',()=>{
  assert.deepEqual(layers(recipes['Parallel H and CNOT'],3),[1,1,2,2,3]);
  assert.deepEqual(layers(recipes['Serial chain'],3),[1,2,3,4]);

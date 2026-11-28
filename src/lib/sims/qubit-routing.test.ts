@@ -5,7 +5,7 @@ import * as g from './gate-lab.ts';
 import { route, layoutTrace, placements } from './qubit-routing.ts';
 
 import { checkLabs,state,matrix,all,value } from './gate-lab-checks.ts';
-const {labs,last}=await checkLabs(['qubit-routing']);
+const {last}=await checkLabs(['qubit-routing']);
 test('routing restores all logical wires and only uses nearest-neighbor gates',()=>{
  for(let a=0;a<4;a++)for(let b=0;b<4;b++)if(a!==b){const ops=route(a,b);assert.ok(ops.every(o=>Math.abs(o.wires[0]-o.wires[1])===1));assert.equal(ops.length,2*(Math.abs(a-b)-1)+1);matrix(g.fullMatrix(4,ops),g.fullMatrix(4,[g.cx(a,b)]));}
 });

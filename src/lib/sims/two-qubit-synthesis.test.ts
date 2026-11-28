@@ -2,20 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
 import * as g from './gate-lab.ts';
-import { unitaryError } from './gates.ts';
-import { pauli, antiCount } from './pauli-strings.ts';
-import { ladder } from './pauli-rotations.ts';
-import { conjugate } from './clifford-group.ts';
-import { presets } from './clifford-t.ts';
-import { layers, recipes } from './circuit-cost.ts';
-import { nativeH, nativeCX } from './native-gates.ts';
-import { storage } from './classical-simulation.ts';
-import { twoLevel } from './decomposition.ts';
 import { cartan,generalOps,canonicalCX } from './two-qubit-synthesis.ts';
-import { route } from './qubit-routing.ts';
 
-import { checkLabs, close, state, matrix, phase, all, value } from './gate-lab-checks.ts';
-const {labs,last}=await checkLabs(['two-qubit-synthesis']);
+import { checkLabs,state,matrix,phase } from './gate-lab-checks.ts';
+const {last}=await checkLabs(['two-qubit-synthesis']);
 test('two-qubit Cartan canonical SWAP and ZZ match exact decompositions',()=>{
  matrix(cartan(Math.PI/4,Math.PI/4,Math.PI/4),phase(g.SWAP,-Math.PI/4));
  matrix(cartan(0,0,.23),g.fullMatrix(2,[g.cx(0,1),g.rotation('Z',.46*180/Math.PI,1),g.cx(0,1)]));

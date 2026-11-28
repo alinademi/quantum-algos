@@ -1,11 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
-import * as g from './gate-lab.ts';
 import { gaussian,quadratureShots } from './cv-model.ts';
 
 import { checkLabs,close,matrix } from './gate-lab-checks.ts';
-const {run,last}=await checkLabs(['cv-model']);
+await checkLabs(['cv-model']);
 test('Gaussian rotations preserve covariance determinant and Heisenberg bound; displacement does not change variance',()=>{
  for(const r of [0,.3,.7,1])for(const t of [0,.7,Math.PI/2,2.1]){
   const a=gaussian(r,t,2),b=gaussian(r,t,0);

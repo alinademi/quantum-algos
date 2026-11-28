@@ -1,19 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
-import * as g from './gate-lab.ts';
-import { boolean, viaNand } from './classical-gates.ts';
-import { unitaryError } from './gates.ts';
-import { u, euler } from './single-qubit-unitary.ts';
 import { stderr, shotStudy } from './shots.ts';
-import { implementation } from './controlled-gates.ts';
-import { noScratch } from './multi-controlled.ts';
-import { fredkin } from './fredkin.ts';
-import { family } from './two-qubit-gates.ts';
-import { circuits } from './circuit-identities.ts';
 
-import { checkLabs, close, state, matrix, phase } from './gate-lab-checks.ts';
-const {run,last}=await checkLabs(['shots']);
+import { checkLabs,close } from './gate-lab-checks.ts';
+await checkLabs(['shots']);
 test('shot uncertainty follows the binomial standard error, including deterministic endpoints',()=>{
  close(stderr(.5,100),.05);close(stderr(.5,10000),.005);close(stderr(1,100),0);close(stderr(0,100),0);
  const counts=q.sample([0,1,0],100,()=>0.5);assert.deepEqual(counts,[0,100,0]);

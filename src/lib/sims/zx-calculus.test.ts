@@ -1,11 +1,10 @@
 import test from 'node:test';
-import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
 import * as g from './gate-lab.ts';
 
 import { checkLabs,close,state,matrix,phase,all } from './gate-lab-checks.ts';
 import {red,spiderCX,greenCopy,controlFusion} from './zx-calculus.ts';
-const {run,last}=await checkLabs(['zx-calculus']);
+await checkLabs(['zx-calculus']);
 test('ZX color change and fusion preserve full matrices (all control settings checked above)',()=>{
  matrix(q.matMul(q.P(.3),q.P(.7)),q.P(1));matrix(q.matMul(q.H,q.matMul(q.P(Math.PI),q.H)),q.X);
 });

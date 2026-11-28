@@ -1,10 +1,9 @@
 import test from 'node:test';
-import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
 import * as g from './gate-lab.ts';
 
 import { checkLabs,state,matrix,phase } from './gate-lab-checks.ts';
-const {run,last}=await checkLabs(['rotations']);
+await checkLabs(['rotations']);
 test('rotations have spinor 2π sign and 4π period; positive Y acts toward +X',()=>{
  for(const a of ['X','Y','Z'])matrix(g.rotation(a,360).matrix,phase(q.I,Math.PI));
  state(g.apply(g.ket('0'),g.rotation('Y',90)),q.plus());

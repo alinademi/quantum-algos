@@ -5,7 +5,7 @@ import * as g from './gate-lab.ts';
 import { evolution,path,avoidedPath,adiabaticScale } from './adiabatic.ts';
 
 import { checkLabs,close,state } from './gate-lab-checks.ts';
-const {run,last}=await checkLabs(['adiabatic']);
+await checkLabs(['adiabatic']);
 test('adiabatic midpoint evolution maintains norm, converges under step refinement and follows the gapped ground state at long time',()=>{
  for(const t of [1,5,20,50,100]){
   const a=evolution(t,1000).at(-1)!.psi,b=evolution(t,2000).at(-1)!.psi;

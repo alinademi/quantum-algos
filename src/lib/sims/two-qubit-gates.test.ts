@@ -1,12 +1,11 @@
 import test from 'node:test';
-import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
 import * as g from './gate-lab.ts';
 import { unitaryError } from './gates.ts';
 import { family } from './two-qubit-gates.ts';
 
 import { checkLabs,close,state,matrix } from './gate-lab-checks.ts';
-const {run,last}=await checkLabs(['two-qubit-gates']);
+const {last}=await checkLabs(['two-qubit-gates']);
 test('two-qubit families: unitary, exchange phases, fSim limits, XX interaction, square-root SWAP and ECR',()=>{
  for(const n of ['iSWAP','√SWAP','RXX','RZZ','MS (XX convention)','fSim','ECR'])close(unitaryError(family(n,.31,.73)),0);
  state(q.matVec(family('iSWAP',0,0),q.basis(2,1)),[q.c(0),q.c(0),q.c(0,1),q.c(0)]);

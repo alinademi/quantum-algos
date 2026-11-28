@@ -1,5 +1,4 @@
 import test from 'node:test';
-import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
 import * as g from './gate-lab.ts';
 
