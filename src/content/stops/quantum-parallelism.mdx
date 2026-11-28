@@ -1,5 +1,5 @@
 ---
-description: "Explore how one quantum query changes amplitudes for several inputs, yet one measurement returns just one pair."
+description: "Explore how one quantum query acts once on a superposition of inputs, yet one measurement returns just one pair."
 answer: "One coherent oracle call can evaluate a function on a superposition of inputs, but a measurement does not reveal every value."
 myth:
   claim: "Quantum parallelism means reading all function outputs in a single shot."
@@ -28,7 +28,9 @@ The truth table in this tool is supplied by the simulator for comparison, not re
 
 <Depth level="engineer">
 
-For a uniform input on n qubits, $U_f 2^{-n/2}\sum_x|x,0\rangle=2^{-n/2}\sum_x|x,f(x)\rangle$. Measuring in the computational basis yields each pair with probability $2^{-n}$. A query advantage requires operations that turn structure in amplitudes into measurable information; it does not follow solely from having exponentially many basis amplitudes.
+For a uniform input on n qubits, $U_f 2^{-n/2}\sum_x|x,0\rangle=2^{-n/2}\sum_x|x,f(x)\rangle$. Measuring in the computational basis yields each pair with probability $2^{-n}$. The [Holevo bound](/learn/holevo-bound/) limits the accessible classical information encoded in an ensemble of n-qubit states to at most n bits without a shared entanglement resource, not one bit per basis amplitude.
+
+In [Deutsch's algorithm](/learn/deutsch/), use a one-bit input in |+⟩ and a target in |−⟩. [Phase kickback](/learn/phase-kickback/) makes the input proportional to $(-1)^{f(0)}|0\rangle+(-1)^{f(1)}|1\rangle$. H followed by measurement returns $f(0)\oplus f(1)$ exactly from one ideal query. The result is a property of the function, not a list of outputs. This is how interference leverages quantum parallelism.
 
 </Depth>
 
