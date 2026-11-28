@@ -37,7 +37,7 @@ const uid = 'ns-' + Math.random().toString(36).slice(2, 8);
   </figure>
 
   <p class="tool-readout" aria-live="polite">Alice and Bob share Bell pairs: each pair started as 00, then a Hadamard gate on Alice's qubit and a CNOT. Pick what Alice does, then send pairs.</p>
-  <p class="note">A simulation of ideal qubits. Every pair is fresh, and its results are drawn from your browser's random numbers with the Born rule odds for the whole pair. The tool uses one state, the Bell pair, and two measurements on each side, 0/1 and +/−; the theorem covers every state and anything Alice can do. Changing Bob's measurement clears the piles.</p>
+  <p class="note">A simulation of ideal qubits. Every pair is fresh, and its results are drawn from your browser's random numbers with the Born rule odds for the whole pair. The tool uses one state, the Bell pair, and two measurements on each side, 0/1 and +/−; the theorem covers every state and anything Alice can do. Same-basis matching is a fact about this state and these real bases, not about every basis. Bob's own piles look the same whatever Alice does; only sorting by her phoned results shows the link. Changing Bob's measurement clears the piles.</p>
 </qce-no-signal>
 
 <script>

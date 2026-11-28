@@ -136,6 +136,22 @@ test('no-signaling for any operation: sum over a of tr_A[(K_a x I) rho (K_a x I)
   }
 });
 
+test('no-signaling is about the unconditioned action: one of Alice\'s results changes Bob\'s state, the average over both does not', () => {
+  const s = ns.bellPair(), rho = ns.reducedBob(s), e = ns.ensemble(s, 'z');
+  // Given Alice read 0, Bob is |0>: his 0/1 odds are 1 and 0, not 1/2.
+  close(ns.expect(ns.mixture([{ p: 1, bob: e[0].bob }]), q.ket0()), 1);
+  close(ns.expect(rho, q.ket0()), 0.5);
+  // She cannot pick her result: each has chance 1/2, and the average is exactly rho_B.
+  close(e[0].p, 0.5); close(e[1].p, 0.5);
+  closeM(ns.mixture(e.map((x) => ({ p: x.p, bob: x.bob }))), rho);
+});
+
+test('same-basis agreement is for the real bases Z and X on this Phi+: the Y basis on both sides gives opposite results', () => {
+  const Y = PAIRS[2], p = ns.joint(ns.bellPair(), Y, Y);
+  close(p[0][1], 0.5); close(p[1][0], 0.5); close(p[0][0], 0); close(p[1][1], 0);
+  for (const b of BASES) { const m = ns.joint(ns.bellPair(), b, b); close(m[0][0], 0.5); close(m[1][1], 0.5); }
+});
+
 test('Bob\'s odds do not depend on what Alice does, and sum to 1', () => {
   for (const s of STATES) for (const v of PAIRS) {
     const base = ns.bobOdds(s, 'none', v);
