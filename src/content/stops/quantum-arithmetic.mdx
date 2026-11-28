@@ -1,5 +1,5 @@
 ---
-description: "Quantum arithmetic implements operations such as addition and comparison as reversible maps on quantum registers."
+description: "Add two small numbers or compare them using reversible carry and flag operations."
 answer: "Quantum arithmetic implements operations such as addition and comparison as reversible maps on quantum registers."
 myth:
   claim: "An adder can overwrite both input numbers with their sum and remain unitary."
@@ -12,19 +12,19 @@ import { lab } from '../../lib/sims/quantum-arithmetic.ts';
 
 <Depth level="kid">
 
-A quantum calculator can keep one number and add it to another. It can also write yes or no into a flag while leaving both original numbers available.
+Imagine a calculator that has to be able to undo every instruction. If it changes two numbers into only their sum, you cannot tell which two numbers you started with. Instead keep one number and add it into the other, so subtraction can reverse the step. To compare numbers, keep both and flip a separate mark when the first is smaller. When adding, carries move from smaller places to larger places; temporary notes about carries can be cleared by reversing their instructions. Different machines can also do addition using patterns of wave signs rather than carrying marks. The picture breaks because the actual device must preserve amplitudes for every input, not only written numbers.
 
 </Depth>
 
 <Depth level="student">
 
-For two-bit numbers A and B, use a third accumulator bit for the carry. Controlled flips update higher bits before changing the low bits needed by each carry. The comparison example XORs a flag with A < B.
+A reversible adder keeps A and changes B into B+A, so subtracting A undoes it. Our lab adds two-bit numbers into a three-bit accumulator, using controlled flips including [Toffoli](/learn/toffoli/) for the carries. A comparator preserves both numbers and XORs a flag with the answer to A < B, like a Boolean [oracle](/learn/oracles/). Ripple-carry adders propagate carries from low to high bits, then use [uncomputation](/learn/uncomputation/) to clear intermediate work. Cuccaro's adder uses a forward and backward carry sweep with one carry helper; Fourier adders instead encode shifts as relative phases and can avoid separate carry helpers. The gates work linearly on all input amplitudes.
 
 </Depth>
 
 <Depth level="engineer">
 
-Reversible addition can implement $|a,b\rangle\mapsto|a,(b+a)\bmod 2^m\rangle$, whose inverse subtracts a. Here the accumulator is three bits, so two-bit A plus B never overflows it. The five-wire comparison is $|a,b,t\rangle\mapsto|a,b,t\oplus[a<b]\rangle$. The comparator XORs three mutually exclusive conditions: high bits 0,1; high bits both 0 and low bits 0,1; high bits both 1 and low bits 0,1. X gates turn control-on-zero into control-on-one. Both operations extend linearly to superpositions. Larger arithmetic circuits include ripple-carry adders such as [Cuccaro et al.](https://arxiv.org/abs/quant-ph/0410184), which uses a carry propagated and uncomputed, and QFT-based adders, which encode addition as phases in a Fourier basis. The multi-controlled gates here are logical gates; the preceding lesson describes their decompositions.
+Reversible addition can implement $|a,b\rangle\mapsto|a,(b+a)\bmod 2^m\rangle$, whose inverse subtracts a. Here the accumulator is three bits, so two-bit A plus B never overflows it. The five-wire comparison is $|a,b,t\rangle\mapsto|a,b,t\oplus[a<b]\rangle$. The comparator XORs three mutually exclusive conditions: high bits 0,1; high bits both 0 and low bits 0,1; high bits both 1 and low bits 0,1. X gates turn control-on-zero into control-on-one. Both operations extend linearly to superpositions. Larger arithmetic circuits include ripple-carry adders such as [Cuccaro et al.](https://arxiv.org/abs/quant-ph/0410184), which uses majority (MAJ) gates to propagate carry and unmajority-and-add (UMA) gates to sum and undo it with one carry ancilla. The VBE ripple-carry adder uses a linear number of carry helpers. A QFT-based adder encodes addition as phases in a Fourier basis without separate carry helpers. The multi-controlled gates here are logical gates; [multi-controlled gates](/learn/multi-controlled/) describes their decompositions.
 
 </Depth>
 
