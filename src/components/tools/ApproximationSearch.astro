@@ -1,0 +1,61 @@
+---
+import { convergence, budgets } from '../../lib/sims/solovay-kitaev.ts';
+import { RZ, RY } from '../../lib/quantum.ts';
+import { deg } from '../../lib/sims/gate-lab.ts';
+const cases = Object.fromEntries(['Z','Y'].flatMap(axis => [30,60,17,100].map(angle =>
+  [axis+angle,convergence((axis==='Z'?RZ:RY)(deg(angle)))])));
+---
+<qce-approximation-search class="tool" data-cases={JSON.stringify(cases)}>
+  <div class="tool-controls controls">
+    <label>Target axis <select data-axis><option>Z</option><option>Y</option></select></label>
+    <label>Target angle <select data-angle><option>30</option><option>60</option><option>17</option><option>100</option></select></label>
+    <label>Gate budget <select data-budget>{budgets.map(n=><option value={n} selected={n===28}>{n}</option>)}</select></label>
+  </div>
+  <canvas aria-hidden="true"></canvas>
+  <p class="caption">Calculated error at each gate budget. Blue marks are within your budget; the outlined mark is selected. These are not measurement shots.</p>
+  <dl data-table></dl>
+  <p class="tool-readout" aria-live="polite"></p>
+  <p class="caption">The comparison is between complete gate matrices (no chosen input). This is a finite breadth-first search up to 28 gates, not the recursive Solovay–Kitaev algorithm. It deduplicates equivalent gates up to phase and numerical rounding.</p>
+</qce-approximation-search>
+<script>
+  import { fit, palette, dot, onResize, onTheme, onSeen } from '../../lib/draw.ts';
+  type Result={length:number;word:string[];error:number};
+  class ApproximationSearch extends HTMLElement {
+    connectedCallback(){
+      const $=<T extends Element>(s:string)=>this.querySelector<T>(s)!;
+      const cases:Record<string,Result[]>=JSON.parse(this.dataset.cases!);
+      const axis=$<HTMLSelectElement>('[data-axis]'),angle=$<HTMLSelectElement>('[data-angle]'),budget=$<HTMLSelectElement>('[data-budget]'),canvas=$<HTMLCanvasElement>('canvas');
+      let seen=true;
+      const results=()=>cases[axis.value+angle.value];
+      const draw=()=>{
+        if(!seen)return;
+        const {ctx,w,h}=fit(canvas),col=palette(),left=40,right=w-20,base=h-34,top=18;
+        const a=results(),max=Math.max(...a.map(r=>r.error))||1;
+        const x=(n:number)=>left+(right-left)*(n-4)/24,y=(e:number)=>base-(base-top)*e/max;
+        ctx.clearRect(0,0,w,h);ctx.font='12px monospace';ctx.fillStyle=col.ink;ctx.textAlign='right';ctx.fillText(max.toFixed(2),left-4,top+3);ctx.fillText('0',left-4,base+3);
+        ctx.strokeStyle=col.rule;ctx.beginPath();ctx.moveTo(left,top);ctx.lineTo(left,base);ctx.lineTo(right,base);ctx.stroke();
+        a.forEach(r=>{dot(ctx,x(r.length),y(r.error),4,r.length<=+budget.value?col.signal:col.ink2);if(r.length===+budget.value){ctx.strokeStyle=col.ink;ctx.beginPath();ctx.arc(x(r.length),y(r.error),7,0,Math.PI*2);ctx.stroke();}});
+        ctx.textAlign='center';for(const n of [4,12,20,28])ctx.fillText(String(n),x(n),base+17);
+      };
+      const update=()=>{
+        const a=results(),r=a.find(r=>r.length===+budget.value)!;
+        const table=$('[data-table]');table.replaceChildren(...a.map(v=>{const line=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=v.length+' gates';dd.textContent=v.error.toFixed(5);line.append(dt,dd);return line;}));
+        $('.tool-readout').textContent='Target R'+axis.value+'('+angle.value+'°), selected budget '+r.length+': best word '+(r.word.join(' ')||'identity')+'. Actual length '+r.word.length+', error '+r.error.toFixed(5)+'.';
+        draw();
+      };
+      [axis,angle,budget].forEach(el=>el.addEventListener('change',update));onResize(this,draw);onTheme(draw);onSeen(this,v=>{seen=v;if(v)draw();});update();
+    }
+  }
+  customElements.define('qce-approximation-search',ApproximationSearch);
+</script>
+<style>
+  qce-approximation-search {display:grid;gap:var(--s3);min-width:0}
+  .controls {display:flex;flex-wrap:wrap;gap:var(--s2)}
+  label {display:grid;gap:var(--s1);flex:1 1 7rem;min-width:0}
+  select {min-height:2.75rem;min-width:0;font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:var(--r)}
+  canvas {width:100%;height:12rem}
+  dl {margin:0;display:grid;gap:var(--s1)}
+  dl :global(div) {display:flex;justify-content:space-between;gap:var(--s2);border-bottom:1px dotted var(--rule)}
+  dd {margin:0;font-family:var(--mono)}
+  .caption {color:var(--ink-2);font-size:.875rem}
+</style>

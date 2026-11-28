@@ -1,5 +1,5 @@
 ---
-description: "The Solovay–Kitaev theorem gives efficient approximation of unitary gates from suitable finite universal gate alphabets."
+description: "Find out why a small fixed set of quantum gates can approximate a desired turn with surprisingly short sequences."
 answer: "The Solovay–Kitaev theorem gives efficient approximation of unitary gates from suitable finite universal gate alphabets."
 myth:
   claim: "Solovay–Kitaev finds the shortest gate sequence for any target."
@@ -7,27 +7,32 @@ myth:
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
-import GateLab from '../../components/tools/GateLab.astro';
-import { lab } from '../../lib/sims/solovay-kitaev.ts';
+import ApproximationSearch from '../../components/tools/ApproximationSearch.astro';
 
 <Depth level="kid">
 
-If you only have a few types of small turns, you can combine them to get close to a requested turn. More allowed steps can improve the best match.
+Imagine building a clock hand that can turn only in a few fixed ways. You want it to point at a mark that none of those turns reaches exactly. Combine turns, including some backward turns, and the hand can get much closer. The nice surprise is that asking for a much finer match does not require a list that grows in direct proportion to the new precision. Under the right mathematical conditions the list grows far more slowly.
+
+The picture breaks because the allowed quantum turns need not share an axis, and their order changes the answer. The experiment below tries short lists to show how the best error falls.
 
 </Depth>
 
 <Depth level="student">
 
-Choose an angle and search sequences of H, T and T†. The lab tries bounded words and measures the best distance up to global phase. A larger search bound cannot worsen the best distance, but exhaustive search grows quickly.
+The [Clifford and T](/learn/clifford-t/) gate set can approximate any one-qubit gate up to global phase. Solovay–Kitaev says that a fixed, suitably universal set with inverses needs only a power of the logarithm of the inverse error. For example, going from error one part in a thousand to one part in ten thousand adds only a constant to the logarithm, rather than multiplying it by ten. The theorem gives a bound, not the shortest possible sequence.
+
+The lab searches H, T and T† words without counting equivalent gates twice. Its [matrix distance](/learn/matrix-norms/) measures the error of the whole operation, not one input. The search is not the recursive theorem algorithm.
 
 </Depth>
 
 <Depth level="engineer">
 
-For a fixed dimension and finite inverse-closed alphabet dense in SU(d), Solovay–Kitaev constructs approximations with word length polylogarithmic in $1/\epsilon$. The standard recursive method uses approximations and group commutators; see [Dawson and Nielsen](https://arxiv.org/abs/quant-ph/0505030). For gates defined up to phase, work with appropriate phase representatives. Here the distance for two 2 by 2 unitaries is $\min_\alpha\|U-e^{i\alpha}V\|_F=\sqrt{4-2|\operatorname{Tr}(U^\dagger V)|}$. The lab is a small word search, not the recursive theorem algorithm.
+For a fixed dimension and a finite inverse-closed alphabet dense in SU(d), the Solovay–Kitaev algorithm obtains $\epsilon$ accuracy with length $O(\log^c(1/\epsilon))$, with $c\approx3.97$ in [Dawson and Nielsen](https://arxiv.org/abs/quant-ph/0505030). Improved variants have smaller exponents. Counting words and small balls in SU(d) gives a worst-case lower bound of order $\log(1/\epsilon)$. The recursive construction uses group commutators, not exhaustive search.
+
+We demonstrate bounded breadth-first search over H, T, T† modulo global phase, with shortest-word ties and a numerical deduplication tolerance. The distance is $\min_\alpha\|U-e^{i\alpha}V\|_F$. For 2 by 2 unitaries its square is $4-2|\operatorname{Tr}(U^\dagger V)|$. The implementation aligns phase before taking differences to avoid cancellation near equality. These finite search results illustrate convergence for chosen targets, not a proof of the asymptotic theorem.
 
 </Depth>
 
-<Lab title="Approximate a rotation" intro="Choose a target and gate budget; compare the best word and its phase-insensitive error.">
-  <GateLab id="solovay-kitaev" lab={lab} />
+<Lab title="Approximate a rotation" intro="Choose a target rotation and budget; compare the best error at successive lengths.">
+  <ApproximationSearch />
 </Lab>
