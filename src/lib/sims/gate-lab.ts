@@ -6,7 +6,7 @@ export type Values = Record<string, string>;
 export type Control = { key: string; label: string; options: { value: string; label: string }[] };
 export type Row = { label: string; value: string };
 export type Diagram = { n: number; ops: { name: string; wires: number[] }[]; current: number };
-export type Step = { diagram?: Diagram; title: string; note: string; state?: State; distribution?: { labels: string[]; p: number[] }; rows?: Row[] };
+export type Step = { start?: string; diagram?: Diagram; title: string; note: string; state?: State; distribution?: { labels: string[]; p: number[] }; rows?: Row[] };
 export type Lab = { controls: Control[]; run: (v: Values) => Step[] };
 export type Op = { name: string; wires: number[]; matrix: Matrix };
 export const choice = (key: string, label: string, options: readonly (string | [string, string])[]): Control => ({
@@ -24,7 +24,10 @@ export function complex(a: C): string {
 export const row = (label: string, value: string | number): Row => ({ label, value: typeof value === 'number' ? num(value) : value });
 export const details = (title: string, note: string, rows: Row[]): Step => ({ title, note, rows });
 export const stateStep = (title: string, note: string, state: State, rows?: Row[]): Step => ({ title, note, state, rows });
-export const ket = (name: string): State => {
+const names = new WeakMap<State,string>();
+const named = (state:State, name:string):State => { names.set(state,name);return state; };
+export const ket = (name: string): State => named(ketVector(name),'|'+name+'⟩');
+const ketVector = (name: string): State => {
   if (name === '0' || name === '1') return basis(1, +name);
   if (name === '+') return fromBloch(Math.PI / 2, 0);
   if (name === '−') return fromBloch(Math.PI / 2, Math.PI);
@@ -33,9 +36,14 @@ export const ket = (name: string): State => {
   throw Error('unknown ket: ' + name);
 };
 export const kets = ['0', '1', '+', '−', '+i', '−i'];
-export const product = (...names: string[]) => names.map(ket).reduce(tensor);
+export const product = (...kets: string[]) => named(kets.map(ket).reduce(tensor),kets.map(k=>'|'+k+'⟩').join(' '));
 export const bits = (n: number) => Array.from({ length: 2 ** n }, (_, i) => i.toString(2).padStart(n, '0'));
-export const bstate = (s: string) => basis(s.length, parseInt(s, 2));
+export const bstate = (s: string) => named(basis(s.length, parseInt(s, 2)),'|'+s+'⟩');
+export function describeState(s:State):string {
+ const known=names.get(s);if(known)return known;
+ const a=s.flatMap((z,i)=>abs2(z)>1e-20?[complex(z)+' '+label(i,Math.log2(s.length))]:[]);
+ return a.length<=4?a.join(' + '):'the displayed '+Math.log2(s.length)+'-qubit input state';
+}
 export const eye = (n: number): Matrix => Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => c(+(i === j))));
 export const permutation = (n: number, map: (x: number) => number): Matrix => {
   const targets = Array.from({ length: n }, (_, j) => map(j));
@@ -71,12 +79,12 @@ export function apply(state: State, o: Op): State {
 }
 export const runOps = (s: State, ops: Op[]) => ops.reduce(apply, s);
 export const inverse = (ops: Op[]): Op[] => [...ops].reverse().map(o => ({ ...o, name: o.name + '†', matrix: dagger(o.matrix) }));
-export const sequence = (start: State, ops: Op[], endNote = ''): Step[] => {
+export const sequence = (start: State, ops: Op[], endNote = '', startLabel = describeState(start)): Step[] => {
   let s = start;
   const diagram = (current: number): Diagram => ({ n: Math.log2(start.length), ops: ops.map(({name,wires}) => ({name,wires})), current });
-  return [{...stateStep('Start state', 'Before any listed gate. Qubit 0 is on the left.', s), diagram: diagram(-1)}, ...ops.map((o, i) => {
+  return [{...stateStep('Start state', 'Started as '+startLabel+'. Qubit 0 is on the left.', s), start:startLabel, diagram: diagram(-1)}, ...ops.map((o, i) => {
     s = apply(s, o);
-    return {...stateStep(o.name + ' on ' + o.wires.map(w => 'q' + w).join(', '), i === ops.length - 1 && endNote ? endNote : 'The gate acts on the listed wires; no measurement has occurred.', s, o.matrix.length <= 4 ? matrixRows(o.matrix) : undefined), diagram: diagram(i)};
+    return {...stateStep('Gate '+(i+1)+': '+o.name + ' on ' + o.wires.map(w => 'q' + w).join(', '), 'Started as '+startLabel+', after '+o.name+': '+(i === ops.length - 1 && endNote ? endNote : 'the state below is before measurement.'), s, o.matrix.length <= 4 ? matrixRows(o.matrix) : undefined), start:startLabel, diagram: diagram(i)};
   })];
 };
 export const matrixRows = (m: Matrix): Row[] => m.map((r, i) => row('Matrix row ' + i, r.map(complex).join('  ')));

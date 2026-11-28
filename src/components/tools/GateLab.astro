@@ -8,8 +8,8 @@ const initial = lab.run(defaults(lab));
 const first = initial[0];
 const d = first.distribution ?? (first.state ? stateDistribution(first.state) : undefined);
 ---
-<qce-gate-lab data-lesson={id}>
-  <div class="controls">
+<qce-gate-lab class="tool" data-lesson={id}>
+  <div class="tool-controls controls">
     {lab.controls.map(control => (
       <label>{control.label}
         <select data-control={control.key}>
@@ -20,22 +20,23 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
   </div>
   <div class="scrubber">
     <button type="button" class="btn btn-sm" data-back disabled>Back</button>
-    <label>Step <output data-step-count>1 / {initial.length}</output>
+    <label>Step <span data-step-count>1 / {initial.length}</span>
       <input type="range" data-step min="0" max={initial.length - 1} value="0" disabled={initial.length === 1}/>
     </label>
     <button type="button" class="btn btn-sm" data-next disabled={initial.length === 1}>Next</button>
   </div>
+  <details><summary>Jump to a step</summary>
   <ol class="steps" data-steps aria-label="Sequence of steps">
     {initial.map((s, i) => <li><button type="button" data-jump={i} aria-current={i === 0 ? 'step' : undefined}>{s.title}</button></li>)}
-  </ol>
-  <div class="diagram" data-diagram hidden aria-label="Circuit diagram"></div>
-  <div class="panel" aria-live="polite" aria-atomic="true">
+  </ol></details>
+  <div class="diagram" data-diagram hidden tabindex="0" role="region" aria-label="Circuit diagram, scroll to follow all gates"></div>
+  <div class="panel">
     <h3 data-title>{first.title}</h3>
     <p data-note>{first.note}</p>
     <dl data-details>{first.rows?.map(r => <div><dt>{r.label}</dt><dd>{r.value}</dd></div>)}</dl>
     <div data-distribution hidden={!d}>
       <p class="label">Outcome · amplitude (if pure) · ideal probability</p>
-      <div class="outcomes" data-outcomes>
+      <div class="outcomes" data-outcomes tabindex="0" role="region" aria-label="Outcome amplitudes and probabilities">
         {d?.labels.map((name, i) => <div class="outcome">
           <span>{name}</span><span>{first.state ? complex(first.state[i]) : ''}</span><span>{pct(Math.min(1,d.p[i]))}</span>
           <div class="meter" aria-hidden="true"><i style={`width: ${d.p[i] * 100}%`}></i></div>
@@ -46,16 +47,18 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
   <div data-shots hidden={!d}>
     <label>Fresh shots <select data-shot-size><option>100</option><option>1000</option><option>10000</option></select></label>
     <button type="button" class="btn btn-sm" data-run>Run shots</button>
-    <p data-counts class="tool-readout" aria-live="polite">No shots yet.</p>
+    <p data-counts>No shots yet.</p>
+    <canvas data-piles aria-hidden="true" hidden></canvas>
+    <p data-pile-key class="note" hidden>Each dot is one measured fresh copy, grouped by its outcome; the counts below each label are observed, not exact probabilities.</p>
   </div>
-  <p class="note">This is an ideal mathematical model, not a quantum device. Amplitudes are computed before measurement; shots use the browser's random numbers. Change a setting or step to clear the old counts.</p>
-  <p data-status aria-live="polite"></p>
+  <p class="note" data-quantum-note hidden={!initial.some(s=>s.state||s.distribution)}>This is an ideal mathematical model, not a quantum device. Every shot measures a fresh preparation using Born-rule odds. Change a setting or step to clear old counts.</p>
+  <p data-status class="tool-readout" aria-live="polite"></p>
 </qce-gate-lab>
 
 <script>
-  import { complex, stateDistribution, type Lab, type Values, type Step, type Diagram } from '../../lib/sims/gate-lab.ts';
+  import { complex, stateDistribution, describeState, type Lab, type Values, type Step, type Diagram } from '../../lib/sims/gate-lab.ts';
   import { sample } from '../../lib/quantum.ts';
-  import { pct } from '../../lib/draw.ts';
+  import { pct, fit, palette, dot, onResize, onTheme, onSeen } from '../../lib/draw.ts';
   // Lazy imports: only the current lab is loaded into the browser.
   const modules = import.meta.glob<{ lab: Lab }>([
     '../../lib/sims/classical-gates.ts',
@@ -128,6 +131,40 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
       const stepList = $('[data-steps]'), details = $('[data-details]'), outcomes = $('[data-outcomes]');
       const dist = $<HTMLElement>('[data-distribution]'), shots = $<HTMLElement>('[data-shots]'), counts = $('[data-counts]');
       let steps: Step[] = [], index = 0;
+      let measured: {labels:string[];counts:number[]} | undefined;
+      let visible=true;
+      const canvas=$<HTMLCanvasElement>('[data-piles]'),key=$<HTMLElement>('[data-pile-key]');
+      const drawPiles=()=>{
+        if(!visible||!measured||canvas.hidden)return;
+        const {labels,counts:got}=measured;
+        const active=labels.map((name,i)=>({name,n:got[i]})).filter(r=>r.n>0);
+        const width=canvas.getBoundingClientRect().width;
+        const cols=width>=430?4:2,cell=width/cols,rows=Math.ceil(active.length/cols);
+        const max=Math.max(...got),maxRows=Math.max(1,Math.ceil(Math.sqrt(max)));
+        const pitch=Math.min(7,(cell-12)/maxRows,112/maxRows),nAcross=Math.max(1,Math.floor((cell-12)/pitch));
+        const pileH=Math.ceil(max/nAcross)*pitch,cellH=pileH+34;
+        canvas.style.height=Math.ceil(rows*cellH)+'px';
+        const {ctx,w,h}=fit(canvas),p=palette();ctx.clearRect(0,0,w,h);
+        ctx.font='12px monospace';ctx.textAlign='center';ctx.fillStyle=p.ink;
+        active.forEach((r,i)=>{
+          const col=i%cols,line=Math.floor(i/cols),x=cell*col+cell/2,base=(line+1)*cellH-30;
+          const wide=Math.min(nAcross,r.n)*pitch;
+          for(let j=0;j<r.n;j++)dot(ctx,x-wide/2+((j%nAcross)+.5)*pitch,base-(Math.floor(j/nAcross)+.5)*pitch,Math.max(.4,pitch*.33),p.signal);
+          ctx.fillStyle=p.ink;ctx.fillText(r.name,x,base+12,cell-4);ctx.fillText(String(r.n),x,base+25);
+        });
+      };
+      onResize(this,drawPiles);onTheme(drawPiles);onSeen(this,v=>{visible=v;if(v)drawPiles();});
+      const startLabel = () => {
+        const first=steps.find(s=>s.state);
+        const selection=lab.controls.map(c=>c.label+': '+(values()[c.key]??'')).join(', ');
+        return steps[index]?.start??first?.start??(first?.state?describeState(first.state):selection);
+      };
+      const speak = () => {
+        const s=steps[index];
+        const d=s.distribution??(s.state?stateDistribution(s.state):undefined);
+        const summary=d?d.labels.length<=4?d.labels.map((v,i)=>v+' '+pct(Math.max(0,Math.min(1,d.p[i])))).join(', '):d.labels.length+' possible outcomes':s.note;
+        status.textContent='Start or preparation: '+startLabel()+'. Step '+(index+1)+' of '+steps.length+': '+s.title+'. '+summary+'.';
+      };
       const values = (): Values => Object.fromEntries(inputs.map(el => [el.dataset.control!, el.value]));
       const el = (tag: string, text?: string, cls?: string) => {
         const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e;
@@ -143,8 +180,8 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
           if (content !== undefined) e.textContent = content;
           return e;
         };
-        const x0 = 48, dx = 108, y0 = 38, dy = 40, width = x0 + dx*d.ops.length + 16, height = y0 + dy*d.n;
-        const chart = svg('svg',{viewBox:'0 0 '+width+' '+height,width,height,role:'img','aria-label':'Quantum circuit, current gate '+(d.current+1)+' of '+d.ops.length});
+        const x0 = 48, dx = 108, y0 = 38, dy = 40, width = x0 + dx*d.ops.length + 44, height = y0 + dy*d.n;
+        const chart = svg('svg',{viewBox:'0 0 '+width+' '+height,width,height,role:'img','aria-label':d.current<0?'Quantum circuit, before the first gate':'Quantum circuit, current gate '+(d.current+1)+' of '+d.ops.length});
         const y = (w:number) => y0+dy*w;
         if(d.current>=0) chart.append(svg('rect',{x:x0+dx*d.current,y:0,width:dx,height,fill:'var(--signal)',opacity:0.10,rx:4}));
         for(let w=0;w<d.n;w++){
@@ -169,6 +206,11 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
           }
           chart.append(full);
         });
+        // Standard-basis meters at the right end mark the optional measurement.
+        for(let w=0;w<d.n;w++){
+          const x=width-24,cy=y(w);
+          chart.append(svg('rect',{x:x-10,y:cy-10,width:20,height:20,rx:2,stroke:'currentColor',fill:'var(--paper)'}),svg('path',{d:'M'+(x-6)+' '+(cy+4)+'a6 6 0 0 1 12 0 M'+x+' '+(cy+4)+'L'+(x+4)+' '+(cy-4),stroke:'currentColor',fill:'none'}));
+        }
         diagram.append(chart);
         if(d.current>=0){
           // Keep the selected gate visible without scrolling the whole page.
@@ -178,20 +220,23 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
       const render = (jumpFocus = false) => {
         const s = steps[index];
         slider.max = String(steps.length - 1); slider.value = String(index); slider.disabled = steps.length === 1;
+        if(document.activeElement===back&&index===0&&steps.length>1){next.disabled=false;next.focus({preventScroll:true});}
+        if(document.activeElement===next&&index===steps.length-1&&steps.length>1){back.disabled=false;back.focus({preventScroll:true});}
         back.disabled = index === 0; next.disabled = index === steps.length - 1;
         $('[data-step-count]').textContent = (index + 1) + ' / ' + steps.length;
-        slider.setAttribute('aria-valuetext', s.title);
+        slider.setAttribute('aria-valuetext', 'Step '+(index+1)+': '+s.title);
         stepList.replaceChildren(...steps.map((step, i) => {
           const item = el('li'), button = el('button', step.title) as HTMLButtonElement;
           button.type = 'button'; if (i === index) button.setAttribute('aria-current', 'step');
-          button.addEventListener('click', () => { index = i; render(true); }); item.append(button); return item;
+          button.addEventListener('click', () => { index = i; render(true); speak(); }); item.append(button); return item;
         }));
         if (jumpFocus) stepList.querySelector<HTMLButtonElement>('[aria-current=step]')?.focus();
         drawCircuit(s.diagram);
-        $('[data-title]').textContent = s.title; $('[data-note]').textContent = s.note;
+        $('[data-title]').textContent = 'Step '+(index+1)+': '+s.title; $('[data-note]').textContent = s.start?s.note:'Start or preparation: '+startLabel()+'. '+s.note;
         details.replaceChildren(...(s.rows ?? []).map(r => { const d = el('div'); d.append(el('dt', r.label), el('dd', r.value)); return d; }));
         const d = s.distribution ?? (s.state ? stateDistribution(s.state) : undefined);
-        dist.hidden = shots.hidden = !d; counts.textContent = 'No shots yet.';
+        dist.hidden = shots.hidden = !d; counts.textContent = 'No shots yet.'; measured=undefined;canvas.hidden=key.hidden=true;
+        $<HTMLElement>('[data-quantum-note]').hidden=!steps.some(s=>s.state||s.distribution);
         outcomes.replaceChildren(...(d?.labels ?? []).map((name, i) => {
           const p = Math.max(0, Math.min(1, d!.p[i]));
           const item = el('div', undefined, 'outcome'), meter = el('div', undefined, 'meter'), bar = el('i');
@@ -200,13 +245,14 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
         }));
       };
       const update = () => {
-        try { steps = lab.run(values()); index = 0; render(); status.textContent = ''; }
+        try { steps = lab.run(values()); index = 0; render(); speak(); }
         catch { status.textContent = 'This setting could not be calculated.'; }
       };
       inputs.forEach(e => e.addEventListener('change', update));
       slider.addEventListener('input', () => { index = +slider.value; render(); });
-      back.addEventListener('click', () => { if (index > 0) { index--; render(); } });
-      next.addEventListener('click', () => { if (index < steps.length - 1) { index++; render(); } });
+      slider.addEventListener('change',speak);
+      back.addEventListener('click', () => { if (index > 0) { index--; render(); speak(); } });
+      next.addEventListener('click', () => { if (index < steps.length - 1) { index++; render(); speak(); } });
       $('[data-run]').addEventListener('click', () => {
         const s = steps[index], d = s.distribution ?? (s.state ? stateDistribution(s.state) : undefined);
         if (!d) return;
@@ -219,7 +265,9 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
           observed.append(el('span','Observed: '+got[i]+' / '+n+' ('+pct(got[i]/n)+')'),bar);
           item.append(observed);
         });
-        counts.textContent = n + ' shots: ' + d.labels.map((v, i) => v + ' = ' + got[i]).join('; ') + '.';
+        measured={labels:d.labels,counts:got};canvas.hidden=key.hidden=false;drawPiles();
+        counts.textContent = 'Started as '+startLabel()+'. '+n+' shots: '+d.labels.map((v,i)=>v+' = '+got[i]).join('; ')+'.';
+        status.textContent='Started as '+startLabel()+'. '+n+' fresh shots at step '+(index+1)+'. '+(d.labels.length<=4?d.labels.map((v,i)=>v+' '+got[i]).join(', '):'Counts listed by outcome')+'.';
       });
       update();
     }
@@ -230,10 +278,12 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
   qce-gate-lab { display:grid; gap:var(--s3); min-width:0 }
   .controls, .scrubber, [data-shots] { display:flex; flex-wrap:wrap; gap:var(--s3); align-items:end }
   label { display:grid; gap:var(--s1); color:var(--ink-2); flex:1 1 9rem; min-width:0 }
-  select { font:inherit; color:var(--ink); border:1px solid var(--rule); border-radius:var(--r); background:var(--paper); padding:var(--s2); width:100% }
+  [data-piles] { width:100%;flex:1 1 100%;min-width:0 }
+  [data-counts], [data-pile-key] {flex:1 1 100%;overflow-wrap:anywhere}
+  select { min-height:2.75rem; font:inherit; color:var(--ink); border:1px solid var(--rule); border-radius:var(--r); background:var(--paper); padding:var(--s2); width:100% }
   input { width:100%; accent-color:var(--signal) }
   .steps { display:flex; gap:var(--s2); flex-wrap:wrap; padding:0; margin:0; list-style:none }
-  .steps :global(button) { font:inherit; border:1px dotted var(--rule); padding:var(--s1) var(--s2); color:var(--ink); background:transparent; cursor:pointer; border-radius:var(--r) }
+  .steps :global(button) { min-height:24px; font:inherit; border:1px dotted var(--rule); padding:var(--s1) var(--s2); color:var(--ink); background:transparent; cursor:pointer; border-radius:var(--r) }
   .steps :global([aria-current="step"]) { background:var(--signal); color:var(--on-signal); border-style:solid }
   .diagram { overflow-x:auto; max-width:100%; color:var(--ink); border:1px solid var(--rule); border-radius:var(--r); padding:var(--s2); font-family:var(--mono) }
   .diagram :global(svg) { display:block; max-width:none }
@@ -250,5 +300,6 @@ const d = first.distribution ?? (first.state ? stateDistribution(first.state) : 
   .outcomes :global(.observed-track i) { display:block; height:100%; background:var(--hot) }
   .outcomes :global(.meter i) { display:block; height:100%; background:var(--signal) }
   [hidden] { display:none !important }
+  [data-status] {overflow-wrap:anywhere}
   .note { font-size:.875rem; color:var(--ink-2) }
 </style>
