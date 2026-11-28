@@ -1,0 +1,66 @@
+---
+import { lab } from '../../lib/sims/classical-simulation.ts';
+---
+<qce-simulation-memory class="tool">
+  <div class="tool-controls">
+    {lab.controls.map(c=><label>{c.key==='shape'?'State pattern':c.label}<select data-key={c.key}>{c.options.map(o=><option value={o.value}>{o.label}</option>)}</select></label>)}
+    <button class="btn btn-sm" type="button" data-run>Sample four qubits</button>
+  </div>
+  <div class="comparison">
+    <p>Calculated storage, log₂(bytes) scale (not measured)</p>
+    <p>Dense <span data-dense></span></p><div class="track"><i data-dense-bar></i></div>
+    <p>Matrix product <span data-mps></span></p><div class="track"><i data-mps-bar></i></div>
+    <p data-stabilizer></p>
+  </div>
+  <canvas aria-hidden="true"></canvas>
+  <p class="tool-readout" aria-live="polite"></p>
+  <p class="note">Dense and MPS storage use 16 bytes per complex slot, including zeros, with no overhead. Bond dimensions assume fixed wire order. Each dot is one fresh measurement of the four-qubit example, not the large state.</p>
+</qce-simulation-memory>
+<script>
+  import { memory,demonstration } from '../../lib/sims/classical-simulation.ts';
+  import { probs,sample } from '../../lib/quantum.ts';
+  import { fit,palette,dot,pct,onResize,onTheme,onSeen } from '../../lib/draw.ts';
+  class SimulationMemory extends HTMLElement {
+    connectedCallback(){
+      const $=<T extends Element>(s:string)=>this.querySelector<T>(s)!;
+      const canvas=$<HTMLCanvasElement>('canvas'),n=$<HTMLSelectElement>('[data-key=n]'),shape=$<HTMLSelectElement>('[data-key=shape]');
+      let p:number[]=[],counts:number[]=[],seen=true;
+      const draw=()=>{
+        if(!seen||!counts.length)return;
+        const {ctx,w,h}=fit(canvas),colors=palette(),cols=4,cw=w/cols,rh=h/4;
+        ctx.clearRect(0,0,w,h);ctx.font='11px monospace';ctx.textAlign='center';
+        counts.forEach((v,i)=>{
+          const col=i%cols,r=Math.floor(i/cols),x=(col+.5)*cw,base=(r+1)*rh-23,pitch=Math.min(5,(cw-8)/10,(rh-28)/10);
+          for(let j=0;j<v;j++)dot(ctx,x+(j%10-4.5)*pitch,base-(Math.floor(j/10)+.5)*pitch,pitch*.35,colors.signal);
+          ctx.fillStyle=colors.ink;ctx.fillText(i.toString(2).padStart(4,'0')+' '+v,x,(r+1)*rh-5,cw-2);
+        });
+      };
+      const update=()=>{
+        const m=memory(+n.value,shape.value);
+        $('[data-dense]').textContent=m.dense.toLocaleString('en-US')+' bytes';
+        $('[data-mps]').textContent=m.mps.toLocaleString('en-US')+' bytes';
+        $<HTMLElement>('[data-dense-bar]').style.width=Math.log2(Number(m.dense))/56*100+'%';
+        $<HTMLElement>('[data-mps-bar]').style.width=Math.log2(Number(m.mps))/56*100+'%';
+        $('[data-stabilizer]').textContent=m.stabilizer?'Stabilizer description: '+n.value+' generators.':'Not a stabilizer state; MPS still has bond dimension 1.';
+        p=probs(demonstration(shape.value).at(-1)!.state!);counts=sample(p,100,Math.random);
+        $('.tool-readout').textContent='Started as |0000⟩, prepared '+shape.value+'. '+n.value+'-qubit calculated middle bond dimension '+m.bond+'; 100 four-qubit shots: '+counts.map((v,i)=>p[i]>1e-12?i.toString(2).padStart(4,'0')+' '+v+' (ideal '+pct(p[i])+')':'').filter(Boolean).join('; ')+'.';
+        draw();
+      };
+      n.addEventListener('change',update);shape.addEventListener('change',update);$('[data-run]').addEventListener('click',update);
+      onResize(this,draw);onTheme(draw);onSeen(this,v=>{seen=v;if(v)draw();});update();
+    }
+  }
+  if(!customElements.get('qce-simulation-memory'))customElements.define('qce-simulation-memory',SimulationMemory);
+</script>
+<style>
+  qce-simulation-memory{display:grid;gap:var(--s3);min-width:0}
+  .tool-controls{display:flex;flex-wrap:wrap;gap:var(--s2);align-items:end;min-width:0}
+  label{display:grid;gap:var(--s1);flex:1 1 8rem;min-width:0}
+  select{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);width:100%;max-width:100%;min-width:0;min-height:2.75rem}
+  .comparison{display:grid;gap:var(--s1);min-width:0;overflow-wrap:anywhere}
+  .track{height:.6rem;background:var(--rule);border-radius:var(--r);overflow:hidden}
+  .track i{display:block;height:100%;background:var(--signal)}
+  [data-mps-bar]{background:var(--hot)}
+  canvas{width:100%;height:16rem}
+  .note{font-size:.875rem;color:var(--ink-2)}
+</style>
