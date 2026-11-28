@@ -1,5 +1,5 @@
 ---
-description: "The Pauli X, Y and Z gates are three basic one-qubit gates. Each corresponds to a half turn around a Bloch sphere axis, up to global phase."
+description: "Try X, Y and Z on six qubit states and see how each rotates the Bloch arrow by half a turn."
 answer: "The Pauli X, Y and Z gates are three basic one-qubit gates. Each corresponds to a half turn around a Bloch sphere axis, up to global phase."
 myth:
   claim: "Y is just another name for X."
@@ -12,19 +12,25 @@ import { lab } from '../../lib/sims/pauli.ts';
 
 <Depth level="kid">
 
-X flips the two bit labels. Z changes the sign of the 1 wave. Y does both with a special phase. None of these needs to measure the qubit.
+Picture an arrow fixed at the center of a ball. Spin the ball halfway around a line through its center and the arrow changes direction. There are three special lines: one left to right, one front to back, and one top to bottom. A half turn around each line is a different operation. The turn around the left-to-right line flips an arrow pointing up to one pointing down, and vice versa.
+
+Repeat any one of the turns and the arrow returns. The picture breaks because the arrow is a way of drawing an ideal qubit's amplitudes; there is no little spinning object inside the qubit.
 
 </Depth>
 
 <Depth level="student">
 
-X maps 0 to 1 and 1 to 0. Y maps 0 to i times 1 and 1 to −i times 0. Z leaves 0 alone and multiplies 1 by −1. Try each twice: the state returns exactly.
+The Pauli gates X, Y and Z are half turns of the [Bloch sphere](/learn/bloch/) around its x, y and z axes. X is the quantum NOT: it exchanges the 0 and 1 amplitudes. Z leaves the 0 amplitude unchanged and changes the sign of the 1 amplitude. Y exchanges them, multiplying the new 0 amplitude by −i and the new 1 amplitude by i.
+
+For an ideal qubit, all three gates undo themselves: applying X, Y or Z twice gives exactly the original amplitudes. Start in |0⟩ and X gives |1⟩. Start in |+⟩ and Z gives |−⟩. The 0/1 odds need not change.
 
 </Depth>
 
 <Depth level="engineer">
 
-The matrices are $X=\begin{pmatrix}0&1\\1&0\end{pmatrix}$, $Y=\begin{pmatrix}0&-i\\i&0\end{pmatrix}$ and $Z=\operatorname{diag}(1,-1)$. Each is Hermitian and squares to $I$. $XY=iZ$, $YX=-iZ$, so different Paulis anticommute. Since $R_P(\pi)=-iP$, their action on the Bloch sphere is a rotation of 180 degrees; the global phase is not shown.
+X has rows $(0,1)$ and $(1,0)$; Y has rows $(0,-i)$ and $(i,0)$; Z is diagonal with entries $(1,-1)$. Each is Hermitian and unitary, and $X^2=Y^2=Z^2=I$. For distinct Paulis, $XY=iZ$ and $YX=-iZ$ (cyclic permutations give the other products).
+
+With $R_P(\theta)=e^{-i\theta P/2}$, we have $R_P(\pi)=-iP$. The factor is global phase for this unconditional gate. Each Pauli conjugates the Bloch vector by a half turn about its axis: X sends $(x,y,z)$ to $(x,-y,-z)$, Y to $(-x,y,-z)$, and Z to $(-x,-y,z)$. This connects the [gate](/learn/gates/) matrix with the Bloch picture.
 
 </Depth>
 
