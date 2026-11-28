@@ -112,7 +112,7 @@ Source of truth for The Map. Regions say what a stop is. Lines say the order to 
 | classical-gates | Classical logic gates | binary | - | Beginner | - | Build NOT, AND, OR, XOR and NAND circuits, and see that NAND alone is universal. | Qiskit TB 1.2; N&C 3.1.2 |
 | gates | What a quantum gate is | superposition | - | Beginner | - | See a gate as a reversible action on qubits, written as a unitary matrix. | N&C 1.3.1; MS Katas single_qubit_gates |
 | pauli | Pauli gates | bloch, gates | - | Beginner | - | Use X, Y and Z as half turns of the Bloch sphere; X is the quantum NOT. | N&C 1.3.1, 2.1.3; MS Katas single_qubit_gates |
-| hadamard | Hadamard | superposition, gates | - | Beginner | - | Use H to turn \|0⟩ into \|+⟩ and back, the gate that swaps the Z and X bases. | N&C 1.3.1; Qiskit TB 1.4 |
+| hadamard | Hadamard | superposition, measurement, bloch, gates | - | Beginner | - | Use H to turn \|0⟩ into \|+⟩ and back, the gate that swaps the Z and X bases. | N&C 1.3.1; Qiskit TB 1.4 |
 | phase-gates | Phase gates | phase | - | Beginner | - | Use Z, S, T and P(φ) to change relative phase without changing the 0 and 1 odds. | N&C 4.2; Qiskit TB 1.4 |
 | rotations | Rotation gates | pauli | - | Intermediate | - | Turn the Bloch vector by any angle about the x, y or z axis with RX, RY and RZ. | N&C 4.2; Qiskit TB 1.4 |
 | single-qubit-unitary | Any one-qubit gate | rotations, phase-gates, unitary-matrices | - | Intermediate | - | Write any one-qubit gate as three rotations (Euler form) or as U(θ,φ,λ), up to a global phase. | N&C 4.2 (Thm 4.1); Qiskit TB 1.4 |

@@ -1,0 +1,60 @@
+---
+description: "What does the Hadamard gate do? It turns |0⟩ into |+⟩ and back, and swaps the Z and X bases. Try it on a qubit and measure the result."
+answer: "The Hadamard gate (H) is a one-qubit gate that turns |0⟩ into |+⟩ and |1⟩ into |−⟩, and turns them back. It swaps the Z basis (0 or 1) with the X basis (+ or −), so a Z measurement after H gives the odds an X measurement would have given before it."
+myth:
+  claim: "A Hadamard gate just makes a qubit random, like a coin flip."
+  truth: "A gate is reversible. Started as 0, one H gives equal amplitudes for 0 and 1, so a measurement gives either with equal chance, but a second H gives 0 every time, which a coin flip could never do."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import HadamardMirror from '../../components/tools/HadamardMirror.astro';
+
+<Depth level="kid">
+
+Picture a qubit as an arrow. Up means |0⟩, down means |1⟩, right means |+⟩ and left means |−⟩. A qubit that started as 0 points up.
+
+You can ask an arrow two questions: "up or down?" and "left or right?". The up arrow answers "up" every time. Asked "left or right?", it gives either answer with equal chance.
+
+A Hadamard gate (H) flips the arrow over a diagonal mirror. Up goes to right, down goes to left, and the other way back. So the qubit that started as 0 now answers "right" every time, and "up or down?" gives either answer with equal chance. H swaps the two questions. Flip again and the arrow points up once more.
+
+The picture breaks here: a qubit does not point anywhere in space. The arrow draws two amplitudes, and H adds and subtracts them. Amplitudes can cancel, which an arrow cannot show.
+
+</Depth>
+
+<Depth level="student">
+
+A qubit has two amplitudes, one for 0 and one for 1. A Hadamard gate (H) adds them to make the new amplitude for 0, subtracts them to make the new amplitude for 1, and divides both by √2 (about 1.41).
+
+Started as 0, the amplitudes are 1 and 0, and H gives 0.71 and 0.71: the state |+⟩. Started as 1, H gives 0.71 and −0.71: the state |−⟩. Either way the two amplitudes have the same size, so a measurement gives 0 or 1 with equal chance.
+
+Apply H to |+⟩: adding gives (0.71 + 0.71) / 1.41 ≈ 1, and subtracting gives 0. So H turns |+⟩ back into |0⟩, and |−⟩ into |1⟩. Two H gates in a row do nothing.
+
+The Z basis asks "0 or 1?" and the X basis asks "+ or −?". H swaps them: a Z measurement after H gives the odds an X measurement would have given before it. So H, then a measurement, tells |+⟩ and |−⟩ apart.
+
+</Depth>
+
+<Depth level="engineer">
+
+The Hadamard gate has matrix rows $(1, 1)/\sqrt{2}$ and $(1, -1)/\sqrt{2}$ in the basis $|0\rangle, |1\rangle$. Equivalently
+
+$$
+H = |{+}\rangle\langle 0| + |{-}\rangle\langle 1| = \tfrac{X + Z}{\sqrt{2}},
+$$
+
+so $H(a|0\rangle + b|1\rangle) = \tfrac{a+b}{\sqrt{2}}|0\rangle + \tfrac{a-b}{\sqrt{2}}|1\rangle$. It is unitary and $H = H^\dagger$, so $H^2 = I$. Started as $|0\rangle$, two Hadamard gates give $|0\rangle$ with certainty: in $H|{+}\rangle$ the two contributions to the amplitude for $|1\rangle$, $+\tfrac{1}{2}$ and $-\tfrac{1}{2}$, cancel.
+
+H swaps the Z and X bases. $H|0\rangle = |{+}\rangle$, $H|1\rangle = |{-}\rangle$, $H|{+}\rangle = |0\rangle$, $H|{-}\rangle = |1\rangle$, and $HZH = X$, $HXH = Z$, $HYH = -Y$. For every $|\psi\rangle$,
+
+$$
+|\langle 0|H|\psi\rangle|^2 = |\langle {+}|\psi\rangle|^2.
+$$
+
+So for an ideal qubit, a Z measurement after H has the odds of an X measurement before it. That is how a device that only measures Z measures in X ([bases](/learn/bases/)). The states $|{+}\rangle$ and $|{-}\rangle$ differ only in [relative phase](/learn/phase/): Z gives both 50/50, but H, then Z, gives 0 for one and 1 for the other.
+
+On the [Bloch sphere](/learn/bloch/), $(x, y, z) \mapsto (z, -y, x)$: a half turn about the axis halfway between $x$ and $z$. As a matrix, $H$ is that half-turn rotation, $-i(X+Z)/\sqrt{2}$, times the global phase $i$, which the sphere does not show.
+
+</Depth>
+
+<Lab title="Turn a qubit with H" intro="Pick a start state, then compare the Z and X piles before and after one Hadamard gate, and look for the swap.">
+  <HadamardMirror />
+</Lab>

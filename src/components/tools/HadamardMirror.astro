@@ -1,0 +1,247 @@
+---
+// A qubit with real amplitudes, measured in Z (0 or 1) and in X (+ or −), before and after one Hadamard gate. H flips the picture
+// over a mirror line, and the two measurements trade odds. Every number comes from sims/hadamard.ts; every dot is a Born-rule draw.
+import { PRESETS, MIN, MAX, sliderText } from '../../lib/sims/hadamard.ts';
+const uid = 'hm-' + Math.random().toString(36).slice(2, 8);
+const rows = [
+  { head: 'Before the gate', cells: [
+    { key: 'zBefore', cap: 'Measure in Z: 0 or 1', a: '0', b: '1' },
+    { key: 'xBefore', cap: 'Measure in X: + or −', a: '+', b: '−' },
+  ] },
+  { head: 'After one Hadamard gate', cells: [
+    { key: 'zAfter', cap: 'After one H, measure in Z: 0 or 1', a: '0', b: '1' },
+    { key: 'xAfter', cap: 'After one H, measure in X: + or −', a: '+', b: '−' },
+  ] },
+];
+---
+<qce-hadamard-mirror class="tool">
+  <div class="top">
+    <div class="pic">
+      <canvas data-circle aria-hidden="true"></canvas>
+      <p class="legend" aria-hidden="true">
+        <span><i class="mk ring"></i>start state</span>
+        <span><i class="mk solid"></i>after one H</span>
+        <span><i class="mk small"></i>after a second H</span>
+        <span><i class="mk mirror"></i>mirror line</span>
+      </p>
+    </div>
+
+    <div class="ctl">
+      <div class="dial">
+        <div class="row">
+          <label for={`${uid}-t`}>Start state: angle on the circle</label>
+          <output for={`${uid}-t`} data-out>0°</output>
+        </div>
+        <input id={`${uid}-t`} data-in type="range" min={MIN} max={MAX} step="1" value="0" aria-valuetext={sliderText(0)} />
+        <div class="presets" role="group" aria-label="Preset start states">
+          {PRESETS.map((p) => <button type="button" data-set={p.angle} aria-pressed={String(p.angle === 0)}>{p.name}</button>)}
+        </div>
+      </div>
+      <button type="button" class="btn btn-sm" data-new>New batch of shots</button>
+    </div>
+  </div>
+
+  <div class="meters">
+    {rows.map((row) => (
+      <>
+        <p class="row-head label">{row.head}</p>
+        {row.cells.map((c) => (
+          <figure class="cell">
+            <figcaption>{c.cap}</figcaption>
+            <canvas data-pile={c.key} aria-hidden="true"></canvas>
+            <p class="axis"><span>{c.a}: <b data-n1={c.key}>0</b></span><span>{c.b}: <b data-n2={c.key}>0</b></span></p>
+          </figure>
+        ))}
+      </>
+    ))}
+  </div>
+
+  <p class="tool-readout" aria-live="polite">Start state |0⟩. Pick a preset, move the slider or press New batch of shots to read out the odds and the counts.</p>
+  <p class="key">The circle is a picture of the qubit, not something you can measure: a slice of the Bloch sphere through |0⟩ (top), |+⟩ (right), |1⟩ (bottom) and |−⟩ (left). The higher the point, the likelier a 0 in a Z measurement. The further right, the likelier a + in an X measurement. This tool reaches only states with real amplitudes, which sit on this circle. H works on every state: it sends the Bloch point (x, y, z) to (z, −y, x), which on this circle is a flip across the mirror line.</p>
+  <p class="key">Each dot is one fresh copy of an ideal qubit, measured once, with Born rule odds. Blue dots (left pile) gave the first answer, grey dots (right pile) the second. The dashed line on each pile marks the Born rule prediction for 100 copies. Each copy keeps its own random draw, so a dot flips only when the odds pass it. Each pile is its own batch of fresh copies, so two piles with the same odds can still differ in their counts.</p>
+</qce-hadamard-mirror>
+
+<script>
+  import { SHOTS, CELLS, view, point, zeros, pileGrid, nameOf, sliderText, readout, type Cell } from '../../lib/sims/hadamard.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  type Pane = { c: HTMLCanvasElement; ctx: CanvasRenderingContext2D | null; w: number; h: number };
+  type Colors = ReturnType<typeof palette>;
+  const REVEAL = 14; // ms per shot as a new batch appears
+  const TAU = Math.PI * 2;
+
+  /** A dotted ring of radius R. */
+  function ring(ctx: CanvasRenderingContext2D, cx: number, cy: number, R: number, r: number, color: string) {
+    const n = Math.max(24, Math.round((TAU * R) / 6));
+    for (let k = 0; k < n; k++) dot(ctx, cx + R * Math.cos((k * TAU) / n), cy + R * Math.sin((k * TAU) / n), r, color);
+  }
+
+  /** A dotted line from (x0, y0) to (x1, y1). */
+  function line(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, gap: number, r: number, color: string) {
+    const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / gap));
+    for (let k = 0; k <= n; k++) dot(ctx, x0 + ((x1 - x0) * k) / n, y0 + ((y1 - y0) * k) / n, r, color);
+  }
+
+  class HadamardMirror extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const input = $<HTMLInputElement>('[data-in]'), output = $('[data-out]'), say = $('.tool-readout');
+      const presets = [...this.querySelectorAll<HTMLButtonElement>('[data-set]')];
+      const circle: Pane = { c: $('[data-circle]'), ctx: null, w: 0, h: 0 };
+      const piles = Object.fromEntries(CELLS.map((k) => [k, { c: $<HTMLCanvasElement>(`[data-pile="${k}"]`), ctx: null, w: 0, h: 0 } as Pane])) as Record<Cell, Pane>;
+      const panes = [circle, ...CELLS.map((k) => piles[k])];
+      const still = reduceMotion();
+      const fresh = () => Array.from({ length: SHOTS }, () => Math.random());
+      const freshAll = () => Object.fromEntries(CELLS.map((k) => [k, fresh()])) as Record<Cell, number[]>;
+
+      let t = 0;
+      let us = freshAll(); // one fixed uniform draw per copy, per pile
+      let shown = still ? SHOTS : 0, credit = 0, raf = 0, last = 0, seen = false, want = false;
+
+      function drawCircle(col: Colors, v: ReturnType<typeof view>) {
+        const p = circle, ctx = p.ctx!;
+        ctx.clearRect(0, 0, p.w, p.h);
+        const cx = p.w / 2, cy = p.h / 2, R = Math.min(p.w, p.h) / 2 - 34;
+        if (R < 20) return;
+        // Axes and the unit circle, as dots. Up is |0⟩, right is |+⟩.
+        line(ctx, cx - R, cy, cx + R, cy, 6, 0.9, col.rule);
+        line(ctx, cx, cy - R, cx, cy + R, 6, 0.9, col.rule);
+        ring(ctx, cx, cy, R, 1.1, col.ink2);
+        // The mirror line: through the center, halfway between |0⟩ and |+⟩.
+        const m = (R * 1.14) / Math.SQRT2;
+        line(ctx, cx - m, cy + m, cx + m, cy - m, 8, 1.7, col.ink2);
+        // The four named states.
+        ctx.fillStyle = col.ink; ctx.font = `500 13px ${token('--mono')}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const names: [string, number, number][] = [['|0⟩', 0, -1], ['|1⟩', 0, 1], ['|+⟩', 1, 0], ['|−⟩', -1, 0]];
+        for (const [name, dx, dy] of names) {
+          dot(ctx, cx + dx * R, cy + dy * R, 2.6, col.ink2);
+          ctx.fillText(name, cx + dx * (R + 18), cy + dy * (R + 14));
+        }
+        // Start state (ring), after one H (solid), after a second H (small dot inside the ring).
+        const at = (s: typeof v.before): [number, number] => { const [x, z] = point(s); return [cx + x * R, cy - z * R]; };
+        const [bx, by] = at(v.before), [ax, ay] = at(v.after), [tx, ty] = at(v.twice);
+        if (Math.hypot(ax - bx, ay - by) > 12) line(ctx, bx, by, ax, ay, 5, 0.9, col.ink2); // the flip
+        line(ctx, cx, cy, bx, by, 4.5, 1, col.ink2);
+        line(ctx, cx, cy, ax, ay, 4.5, 1.3, col.signal);
+        ctx.strokeStyle = col.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(bx, by, 7.5, 0, TAU); ctx.stroke();
+        dot(ctx, ax, ay, 5.5, col.signal);
+        dot(ctx, tx, ty, 2.6, col.ink);
+      }
+
+      function drawPile(cell: Cell, p0: number, col: Colors) {
+        const p = piles[cell], ctx = p.ctx!, half = p.w / 2, base = p.h - 4;
+        ctx.clearRect(0, 0, p.w, p.h);
+        const gr = pileGrid(Math.min(half - 14, 120), base - 6, SHOTS); // narrow piles, so heights compare
+        if (!gr.pitch) return;
+        const rad = Math.max(0.8, gr.pitch * 0.36), wide = gr.cols * gr.pitch;
+        const z = zeros(us[cell], p0, shown);
+        // Left pile: copies that gave the first answer. Right pile: the second. The dashed line is the Born rule prediction.
+        [{ k: z, pk: p0, color: col.signal }, { k: shown - z, pk: 1 - p0, color: col.ink2 }].forEach(({ k, pk, color }, i) => {
+          const x0 = half * (i + 0.5) - wide / 2;
+          for (let j = 0; j < k; j++) dot(ctx, x0 + ((j % gr.cols) + 0.5) * gr.pitch, base - (Math.floor(j / gr.cols) + 0.5) * gr.pitch, rad, color);
+          ctx.fillStyle = col.rule; ctx.fillRect(x0, base + 1, wide, 1);
+          const y = base - ((SHOTS * pk) / gr.cols) * gr.pitch;
+          ctx.strokeStyle = col.ink; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+          ctx.beginPath(); ctx.moveTo(x0 - 4, y); ctx.lineTo(x0 + wide + 4, y); ctx.stroke(); ctx.setLineDash([]);
+        });
+      }
+
+      const counts = () => {
+        const v = view(t);
+        return Object.fromEntries(CELLS.map((k) => [k, zeros(us[k], v.odds[k][0])])) as Record<Cell, number>;
+      };
+
+      function update() {
+        const v = view(t);
+        for (const k of CELLS) {
+          const z = zeros(us[k], v.odds[k][0], shown);
+          $(`[data-n1="${k}"]`).textContent = String(z);
+          $(`[data-n2="${k}"]`).textContent = String(shown - z);
+        }
+        if (!circle.ctx) return;
+        const col = palette();
+        drawCircle(col, v);
+        for (const k of CELLS) drawPile(k, v.odds[k][0], col);
+      }
+
+      // The readout speaks when a batch is complete and the reader has done something: on release of the slider, a preset or a new batch.
+      const speak = () => { if (want && shown >= SHOTS) say.textContent = readout(t, counts()); };
+
+      function step(now: number) {
+        raf = 0;
+        credit += Math.max(0, Math.min(64, now - last)) / REVEAL; last = now;
+        const k = Math.floor(credit); credit -= k;
+        shown = Math.min(SHOTS, shown + k);
+        update();
+        if (shown < SHOTS) { if (seen) raf = requestAnimationFrame(step); }
+        else speak();
+      }
+      const kick = () => { if (!raf && seen && shown < SHOTS) { last = performance.now(); raf = requestAnimationFrame(step); } };
+
+      const set = (v: number) => {
+        t = v;
+        input.value = String(v);
+        output.textContent = `${v}°`;
+        input.setAttribute('aria-valuetext', sliderText(v));
+        presets.forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.set! === v)));
+        update();
+      };
+
+      input.addEventListener('input', () => set(+input.value));
+      input.addEventListener('change', () => { want = true; speak(); });
+      presets.forEach((b) => b.addEventListener('click', () => { set(+b.dataset.set!); want = true; speak(); }));
+      $('[data-new]').addEventListener('click', () => {
+        us = freshAll(); want = true;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        shown = still ? SHOTS : 0; credit = 0;
+        update();
+        if (still) speak(); else kick();
+      });
+
+      const size = () => { panes.forEach((p) => { const f = fit(p.c); p.ctx = f.ctx; p.w = f.w; p.h = f.h; }); update(); };
+      onResize(this, size);
+      onTheme(() => update());
+      onSeen(this, (v) => { seen = v; if (v) kick(); });
+      document.fonts?.ready.then(() => update());
+      size();
+      set(0);
+    }
+  }
+  customElements.define('qce-hadamard-mirror', HadamardMirror);
+</script>
+
+<style>
+  .top { display: grid; gap: var(--s4); align-items: start }
+  .pic { display: grid; gap: var(--s2); justify-items: center; min-width: 0 }
+  .pic canvas { width: 100%; max-width: 20rem; aspect-ratio: 1; height: auto }
+  .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s1) var(--s3); font-size: .875rem; color: var(--ink-2) }
+  .mk { display: inline-block; width: .875rem; height: .875rem; margin-right: .4rem; border-radius: 50%; vertical-align: -.1rem; box-sizing: border-box }
+  .mk.ring { border: 2px solid var(--ink) }
+  .mk.solid { background: var(--signal) }
+  .mk.small { width: .45rem; height: .45rem; margin: 0 .55rem 0 .2rem; background: var(--ink); vertical-align: .05rem }
+  .mk.mirror { width: 1.4rem; height: 0; border-radius: 0; border-top: 3px dotted var(--ink-2); vertical-align: .2rem }
+
+  .ctl { display: grid; gap: var(--s4); align-content: start; min-width: 0 }
+  .dial { display: grid; gap: var(--s1); min-width: 0 }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2) }
+  .row output { flex: none; font-size: 1.25rem }
+  .presets { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .presets button { min-width: 3.5rem; min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer }
+  .presets button:hover { border-color: var(--ink) }
+  .presets button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  [data-new] { justify-self: start }
+
+  .meters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2) var(--s3); max-width: 36rem }
+  .row-head { grid-column: 1 / -1; margin-top: var(--s2) }
+  .cell { display: grid; gap: var(--s2); align-content: start; min-width: 0 }
+  .cell figcaption { font-size: .875rem; line-height: 1.35; font-weight: 600; color: var(--ink) }
+  .cell canvas { height: 8.5rem }
+  .axis { display: grid; grid-template-columns: 1fr 1fr; text-align: center; font: 500 .9375rem var(--mono); color: var(--ink-2) }
+  .axis b { color: var(--ink) }
+  .key { max-width: var(--read); font-size: .875rem; color: var(--ink-2) }
+
+  @media (min-width: 52rem) {
+    .top { grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); gap: var(--s5) }
+    .cell canvas { height: 10rem }
+  }
+</style>
