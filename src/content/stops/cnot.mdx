@@ -1,6 +1,6 @@
 ---
-description: "CNOT flips the target qubit in the branch where the control qubit is |1⟩. It preserves coherent superpositions."
-answer: "CNOT flips the target qubit in the branch where the control qubit is |1⟩. It preserves coherent superpositions."
+description: "Prepare two qubits, apply a controlled flip, and compare separate and entangled outputs."
+answer: "CNOT flips the target qubit when the control is |1⟩, without measuring the control. On some product inputs it creates entanglement."
 myth:
   claim: "CNOT measures its control or copies an arbitrary quantum state."
   truth: "It is unitary. With a control superposition and a target in 0 it can create entanglement, not independent copies."
@@ -12,19 +12,25 @@ import { lab } from '../../lib/sims/cnot.ts';
 
 <Depth level="kid">
 
-The first bit is a switch: when it is 1, the second bit flips. In a quantum circuit both paths can happen coherently until measurement.
+Imagine two switches. The first tells a machine whether to flip the second. If the first is off, nothing changes. If the first is on, the second flips. The first switch itself is not read or changed by the classical rule. Running it twice returns both switches.
+
+Here is where the picture breaks: a quantum switch can have amplitudes for more than one possible result. Started with an even wave for the first and the second in 0, the machine links the pair. When measured in the 0/1 test they always agree, but either pair can come out. They are linked as one quantum state, not two hidden switches.
 
 </Depth>
 
 <Depth level="student">
 
-For basis inputs, 00 and 01 stay unchanged, while 10 and 11 exchange. With |+⟩ on the control and |0⟩ on the target the output is the Bell state, not two separate |+⟩ states.
+CNOT is a two-qubit gate with an ordered control and target. For input 00 or 01 it does nothing; 10 becomes 11 and 11 becomes 10. The control is not measured. Apply the same gate twice and it undoes itself.
+
+Prepare the control in |+⟩ and the target in |0⟩. CNOT gives a Bell state, (|00⟩ + |11⟩)/√2, which is [entangled](/learn/entanglement/). Its equal amplitudes for 00 and 11 give either result with equal chance. The two qubits no longer have separate pure states. If the target instead starts in |+⟩, nothing changes: entanglement depends on the input, not merely the gate.
 
 </Depth>
 
 <Depth level="engineer">
 
-The map is $|a,b\rangle\mapsto|a,a\oplus b\rangle$. By linearity, $(|0\rangle+|1\rangle)|0\rangle/\sqrt2$ becomes $(|00\rangle+|11\rangle)/\sqrt2$. The gate is its own inverse. Control and target are ordered: swapping them generally changes the matrix. With target $|+\rangle$ the gate instead acts trivially on that product state.
+For basis states $|a,b\rangle$, CNOT maps $|a,b\rangle\mapsto|a,a\oplus b\rangle$. It is a unitary permutation and $CX^2=I$. Reversing control and target changes the matrix.
+
+By linearity, starting with $|+\rangle|0\rangle$ gives $(|00\rangle+|11\rangle)/\sqrt2$, an entangled Bell state: each reduced state is $I/2$. In contrast $|+\rangle|+\rangle$ is unchanged since X has eigenvalue +1 on the target. A [multi-qubit state](/learn/multi-qubit/) cannot in general be expressed as a product. The [Pauli X gate](/learn/pauli/) is applied coherently in the control-one branch. The gate does not copy arbitrary unknown qubits.
 
 </Depth>
 
