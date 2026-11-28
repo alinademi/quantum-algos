@@ -22,3 +22,4 @@ test('signed stabilizer generators and GF(2) expectation solver agree with dense
  }
  assert.equal(expect(evolveGenerators(2,prep(2,'Signed example')),'ZI'),-1);
 });
+test('generator count grows linearly while dense amplitudes double',()=>{for(let n=2;n<=6;n++){const s=last('stabilizer-states',{n:String(n)});assert.equal(s.state!.length,2**n);assert.equal(value(s,'Independent generators'),n);assert.equal(value(s,'Dense amplitudes'),2**n);for(const row of s.rows!.slice(0,n))assert.equal(row.value,'Signed expectation: 1.000000');}});

@@ -24,10 +24,10 @@ A pure stabilizer state is specified by n independent commuting signed [Pauli st
 
 <Depth level="engineer">
 
-A stabilizer group S is an abelian Pauli subgroup not containing −I. With n independent generators it has size $2^n$ and defines a one-dimensional common +1 eigenspace. $|\psi\rangle\langle\psi|=2^{-n}\sum_{g\in S}g$. If a Clifford U is applied, generators update as $g\mapsto UgU^\dagger$. The signs matter: −Z stabilizes |1⟩, whereas +Z does not.
+A stabilizer group S is an abelian Pauli subgroup not containing −I. With n independent generators it has size $2^n$ and defines a one-dimensional common +1 eigenspace. $|\psi\rangle\langle\psi|=2^{-n}\sum_{g\in S}g$. If a Clifford U is applied, generators update as $g\mapsto UgU^\dagger$. The signs matter: −Z stabilizes |1⟩, whereas +Z does not. Store each generator using two binary coordinates per qubit for its X and Z factors, plus a sign. The n-generator description takes $O(n^2)$ bits rather than storing $2^n$ amplitudes. Independence means no nonempty product of generators is identity.
 
 </Depth>
 
-<Lab title="Track stabilizer generators" intro="Prepare a product, GHZ or signed state. Inspect the generators and their signed expectation values at each step.">
+<Lab title="Track stabilizer generators" intro="Choose the qubit count and prepare a product, GHZ or signed state. Inspect the generators and their signed expectation values at each step.">
   <GateLab id="stabilizer-states" lab={lab} />
 </Lab>
