@@ -137,6 +137,8 @@ export const rate = (landed: number): number => Math.min(300, 6 + 3 * landed);
 
 // ---- Words the tool shows
 
+/** What story A assumes, said on screen: other collapse models need not match it. */
+export const COLLAPSE_SCOPE = 'An ideal, instant collapse at the pointer. Other collapse models need not match this.';
 export const STORY_NAME: Record<Story, string> = { collapse: 'Story A: collapse at the pointer', unitary: 'Story B: no collapse until the end' };
 const SHORT: Record<Story, string> = { collapse: 'A', unitary: 'B' };
 

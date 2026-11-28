@@ -1,7 +1,7 @@
 ---
 // Two stories, one toy measurement (a qubit, a one-qubit pointer, n air molecules): each dot is one simulated run drawn with
 // the Born rule from the odds that story predicts, so the reader sees which tests could tell "collapse" from "only gates" apart.
-import { SHOTS, AIR, PER, TESTS, TEST_NAME, STORY_NAME, testSteps, chanceTexts, gapText, overlapText, report, valueText } from '../../lib/sims/measurement-problem.ts';
+import { SHOTS, AIR, PER, TESTS, TEST_NAME, STORY_NAME, COLLAPSE_SCOPE, testSteps, chanceTexts, gapText, overlapText, report, valueText } from '../../lib/sims/measurement-problem.ts';
 const uid = 'um-' + Math.random().toString(36).slice(2, 8);
 const n0 = AIR.start, ov = overlapText(n0), [a0, b0] = chanceTexts('read', n0);
 ---
@@ -28,7 +28,7 @@ const n0 = AIR.start, ov = overlapText(n0), [a0, b0] = chanceTexts('read', n0);
   </fieldset>
 
   <dl class="stories">
-    <div><dt>{STORY_NAME.collapse}</dt><dd>The pointer's record is a collapse: the state jumps to one reading, with Born odds.</dd></div>
+    <div><dt>{STORY_NAME.collapse}</dt><dd>The pointer's record is a collapse: the state jumps to one reading, with Born odds. {COLLAPSE_SCOPE}</dd></div>
     <div><dt>{STORY_NAME.unitary}</dt><dd>Only gates act until the final test. Its measurement is the first time the Born rule is used.</dd></div>
   </dl>
 

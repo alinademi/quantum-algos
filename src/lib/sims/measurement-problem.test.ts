@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
 import {
-  SHOTS, PER, AIR, STORIES, TESTS, STORY_NAME, TEST_NAME, PAD, WIDE,
+  SHOTS, PER, AIR, STORIES, TESTS, STORY_NAME, COLLAPSE_SCOPE, TEST_NAME, PAD, WIDE,
   turn, overlap, start, record, bump, testGates, project, branches, final, marginal, reduced, rhoSA,
   chances, chanceTexts, gap, shot, rate, rowLabel, sig3, overlapText, percent, gapText, setup, testSteps, predict, verdict, report, valueText,
   dots, layout, cell, tickX, type Story,
@@ -309,6 +309,8 @@ test('verdicts: reading cannot tell; the undo gap shrinks with the air; undoing 
 test('names and labels: two stories, three tests, row labels per test', () => {
   assert.equal(STORIES.length, 2); assert.equal(TESTS.length, 3);
   assert.ok(STORY_NAME.collapse.startsWith('Story A') && STORY_NAME.unitary.startsWith('Story B'));
+  // Story A is one ideal model of collapse, and the tool says so.
+  assert.match(COLLAPSE_SCOPE, /ideal, instant collapse at the pointer/); assert.match(COLLAPSE_SCOPE, /Other collapse models need not match/);
   for (const t of TESTS) assert.ok(TEST_NAME[t].length > 0);
   assert.equal(rowLabel('read', 1), 'reads 1'); assert.equal(rowLabel('undo', 0), 'gives 0');
 });
