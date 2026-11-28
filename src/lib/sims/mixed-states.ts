@@ -250,7 +250,7 @@ export function verdict(p: number): string {
   }
   const blind = TESTS.filter((t) => !vsA.includes(t) && !vsB.includes(t));
   if (blind.length) out.push(`The ${blind.map((t) => TEST_NAME[t].replace(' test', '')).join(' and ')} test${blind.length > 1 ? 's' : ''} cannot.`);
-  if (alike('coin01', 'sign', q)) out.push('The two coins give the same odds in all three tests, and for one qubit these three fix the odds of every test: no measurement tells the two coins apart.');
+  if (alike('coin01', 'sign', q)) out.push('The two coins give the same odds in all three tests, and for one qubit these three fix the odds of every test: no measurement on the qubits tells the two coins apart, when each qubit has its own coin flip.');
   return out.join(' ');
 }
 

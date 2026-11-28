@@ -1,9 +1,9 @@
 ---
 description: "A mixed state is plain odds over quantum states. Tell a mix from a superposition, and meet two mixes no test can tell apart. Try it live."
-answer: "A mixed state is plain odds over quantum states, like a coin that picks |0⟩ or |1⟩ for a qubit. Unlike a superposition, its picks never interfere with each other, and two different mixes can give the same odds in every measurement."
+answer: "A mixed state is a state that is not one pure state. One way to make it is plain odds over quantum states, like a coin that picks |0⟩ or |1⟩ for a qubit. Unlike a superposition, the picks never interfere, and different recipes can give the same odds in every measurement."
 myth:
   claim: "If two batches of qubits are made in different ways, some test can tell them apart."
-  truth: "Not always. A fair coin that picks |0⟩ or |1⟩ and a fair coin that picks |+⟩ or |−⟩ give the same odds in every test. Only a record of the coin flips, checked against the results, tells the batches apart."
+  truth: "Not always. If each qubit gets its own coin flip, a fair coin that picks |0⟩ or |1⟩ and a fair coin that picks |+⟩ or |−⟩ give the same odds in every test. Only a record of the coin flips, checked against the results, tells the batches apart."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -13,37 +13,37 @@ import ThreeRecipes from '../../components/tools/ThreeRecipes.astro';
 
 Three ways to make a qubit.
 
-Way one: start as 0, then a Hadamard gate. Now 0 and 1 have equal amplitudes, so a measurement gives either with equal chance. Way two: flip a coin, and set the qubit to 0 or 1. Measure it: 0 or 1, half and half again.
+Way one: start as 0, then a Hadamard gate. Now 0 and 1 have equal amplitudes, so a measurement gives either with equal chance. Way two: flip a coin for each qubit, and set it to 0 or 1. Measure it: 0 or 1, half and half again.
 
 Now add a Hadamard gate just before you measure. Way one gives 0 every time: the two parts that lead to 1 cancel. Way two still gives 0 or 1 at random. It is a mix: plain odds over states, and odds never cancel.
 
-Way three: flip a coin. Heads, make way one's qubit. Tails, make it with a minus sign on the 1 part. No test on the qubits tells ways two and three apart. Only a record of the coin flips, checked against the results, can.
+Way three: flip a new coin for each qubit. Heads, make way one's qubit. Tails, make it with a minus sign on the 1 part. No test on the qubits tells ways two and three apart. Only a record of the coin flips, checked against the results, can.
 
-One qubit of a Bell pair, an entangled pair, tested on its own, acts like way two.
+One qubit of a Bell pair, an entangled pair, tested on its own, acts like way two, though no coin was flipped.
 
 </Depth>
 
 <Depth level="student">
 
-A mix is plain odds over states: a coin picks the state, and nobody tells you which. A superposition is one state, with an amplitude for each result.
+A mixed state is not one pure state. A common kind is plain odds over states: a coin picks the state, and nobody tells you which. A superposition is one pure state, with an amplitude for each result.
 
 Start as 0 and apply a Hadamard gate. This |+⟩ has equal amplitudes for 0 and 1, so a measurement gives either with equal chance. A fair coin that picks |0⟩ or |1⟩ also gives 50/50. Now put a Hadamard gate before the measurement. |+⟩ gives 0 every time: the two contributions to the amplitude for 1 cancel. Each coin pick gives 50/50, so the mix still does.
 
-Different mixes can match exactly. A fair coin over |+⟩ and |−⟩ gives 50/50 when measured. With a Hadamard gate first, |+⟩ gives 0 and |−⟩ gives 1: 50/50 again. They match in every other test too: no measurement tells them apart.
+Different mixes can match exactly, if each qubit gets its own coin flip. A fair coin over |+⟩ and |−⟩ gives 50/50 when measured. With a Hadamard gate first, |+⟩ gives 0 and |−⟩ gives 1: 50/50 again. They match in every other test too: no measurement tells them apart.
 
-One qubit of a Bell pair, tested on its own, gives these same odds.
+One qubit of a Bell pair, tested on its own, gives these same odds, though no coin picked its state.
 
 </Depth>
 
 <Depth level="engineer">
 
-A mixed state is an ensemble $\{(p_i, |\psi_i\rangle)\}$: the pure state $|\psi_i\rangle$ with probability $p_i$. The $|\psi_i\rangle$ need not be orthogonal. A measurement in the basis $\{|b_k\rangle\}$ gives
+A mixed state is a density operator $\rho \ge 0$, $\operatorname{tr}\rho = 1$, of rank above 1. It is not one ensemble. An ensemble $\{(p_i, |\psi_i\rangle)\}$, the pure state $|\psi_i\rangle$ with probability $p_i$, gives $\rho = \sum_i p_i |\psi_i\rangle\langle\psi_i|$, and many ensembles give the same $\rho$. The $|\psi_i\rangle$ need not be orthogonal. A measurement in the basis $\{|b_k\rangle\}$ gives
 
 $$
 \Pr(k) = \sum_i p_i\,|\langle b_k|\psi_i\rangle|^2,
 $$
 
-which is $\langle b_k|\rho|b_k\rangle$ for $\rho = \sum_i p_i |\psi_i\rangle\langle\psi_i|$. The $p_i$ weight probabilities, not amplitudes, so different $|\psi_i\rangle$ never interfere. A gate maps $\rho$ to $U\rho U^\dagger$, so every statistic depends on the ensemble only through its [density matrix](/learn/density-matrix/) $\rho$.
+which is $\langle b_k|\rho|b_k\rangle$. The $p_i$ weight probabilities, not amplitudes, so different $|\psi_i\rangle$ never interfere. A gate maps $\rho$ to $U\rho U^\dagger$, so every statistic of one system depends on the ensemble only through its [density matrix](/learn/density-matrix/) $\rho$. For $N$ qubits each made with its own independent draw, the joint state is $\rho^{\otimes N}$, so the same holds for any joint test. One shared draw for all $N$ is a different joint state: a shared coin over $|0\rangle$ and $|1\rangle$ makes all $N$ results agree in the 0/1 test, which independent coins do not.
 
 For a qubit, $\rho = \tfrac12(I + xX + yY + zZ)$, where $(x, y, z) = \sum_i p_i \vec r_i$ is the average [Bloch vector](/learn/bloch/). The 0/1, +/− and +i/−i tests (measure; $H$, then measure; $S^\dagger$, then $H$, then measure) give $\Pr(0) = \tfrac12(1+z)$, $\tfrac12(1+x)$ and $\tfrac12(1+y)$. These three fix $\rho$, and so every other test.
 
@@ -55,7 +55,7 @@ $$
 
 so no measurement tells them apart. The pure state $|\psi_+\rangle$ adds the off-diagonal entries $\sqrt{p(1-p)}$, its coherence. The 0/1 test misses them; the +/− test gives $\Pr({+}) = \tfrac12 + \sqrt{p(1-p)}$ against $\tfrac12$.
 
-At $p = \tfrac12$ both mixes are $I/2$. So is either qubit of a Bell pair, tested on its own ([partial trace](/learn/partial-trace/)), though no coin picked its state.
+At $p = \tfrac12$ both mixes are $I/2$. So is either qubit of a Bell pair, tested on its own ([partial trace](/learn/partial-trace/)), though no coin picked its state. A coin recipe is a proper mixture: a real choice was made and not recorded. The Bell qubit is an improper mixture: it is part of a pure pair. Both are the same $\rho$, and no test on that qubit alone tells them apart, so "the true ket is just unknown" is not justified in general.
 
 </Depth>
 

@@ -324,7 +324,7 @@ test('verdicts follow the odds', () => {
   const v = m.verdict(0.5);
   assert.match(v, /The \+\/− test \(a Hadamard gate, then a measurement\) tells \|\+⟩ from both coins: \+ comes up with chance 100% against 50%\./);
   assert.match(v, /The 0\/1 and \+i\/−i tests cannot\./);
-  assert.match(v, /no measurement tells the two coins apart/);
+  assert.match(v, /no measurement on the qubits tells the two coins apart, when each qubit has its own coin flip/);
   assert.match(m.verdict(0.25), /chance 93% against 50%/);
   assert.equal(m.verdict(0), 'At p = 0% all three recipes make |0⟩, so no test tells them apart.');
   assert.equal(m.verdict(1), 'At p = 100% all three recipes make |1⟩, so no test tells them apart.');
@@ -366,4 +366,14 @@ test('a record of the coin, checked against the results, tells the coin recipes 
   }
   assert.equal(match01, n); // the 0/1 coin's pick always shows in the 0/1 test
   assert.ok(Math.abs(matchSign / n - 0.5) < 0.04, `sign coin matched ${matchSign / n}`); // the sign coin's pick does not
+});
+
+test('half a Bell pair is I/2, as is a fair 0/1 coin: the same rho from a coin (proper mixture) and from a pure pair (improper), no coin needed', () => {
+  const coin: q.Matrix = [[q.c(0.5), q.c(0)], [q.c(0), q.c(0.5)]];
+  const bell: q.State = [q.c(S2), q.c(0), q.c(0), q.c(S2)];
+  const rho = [[q.c(0), q.c(0)], [q.c(0), q.c(0)]].map((row, a) => row.map((_, a2) => [0, 1].reduce((t, b) => q.add(t, q.mul(bell[2 * a + b], q.conj(bell[2 * a2 + b]))), q.c(0))));
+  closeMatrix(rho, coin);
+  // The pair itself is pure: purity 1, against 1/2 for the half.
+  close(q.abs2(q.inner(bell, bell)), 1);
+  close(rho.reduce((t, row) => t + row.reduce((u, x) => u + q.abs2(x), 0), 0), 0.5);
 });

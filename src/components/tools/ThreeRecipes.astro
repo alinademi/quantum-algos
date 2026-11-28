@@ -48,7 +48,7 @@ const PICKS = [25, 50, 75];
   <p class="key"><span class="k0">gave 0, + or +i</span><span class="k1">gave 1, − or −i</span></p>
 
   <p class="tool-readout" aria-live="polite">{readout(p, empty())}</p>
-  <p class="note">A simulation of ideal, noise-free qubits. Every shot makes a fresh qubit. In a coin recipe the coin picks a state first, with plain odds, and then the test's result is a Born rule draw for that state. The boxes show only results, never the coin's picks. Every amplitude here is real, so the +i/−i test gives 50/50 for all three recipes; complex amplitudes could change that. For one qubit, the odds in these three tests fix the odds of every other test. Changing p clears the boxes.</p>
+  <p class="note">A simulation of ideal, noise-free qubits. Every shot makes a fresh qubit, with its own coin flip in a coin recipe. In a coin recipe the coin picks a state first, with plain odds, and then the test's result is a Born rule draw for that state. The boxes show only results, never the coin's picks. Every amplitude here is real, so the +i/−i test gives 50/50 for all three recipes; complex amplitudes could change that. For one qubit, the odds in these three tests fix the odds of every other test. Changing p clears the boxes.</p>
 </qce-three-recipes>
 
 <script>
