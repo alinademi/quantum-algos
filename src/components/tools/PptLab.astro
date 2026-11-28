@@ -177,15 +177,15 @@ const bPicks = [[0, 'no gate: the Bell pair'], [90, ''], [180, 'the singlet']] a
           { name: 'ρ', vals: eigenvalues(r) },
           { name: 'ρ^Γ, B\'s half flipped', vals: pptEigenvalues(r) },
         ];
-        const lo = -0.5, hi = 1, padL = 12, padR = 12, xAt = (v: number) => padL + ((v - lo) / (hi - lo)) * (w - padL - padR);
+        const lo = -0.5, hi = 1, padL = 20, padR = 12, xAt = (v: number) => padL + ((v - lo) / (hi - lo)) * (w - padL - padR);
         ctx.clearRect(0, 0, w, h);
-        ctx.fillStyle = pal.paper; ctx.fillRect(xAt(lo), 0, xAt(0) - xAt(lo), h - 22);
+        ctx.fillStyle = pal.paper; ctx.fillRect(xAt(lo) - 10, 0, xAt(0) - xAt(lo) + 10, h - 22); // starts left of -0.5: a ring there stays inside
         ctx.strokeStyle = pal.ink2; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
         ctx.beginPath(); ctx.moveTo(xAt(0), 0); ctx.lineTo(xAt(0), h - 22); ctx.stroke(); ctx.setLineDash([]);
         ctx.fillStyle = pal.ink2; ctx.font = `500 12px ${mono}`; ctx.textBaseline = 'alphabetic';
         for (const v of [-0.5, 0, 0.5, 1]) {
-          ctx.textAlign = v === lo ? 'left' : v === hi ? 'right' : 'center';
-          ctx.fillText(String(v).replace('-', '−'), v === lo ? padL - 4 : v === hi ? w - padR + 4 : xAt(v), h - 4);
+          ctx.textAlign = v === hi ? 'right' : 'center';
+          ctx.fillText(String(v).replace('-', '−'), v === hi ? w - padR + 4 : xAt(v), h - 4);
         }
         const rad = 6, gap = 15;
         rows.forEach((row, k) => {
