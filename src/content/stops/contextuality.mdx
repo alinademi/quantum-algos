@@ -16,7 +16,7 @@ Now take two qubits and nine measurements, one per square, each giving +1 or −
 
 So the qubits cannot carry a grid of answers, ready before you ask. An answer set in advance would have to change with the row or column you measure it with.
 
-In a game, one friend gets a row and fills it so it multiplies to +1. The other gets a column and fills it so it multiplies to −1. No talking. They win if they agree on the square they share. Any plan made in advance loses at least 1 round in 9 on average; friends sharing two entangled pairs can win every round.
+In a game, one friend gets a row and fills it so it multiplies to +1. The other gets a column and fills it so it multiplies to −1. No talking. They win if they agree on the square they share. Any plan made in advance loses at least 1 round in 9 on average; with ideal qubits, friends sharing two entangled pairs win every round.
 </Depth>
 
 <Depth level="student">
@@ -44,7 +44,7 @@ Each $O_{rc}$ is Hermitian with $O_{rc}^2 = I$, so its eigenvalues are $\pm 1$. 
 
 Noncontextual values $v(O_{rc}) = \pm 1$ that obey the product rule $v(AB) = v(A)\,v(B)$ for commuting $A, B$ would make $\prod_{r,c} v(O_{rc})$ both $+1$ (by rows) and $-1$ (by columns). No such values exist: a state-independent Kochen-Specker proof in $\mathbb{C}^4$. Kochen and Specker's original used 117 yes-no observables (directions) in real 3D space, $\mathbb{R}^3$. Hidden-variable theories that match quantum theory must be contextual. Bohmian mechanics, for one, fixes only positions; other results depend on the whole measurement setup.
 
-The game adds distance, so Alice's value for cell $(x, y)$ cannot depend on $y$. Asked row $x$ and column $y$, they win if her answers $a$ multiply to $+1$, his answers $b$ to $-1$, and $a_y = b_x$. A plan is two sheets. If one breaks a rule, that line's three asks lose; if not, the sheets differ somewhere. Either way $P_\text{win} \le 8/9$, and shared randomness only mixes plans. Quantum players share two singlets $|\psi^-\rangle = (|01\rangle - |10\rangle)/\sqrt2$, each made from $|11\rangle$ by $H$ then CNOT; each player holds one qubit of each pair. As $\langle \psi^- | \sigma \otimes \sigma | \psi^- \rangle = -1$ for $\sigma = X, Y, Z$, the shared cell gives $\langle O_A O_B \rangle = (-1)^2 = 1$: they agree, and $P_\text{win} = 1$.
+The square needs only one system. The game is a two-party form with distance, where locality does the work of noncontextuality. Alice gets row $x$ and answers a whole row $a = (a_1, a_2, a_3)$; Bob gets column $y$ and answers $b = (b_1, b_2, b_3)$. Her $a$ cannot depend on his $y$, nor his $b$ on her $x$. They win if $a$ multiplies to $+1$, $b$ to $-1$, and $a_y = b_x$, the entries at their shared cell. A plan is two sheets. If one breaks a rule, that line's three asks lose; if not, the sheets differ somewhere. Either way $P_\text{win} \le 8/9$, and shared randomness only mixes plans. Quantum players share two singlets $|\psi^-\rangle = (|01\rangle - |10\rangle)/\sqrt2$, each made from $|11\rangle$ by $H$ then CNOT; each player holds one qubit of each pair. As $\langle \psi^- | \sigma \otimes \sigma | \psi^- \rangle = -1$ for $\sigma = X, Y, Z$, the shared cell gives $\langle O_A O_B \rangle = (-1)^2 = 1$: they agree, and ideal players have $P_\text{win} = 1$.
 </Depth>
 
 <Lab title="Play the magic square game" intro="Play rounds with a plan fixed in advance and with two entangled pairs, see where the losses land, then flip cells on the sheets and try to beat 8 in 9.">
