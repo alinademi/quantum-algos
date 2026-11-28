@@ -248,6 +248,13 @@ const options = STATES.map((s) => ({ id: s.id, label: `${s.name}: ${ebitText(ebi
   .field label { font-weight: 600 }
   select { width: 100%; min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--sans); cursor: pointer }
   select:hover { border-color: var(--ink) }
+  /* Where supported, the closed select wraps long labels instead of cutting them. */
+  @supports (appearance: base-select) {
+    select, select::picker(select) { appearance: base-select }
+    select { height: auto; padding: var(--s2) var(--s3); white-space: normal }
+    select::picker(select) { border: 1.5px solid var(--rule); background: var(--paper); color: var(--ink) }
+    select option { padding: var(--s2) var(--s3); white-space: normal }
+  }
   [aria-disabled="true"] { opacity: .45; cursor: not-allowed }
 
   figure { display: grid; gap: var(--s2); min-width: 0; margin: 0 }
