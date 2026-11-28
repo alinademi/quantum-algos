@@ -2,17 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
 import * as g from './gate-lab.ts';
-import { boolean, viaNand } from './classical-gates.ts';
 import { unitaryError } from './gates.ts';
-import { u, euler } from './single-qubit-unitary.ts';
-import { stderr } from './shots.ts';
-import { implementation } from './controlled-gates.ts';
-import { noScratch } from './multi-controlled.ts';
-import { fredkin } from './fredkin.ts';
 import { family } from './two-qubit-gates.ts';
-import { circuits } from './circuit-identities.ts';
 
-import { checkLabs, close, state, matrix, phase } from './gate-lab-checks.ts';
+import { checkLabs,close,state,matrix } from './gate-lab-checks.ts';
 const {run,last}=await checkLabs(['two-qubit-gates']);
 test('two-qubit families: unitary, exchange phases, fSim limits, XX interaction, square-root SWAP and ECR',()=>{
  for(const n of ['iSWAP','√SWAP','RXX','RZZ','MS (XX convention)','fSim','ECR'])close(unitaryError(family(n,.31,.73)),0);
@@ -25,3 +18,5 @@ test('two-qubit families: unitary, exchange phases, fSim limits, XX interaction,
 });
 test('MS convention equals XX and RZZ entangles ++',()=>{matrix(family('MS (XX convention)',.8,0),family('RXX',.8,0));const [a,b,c,d]=q.matVec(family('RZZ',Math.PI/2,0),g.product('+','+'));close(2*q.abs(q.sub(q.mul(a,d),q.mul(b,c))),1);});
 test('ECR is echoed opposite ZX rotations with an X echo on q0',()=>{const zx=q.kron(q.Z,q.X);const rot=(t:number)=>g.eye(4).map((r,i)=>r.map((z,j)=>q.add(q.scale(z,Math.cos(t/2)),q.mul(q.c(0,-Math.sin(t/2)),zx[i][j]))));const ecr=q.matMul(rot(-Math.PI/4),q.matMul(q.kron(q.X,q.I),rot(Math.PI/4)));matrix(family('ECR',0,0),ecr);});
+
+test('lab repeats √SWAP to exchange the states, or inverts it to restore them',()=>{state(last('two-qubit-gates',{name:'√SWAP',start:'01',second:'Same gate'}).state!,q.basis(2,2));state(last('two-qubit-gates',{name:'√SWAP',start:'01',second:'Inverse'}).state!,q.basis(2,1));});
