@@ -82,7 +82,7 @@ const sliders = [
 
   /** The complex plane with a unit ring and dotted axes. Returns center and radius. */
   function plane(p: Pane, col: Colors) {
-    const ctx = p.ctx!, cx = p.w / 2, cy = p.h / 2, R = Math.min(p.w, p.h) / 2 - 5;
+    const ctx = p.ctx!, cx = p.w / 2, cy = p.h / 2, R = Math.min(p.w, p.h) / 2 - 8;
     ctx.clearRect(0, 0, p.w, p.h);
     line(ctx, cx - R, cy, cx + R, cy, 6, 0.9, col.rule);
     line(ctx, cx, cy - R, cx, cy + R, 6, 0.9, col.rule);
