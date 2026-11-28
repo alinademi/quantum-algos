@@ -1,9 +1,9 @@
 ---
 description: "n qubits need 2ⁿ amplitudes, one per bit string. Learn to write their state, and which bit belongs to which qubit."
-answer: "The state of n qubits is a list of 2ⁿ amplitudes, one for each string of n bits: 00, 01, 10 and 11 for two qubits. Measuring all of them gives one string, with probability |amplitude|²."
+answer: "A pure state of n qubits is a list of 2ⁿ amplitudes, one for each string of n bits: 00, 01, 10 and 11 for two qubits. Measuring all of them in the standard way gives one string, with probability |amplitude|²."
 myth:
   claim: "50 qubits hold 2⁵⁰ numbers, so a quantum computer reads them all at once."
-  truth: "Writing the state down takes 2⁵⁰ amplitudes, but measuring the 50 qubits gives just one string of 50 bits. The amplitudes are not read out; they set the odds."
+  truth: "Writing down a general 50-qubit state takes 2⁵⁰ amplitudes, but measuring the 50 qubits gives just one string of 50 bits. The amplitudes are not read out; they set the odds."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -12,7 +12,7 @@ import QubitRegister from '../../components/tools/QubitRegister.astro';
 <Depth level="kid">
 Three coins can land in 8 patterns, from heads-heads-heads to tails-tails-tails. Add a fourth coin and there are 16. Each new coin doubles the count.
 
-Qubits have patterns too: 000, 001, 010 and so on, up to 111 for three qubits. To describe three qubits, you need 8 numbers called amplitudes, one for each pattern. Measure the qubits and you get just one pattern. The amplitudes set the odds.
+Qubits have patterns too: 000, 001, 010 and so on, up to 111 for three qubits. In general, to describe three qubits you need 8 numbers called amplitudes, one for each pattern. Measure the qubits and you get just one pattern. The amplitudes set the odds.
 
 People must also agree which qubit is written first. Think of a date: in some countries 3/4 means March 4, in others April 3. This site writes qubit 0 on the left. Qiskit, a kit for programming quantum computers, writes it on the right.
 
@@ -20,7 +20,7 @@ The coins are only a picture. Three coins are always in one of the 8 patterns. T
 </Depth>
 
 <Depth level="student">
-One qubit needs 2 amplitudes, for 0 and for 1. Two qubits need 4, for 00, 01, 10 and 11. Each new qubit doubles the count: n qubits need 2ⁿ amplitudes. Thirty qubits need over a billion.
+One qubit needs 2 amplitudes, for 0 and for 1. Two qubits need 4, for 00, 01, 10 and 11. Each new qubit doubles the count: a general state of n qubits needs 2ⁿ amplitudes. A general 30-qubit state needs over a billion.
 
 Measuring every qubit gives one string, with chance |amplitude|². The chances add up to 1. Example: two qubits, each started as 0, then a Hadamard gate. All four amplitudes are 1/2, so each string has a 1 in 4 chance.
 
@@ -28,13 +28,13 @@ Two rules fix the order. First, list the strings in counting order. A string rea
 </Depth>
 
 <Depth level="engineer">
-An $n$-qubit state is a unit vector with $2^n$ complex entries, one per bit string:
+A pure $n$-qubit state is a unit vector with $2^n$ complex entries, one per bit string (a mixed state needs a density matrix instead):
 
 $$
 |\psi\rangle = \sum_{x \in \{0,1\}^n} \alpha_x |x\rangle
 $$
 
-with $\sum_x |\alpha_x|^2 = 1$. Measuring every qubit gives the string $x$ with probability $|\alpha_x|^2$.
+with $\sum_x |\alpha_x|^2 = 1$. An ideal measurement of every qubit in the standard basis gives the string $x$ with probability $|\alpha_x|^2$.
 
 **Basis order.** The strings are listed alphabetically. So $|x\rangle$, with $x = x_0 x_1 \cdots x_{n-1}$ read left to right, is entry $\sum_{j=0}^{n-1} x_j\, 2^{\,n-1-j}$: the string read as a binary number.
 
@@ -46,7 +46,7 @@ $$
 \alpha_x = \prod_{k=0}^{n-1} \langle x_k | \phi_k \rangle.
 $$
 
-That takes only $2n$ amplitudes, 2 per qubit, fewer than $2^n$ once $n \ge 3$. A general state needs all $2^n$; the states that do not factor are [entangled](/learn/entanglement/).
+That takes only $2n$ amplitudes, 2 per qubit, fewer than $2^n$ once $n \ge 3$. A general pure state needs all $2^n$; pure states that do not factor are [entangled](/learn/entanglement/). Some special families, such as stabilizer states, also have compact descriptions.
 </Depth>
 
 <Lab title="Set the qubits, flip the order" intro="Set each qubit, then flip the bit order. See the same 100 shots move to new entries of the vector.">
