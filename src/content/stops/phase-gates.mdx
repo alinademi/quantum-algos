@@ -1,9 +1,9 @@
 ---
-description: "A phase gate changes the relative phase between |0⟩ and |1⟩ without changing their immediate Z-basis probabilities."
+description: "Change the phase of an amplitude without changing its 0/1 odds, then use H to reveal the difference."
 answer: "A phase gate changes the relative phase between |0⟩ and |1⟩ without changing their immediate Z-basis probabilities."
 myth:
   claim: "A phase gate does nothing because the measurement odds stay the same."
-  truth: "Relative phase can change the probabilities after a later mixing gate such as H."
+  truth: "Relative phase can change the probabilities after a later gate such as H."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -12,13 +12,17 @@ import { lab } from '../../lib/sims/phase-gates.ts';
 
 <Depth level="kid">
 
-Two waves can have equal strength but different timing. Shift one wave, then combine them: a different pattern appears.
+Picture two waves that have the same heights. One hits the shore a little later than the other. Each wave is just as strong as before. If you measure the height of each on its own, you cannot tell that you delayed it. Bring the two together and the timing changes how much they reinforce or cancel.
+
+A quantum phase operation does something similar to the two amplitudes of an ideal qubit. It can change their relative timing without changing the odds of reading 0 or 1. Choose a full, half or smaller turn and then combine the amplitudes. The picture breaks because the amplitudes are complex numbers, not separate physical waves.
 
 </Depth>
 
 <Depth level="student">
 
-Z gives a phase of 180 degrees, S gives 90 degrees and T gives 45 degrees to the |1⟩ amplitude. A subsequent H tests the relative phase. On |+⟩, Z then H gives 1 with certainty.
+Z, S and T change the [relative phase](/learn/phase/) of the 1 amplitude by 180°, 90° and 45°. The more general P(φ) changes it by any chosen angle φ. These gates do not change either amplitude's size, so the 0/1 measurement odds stay the same.
+
+Start in |+⟩, with equal amplitudes for 0 and 1. After Z the state is |−⟩, with the same 0/1 odds. Apply a [Hadamard](/learn/hadamard/) then measure: the original gives 0, whereas the phase-changed state gives 1. Other phase angles give intermediate odds. If the qubit started in 0 or 1 alone, the phase is only global and this test cannot see it.
 
 </Depth>
 
