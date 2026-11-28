@@ -6,7 +6,7 @@ export function ladder(p:string,theta:number):Op[]{
  const before=[...p].flatMap((x,i)=>x==='X'?[gate('H',i)]:x==='Y'?[gate('S†',i),gate('H',i)]:[]);
  const target=active.at(-1)!;
  const parity=active.slice(0,-1).map(i=>cx(i,target));
- return [...before,...parity,rotation('Z',2*theta*180/Math.PI,target),...inverse(parity),...inverse(before)];
+ return [...before,...parity,rotation('Z',+(2*theta*180/Math.PI).toFixed(9),target),...parity.slice().reverse(),...[...p].flatMap((x,i)=>x==='X'?[gate('H',i)]:x==='Y'?[gate('H',i),gate('S',i)]:[])];
 }
 export const lab:Lab={
  controls:[choice('p','Pauli string',['XYZ','ZZZ','XIX','YZI','IZX','ZII']),choice('theta','θ in exp(−iθP), degrees',['45','30','90','180','0'])],
