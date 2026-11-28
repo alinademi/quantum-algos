@@ -1,5 +1,5 @@
 ---
-description: "A universal quantum gate set can implement or approximate any unitary on a fixed number of qubits to arbitrary accuracy."
+description: "Build exact gates from rotations and CNOT, then explore how a fixed alphabet approximates a target."
 answer: "A universal quantum gate set can implement or approximate any unitary on a fixed number of qubits to arbitrary accuracy."
 myth:
   claim: "A finite universal gate set represents every unitary exactly with a finite word."
@@ -7,18 +7,19 @@ myth:
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
+import ApproximationSearch from '../../components/tools/ApproximationSearch.astro';
 import GateLab from '../../components/tools/GateLab.astro';
 import { lab } from '../../lib/sims/universal.ts';
 
 <Depth level="kid">
 
-A few types of building blocks can make many different machines. Quantum gates work similarly, although a finite set may need many small steps to approximate a desired turn.
+Imagine building machines from a box of parts. With parts that can turn by any angle and a part that connects two moving pieces, you can reproduce any allowed transformation of a finite collection of pieces. What if your box contains only a few fixed parts? You cannot reproduce every turn exactly, but a well-chosen box lets you get as close as you need. More parts give you more choices of approximations. This is the difference between exact and approximate universality. The picture breaks because the pieces are rules for changing quantum amplitudes, and some transformations need enormously many rules even when the box is universal.
 
 </Depth>
 
 <Depth level="student">
 
-Arbitrary single-qubit rotations together with CNOT are exactly universal for finite registers up to global phase. A finite set such as H, T and CNOT is approximately universal. The lab demonstrates exact examples, not a compiler for arbitrary gates.
+Arbitrary [one-qubit rotations](/learn/rotations/) plus [CNOT](/learn/cnot/) build any finite-qubit unitary up to global phase. For example H is a Y rotation after a Z half-turn, and CZ is H on the target before and after CNOT. A finite set like [H](/learn/hadamard/), T and CNOT is approximately universal: for any positive error tolerance it can approximate the target. It cannot exactly represent every possible gate because there are only countably many finite words. Try the approximation ladder below and compare the errors at different budgets. [Solovay-Kitaev](/learn/solovay-kitaev/) explains how a suitable alphabet reaches arbitrarily high precision with polylogarithmic length.
 
 </Depth>
 
@@ -26,8 +27,14 @@ Arbitrary single-qubit rotations together with CNOT are exactly universal for fi
 
 Single-qubit gates plus CNOT can synthesize any finite-dimensional qubit unitary up to global phase ([Barenco et al.](https://arxiv.org/abs/quant-ph/9503016)). H, T and CNOT generate a dense family up to global phase. One example is $R_Y(\pi/2)R_Z(\pi)=-iH$; another is CZ from conjugating CNOT by H on the target. Universality does not promise short circuits for every unitary.
 
+The ideas used here build on [Phase gates](/learn/phase-gates/).
+
 </Depth>
 
 <Lab title="Build gates from a small alphabet" intro="Choose a target and check the decomposition on all matrix entries, with the stated global phase.">
   <GateLab id="universal" lab={lab} />
+</Lab>
+
+<Lab title="Approximate with a finite alphabet" intro="Increase the gate budget and compare the best errors.">
+  <ApproximationSearch />
 </Lab>
