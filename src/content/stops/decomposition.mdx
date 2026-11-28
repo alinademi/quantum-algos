@@ -1,9 +1,9 @@
 ---
-description: "Gate decomposition expresses an operation as a product of smaller operations. Two-level rotations and diagonal phases give one constructive route."
+description: "Break a two-qubit matrix into two-level factors and see why generic exact synthesis grows exponentially."
 answer: "Gate decomposition expresses an operation as a product of smaller operations. Two-level rotations and diagonal phases give one constructive route."
 myth:
   claim: "Every n-qubit unitary has a short circuit of elementary gates."
-  truth: "A generic unitary has exponentially many independent parameters in n; a general decomposition can be exponentially large."
+  truth: "Almost every n-qubit unitary requires exponentially many exact one- and two-qubit gates by parameter counting."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -12,19 +12,19 @@ import { lab } from '../../lib/sims/decomposition.ts';
 
 <Depth level="kid">
 
-Take a complicated transformation and undo small parts until only easy phases are left. Reverse those small steps to reconstruct the original operation.
+Imagine a huge machine whose effect is described by a table. To take it apart, use small adjustments that change just two entries of the output description at a time, until the main table is simple. Reverse those adjustments and you have rebuilt the original machine. Each small adjustment can itself be broken into basic instructions. The longer the table, the more independent details it may have. Adding extra quantum wires makes the table grow rapidly, so almost every general transformation needs an enormous number of basic instructions. The picture breaks because the table contains complex amplitudes and the adjustments must preserve total probability and be reversible.
 
 </Depth>
 
 <Depth level="student">
 
-A two-level unitary acts only on two computational basis amplitudes. You can use such rotations to eliminate entries below a matrix diagonal, like Gaussian elimination but keeping the operation unitary. Reverse the eliminations to reconstruct the original.
+A two-level unitary changes just two computational-basis amplitudes. Use such rotations to eliminate entries below the matrix diagonal while preserving unitarity. The remaining unitary is diagonal; reverse the elimination to rebuild the target. Each two-level factor can be reduced to [multi-controlled gates](/learn/multi-controlled/) by moving the two affected basis labels until they differ in one bit. Those gates decompose into [one-qubit gates](/learn/single-qubit-unitary/) and CNOTs. This proves exact [universality](/learn/universal/), but not short circuits for every target: almost every n-qubit unitary needs exponentially many gates because it has exponentially many independent parameters. Try the two-qubit examples and check the reconstructed matrix.
 
 </Depth>
 
 <Depth level="engineer">
 
-Complex Givens rotations mix rows of a unitary U to produce an upper-triangular unitary, necessarily diagonal. If $G_m\cdots G_1 U=D$, then $U=G_1^\dagger\cdots G_m^\dagger D$. A dimension-d matrix needs at most $d(d-1)/2$ such eliminations. The lab decomposes 4 by 4 matrices into two-level factors; each factor is still abstract and may itself require elementary gates. A Gray-code path connects any two basis strings by single-bit changes. Conjugate the two-level operation by basis-state transpositions along that path until the two strings differ at just one bit, then use a multi-controlled one-qubit gate and undo the transpositions. This explains how two-level factors reduce to smaller gates.
+Complex Givens rotations mix rows of a unitary U to produce an upper-triangular unitary, necessarily diagonal. If $G_m\cdots G_1 U=D$, then $U=G_1^\dagger\cdots G_m^\dagger D$. A dimension-d matrix needs at most $d(d-1)/2$ such eliminations. The lab decomposes 4 by 4 matrices into two-level factors; each factor is still abstract and may itself require elementary gates. A Gray-code path connects any two basis strings by single-bit changes. Conjugate the two-level operation by basis-state transpositions along that path until the two strings differ at just one bit, then use a multi-controlled one-qubit gate and undo the transpositions. This explains how two-level factors reduce to smaller gates. Up to global phase an n-qubit unitary has $4^n-1$ real parameters. Each one- or two-qubit gate supplies at most 15. For fixed n and gate count the possible wire choices are finite, so almost every exact unitary needs at least $(4^n-1)/15$ gates.
 
 </Depth>
 
