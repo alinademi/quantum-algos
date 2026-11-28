@@ -20,13 +20,22 @@ export const lab:Lab={
   const schedule=layers(native,3),ref=fullMatrix(3,original.map(place));
   const describe=(ops:Op[])=>ops.map((o,i)=>row('Gate '+(i+1),o.name+' on '+o.wires.join(', ')));
   const initial=['0','0','0']; initial[placement[0]]=v.start;
-  const routedSteps=sequence(product(...initial),routed,'Wires shown here are physical sites. SWAPs restore the chosen layout.');
+  const sites=placement.map((_,site)=>placement.indexOf(site));
+  const initialMap=sites.map((q,site)=>'site '+site+' holds logical q'+q).join('; ');
+  const routedSteps=sequence(product(...initial),routed,'SWAPs restore the chosen layout.','physical sites |'+initial.join('⟩ |')+'⟩; '+initialMap);
+  routedSteps.forEach((step,i)=>{
+   const o=routed[i-1];
+   if(o?.name==='SWAP'){const [a,b]=o.wires;[sites[a],sites[b]]=[sites[b],sites[a]];}
+   if(o)step.title=o.name+' on '+o.wires.map(w=>'site '+w).join(', ');
+   step.note+=' Diagram labels q0, q1, q2 denote physical sites here, not logical qubits.';
+   step.rows=[...(step.rows??[]),...sites.map((q,site)=>row('Site '+site+' currently holds','Logical q'+q))];
+  });
   return [
     details('Logical circuit','Input program; distant wires may interact.',describe(original)),
-    details('Optimize','Cancel identical adjacent CNOTs if requested.',describe(logical)),
+    details('Optimize','Cancel identical adjacent CNOTs if requested.',[row('Canceled logical gates',original.length-logical.length),...describe(logical)]),
     details('Place logical qubits','Choose the initial map to physical sites before inserting any routing gates.',placement.map((site,q)=>row('Logical q'+q,'Site '+site))),
     ...routedSteps,
-    details('Translate','Expand SWAPs into CNOTs, then translate into the example RZ, SX, CZ basis.',describe(native)),
+    details('Translate','The listed wire numbers now denote physical sites. Expand SWAPs into CNOTs, then translate into the example RZ, SX, CZ basis.',describe(native)),
     details('Schedule and verify','Count ideal layers on disjoint wires. The global phase of the native decomposition is accounted for.',[
       row('Original logical gates',original.length),row('Inserted SWAPs',routed.filter(o=>o.name==='SWAP').length),row('Routed gates',routed.length),row('CNOTs after SWAP decomposition',cnots),row('Native operations',native.length),row('Native depth',Math.max(...schedule)),row('Routed matrix gap',matrixGap(ref,fullMatrix(3,routed))),row('Native phase-adjusted matrix gap',matrixGap(ref,fullMatrix(3,native).map(r=>r.map(x=>mul(expi(phase),x)))))])
   ];
