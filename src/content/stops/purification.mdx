@@ -1,0 +1,62 @@
+---
+description: "Plain odds for a qubit can be one half of a pair in one exact state. See how any two such pairs differ by a gate on the partner alone. Try it live."
+answer: "A purification of a mixed state is a pure state of a bigger system that leaves the mixed state when you ignore the extra part. Every mixed state has one, and any two purifications that use the same extra part differ by a unitary gate on that part alone."
+myth:
+  claim: "A mixed qubit is really in one exact state, we just do not know which."
+  truth: "Not always. A qubit can look mixed because it is entangled with a partner: the pair is in one exact state and the qubit alone has none. The same odds also fit many different lists of exact states, and which list shows up depends on how the partner is measured."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import HiddenPartner from '../../components/tools/HiddenPartner.astro';
+
+<Depth level="kid">
+
+Start two qubits as 0 and 0. Give the first a Hadamard gate, then flip the second if the first is 1. The pair is in one exact quantum state. Yet the first qubit alone gives plain 50/50 odds in every test.
+
+Any plain odds can be made this way, as one half of a pair in one exact state. The other half is the partner. Building the pair is called purification.
+
+Think of half a torn page: alone, random scraps; with the other half, clear writing. The picture breaks here: a torn page always had its writing. In quantum theory, the first qubit alone has no exact state of its own. Only the pair does.
+
+A gate on the partner changes the pair, not the first qubit's odds. Measure the partner and the first qubit is left in an exact state. Which one depends on that gate and on what the partner reads.
+
+</Depth>
+
+<Depth level="student">
+
+Say qubit A gives 0 with chance 80% and 1 with chance 20%, as plain odds: a [mixed state](/learn/mixed-states/).
+
+Build a pair. Start as 00. Turn the first qubit so its amplitudes are $\sqrt{0.8} \approx 0.89$ for 0 and $\sqrt{0.2} \approx 0.45$ for 1, then flip the second if the first is 1. The pair is $0.89\,|00\rangle + 0.45\,|11\rangle$, one exact state. Yet every test on A alone gives the same odds as that plain 80/20 coin over $|0\rangle$ and $|1\rangle$: 80/20 in the 0/1 test, 50/50 in the +/− test. This is a purification; the second qubit is the partner.
+
+A gate on the partner alone changes the pair, never A alone.
+
+Measure the partner and A is left in an exact state. With no gate: 0 (chance 80%) leaves A as $|0\rangle$, 1 (chance 20%) leaves $|1\rangle$. After a Hadamard gate on the partner, each result has chance 50%, and A is $0.89\,|0\rangle + 0.45\,|1\rangle$ or $0.89\,|0\rangle - 0.45\,|1\rangle$. (The tool's quarter turn gives the same two states, with the results swapped.) Different lists, same A alone.
+
+Any two pairs that purify the same A with the same kind of partner differ by a gate on the partner alone.
+
+</Depth>
+
+<Depth level="engineer">
+
+Let $\rho_A = \sum_i p_i |i\rangle\langle i|$, and let $R$ have orthonormal kets $|i\rangle_R$, at least $\operatorname{rank}\rho_A$ of them. Then
+
+$$
+|\Psi\rangle = \sum_i \sqrt{p_i}\,|i\rangle_A|i\rangle_R, \qquad \operatorname{tr}_R |\Psi\rangle\langle\Psi| = \rho_A,
+$$
+
+a purification of $\rho_A$. This is the [Schmidt decomposition](/learn/schmidt/) read backwards.
+
+If $|\Psi'\rangle$ also purifies $\rho_A$ on the same $R$, let $|v_i\rangle = \langle i|_A|\Psi'\rangle$. Then $\langle v_j|v_i\rangle = \langle i|\rho_A|j\rangle = p_i\delta_{ij}$, so $|v_i\rangle = \sqrt{p_i}\,|r_i\rangle$ with $|r_i\rangle$ orthonormal (for $p_i > 0$). A unitary $U$ with $U|i\rangle_R = |r_i\rangle$ (for $p_i > 0$, completed to a unitary on all of $R$) gives
+
+$$
+|\Psi'\rangle = (I \otimes U)|\Psi\rangle.
+$$
+
+A gate on $R$ cannot change $\rho_A$. Measure $R$ in an orthonormal basis $\{|b_k\rangle\}$: result $k$ has chance $q_k = \|\langle b_k|\Psi\rangle\|^2$ and leaves $A$ in $|\phi_k\rangle = \langle b_k|\Psi\rangle/\sqrt{q_k}$, and $\sum_k q_k |\phi_k\rangle\langle\phi_k| = \rho_A$. Conversely (Hughston, Jozsa and Wootters): from any purification, every ensemble of $\rho_A$, of any size, comes from some [general measurement](/learn/povm/) on $R$; a basis measurement is not always enough.
+
+Example: started as $\sqrt{0.8}\,|00\rangle + \sqrt{0.2}\,|11\rangle$, with no gate, $R$ reads 0 or 1 with chances 0.8 and 0.2, leaving $|0\rangle$ or $|1\rangle$. After $R_Y(90°)$ on $R$, each result has chance $\tfrac12$ and leaves $\sqrt{0.8}\,|0\rangle \mp \sqrt{0.2}\,|1\rangle$. Same $\rho_A$, so no test on $A$ alone tells the gates apart ([no-signaling](/learn/no-signaling/)).
+
+</Depth>
+
+<Lab title="Turn the partner, keep A the same" intro="Turn the gate on the partner and watch the pair change while A alone stays put. Then measure many pairs: A's odds stay the same at every turn, while the partner's odds change.">
+  <HiddenPartner />
+</Lab>

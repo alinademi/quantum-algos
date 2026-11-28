@@ -1,0 +1,227 @@
+---
+// A qubit A with plain odds of 0 and 1 is half of a pure pair; a gate on the partner changes the pair but never A alone, and measuring the partner leaves A in one of two pure states that average back to A's own state. Every number comes from the exact two-qubit state, and every shot is a Born-rule draw from it.
+import { ODDS, TURN, PAIRS, fromPercent, turnRad, purify, turned, branches, reducedA, purity, describe, oddsValueText, turnValueText, stateText, rhoText, pairPurity, branchLine, fixed } from '../../lib/sims/purification.ts';
+const uid = 'hp-' + Math.random().toString(36).slice(2, 8);
+const l0 = fromPercent(ODDS.start), psi0 = turned(l0, turnRad(TURN.start)), [b0, b1] = branches(psi0);
+---
+<qce-hidden-partner class="tool">
+  <div class="cols">
+    <div class="stage">
+      <canvas aria-hidden="true"></canvas>
+      <p class="tally" data-tally>Press Measure to test {PAIRS} new pairs.</p>
+      <p class="key">The disc is a flat slice of the Bloch ball: |0⟩ at the top, |1⟩ at the bottom, |+⟩ and |−⟩ at the sides. The rim holds pure states; the center is the fully mixed qubit. The blue dot ρ is A alone, at height 2 × (chance of 0) − 1 on the vertical line. The two marks that are not blue are the states A is left in when the partner is measured: filled if the partner read 0, open if it read 1. The dotted line joins them and always passes through ρ. Under the disc, each column is one new pair: the partner read 0 (filled) or 1 (open), and A alone read 0 (filled) or 1 (open).</p>
+    </div>
+
+    <div class="tool-controls">
+      <div class="slider">
+        <div class="row"><label for={`${uid}-o`}>A alone: chance of 0</label><output for={`${uid}-o`} data-out="odds">{ODDS.start}%</output></div>
+        <input id={`${uid}-o`} name="odds" type="range" min={ODDS.min} max={ODDS.max} step={ODDS.step} value={ODDS.start} aria-valuetext={oddsValueText(ODDS.start)} aria-describedby={`${uid}-oh`} />
+        <p class="hint" id={`${uid}-oh`}>A has no superposition of 0 and 1 here, only odds. At 50% it is fully mixed; at 100% it is just |0⟩. The pair starts as √(chance of 0) |00⟩ + √(chance of 1) |11⟩.</p>
+      </div>
+
+      <div class="slider">
+        <div class="row"><label for={`${uid}-t`}>Gate on the partner: turn</label><output for={`${uid}-t`} data-out="turn">{TURN.start}°</output></div>
+        <input id={`${uid}-t`} name="turn" type="range" min={TURN.min} max={TURN.max} step={TURN.step} value={TURN.start} aria-valuetext={turnValueText(TURN.start)} aria-describedby={`${uid}-th`} />
+        <p class="hint" id={`${uid}-th`}>A real turn of the partner, and nothing done to A. Every turn gives another purification of the same A.</p>
+      </div>
+
+      <div class="presets" role="group" aria-label="Gates to try">
+        <button type="button" data-turn="0" class="btn btn-sm btn-line">No gate</button>
+        <button type="button" data-turn="90" class="btn btn-sm btn-line">Quarter turn, 90°</button>
+      </div>
+
+      <dl>
+        <div><dt class="label">The pair</dt><dd data-v="pair">{stateText(psi0)}</dd></div>
+        <div><dt class="label">A alone, <var>ρ</var></dt><dd data-v="rho">{rhoText(l0)}</dd></div>
+        <div><dt class="label">Purity of A alone</dt><dd data-v="pa">{fixed(purity(reducedA(psi0)))}</dd></div>
+        <div><dt class="label">Purity of the pair</dt><dd data-v="pp">{fixed(pairPurity(psi0))}</dd></div>
+        <div><dt class="label">Partner reads 0</dt><dd data-v="b0">{branchLine(b0)}</dd></div>
+        <div><dt class="label">Partner reads 1</dt><dd data-v="b1">{branchLine(b1)}</dd></div>
+      </dl>
+
+      <button type="button" class="btn btn-sm btn-line again">Measure {PAIRS} new pairs</button>
+    </div>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">{describe(ODDS.start, TURN.start)}</p>
+  <p class="note">A simulation of ideal, noise-free qubits. This tool keeps A's odds along 0/1 and turns the partner by real gates only, so every point is on one circle of the Bloch sphere: other gates on the partner, with phases, would also reach points off this slice. Numbers are rounded to two decimals. Each pair is measured once, A in the 0/1 test and the partner in 0/1 after the gate, with chances from the exact pair state and your browser's random numbers. A pair keeps its random draws when you move a slider, so A's row does not change when you turn the partner.</p>
+</qce-hidden-partner>
+
+<script>
+  import {
+    PAIRS, fromPercent, turnRad, turned, branches, reducedA, purity, shots, draws, tally, describe, batchText,
+    oddsValueText, turnValueText, stateText, rhoText, pairPurity, branchLine, fixed, rhoHeight, slice,
+    type Draw, type Shot,
+  } from '../../lib/sims/purification.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  const REVEAL = 700; // ms for a new batch to fill in
+
+  class HiddenPartner extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const canvas = $<HTMLCanvasElement>('canvas'), readout = $('.tool-readout'), tallyEl = $('[data-tally]');
+      const oddsIn = $<HTMLInputElement>('input[name="odds"]'), turnIn = $<HTMLInputElement>('input[name="turn"]');
+      const oddsOut = $('[data-out="odds"]'), turnOut = $('[data-out="turn"]');
+      const v = (k: string) => $(`[data-v="${k}"]`);
+      const presets = [...this.querySelectorAll<HTMLButtonElement>('[data-turn]')];
+      const still = reduceMotion();
+
+      let ctx: CanvasRenderingContext2D | null = null, w = 0, h = 0, pal = palette(), mono = token('--mono'), sans = token('--sans');
+      let odds = +oddsIn.value, deg = +turnIn.value, psi = turned(fromPercent(odds), turnRad(deg));
+      // One pair of random draws per column, kept while the sliders move, so shots flip instead of re-rolling.
+      let ds: Draw[] = draws(Math.random), made: Shot[] = shots(psi, ds);
+      let measured = false, shown = 0, seen = false, anim = 0, pending = 0;
+
+      function draw() {
+        if (!ctx || !w) return;
+        const g = ctx, R = Math.min(w / 2 - 34, 140), cx = w / 2, cy = R + 24, top = 2 * R + 56;
+        g.clearRect(0, 0, w, h);
+        const text = (s: string, x: number, y: number, align: CanvasTextAlign, color: string, font = `500 12px ${mono}`) => {
+          g.font = font; g.textAlign = align; g.textBaseline = 'middle'; g.fillStyle = color; g.fillText(s, x, y);
+        };
+        const at = (p: { x: number; z: number }) => ({ x: cx + p.x * R, y: cy - p.z * R });
+
+        // The slice: a rim of dots, two dotted axes, the four named states.
+        for (let k = 0; k < 120; k++) dot(g, cx + R * Math.cos((k * Math.PI) / 60), cy + R * Math.sin((k * Math.PI) / 60), 1.2, pal.ink2);
+        for (let i = -20; i <= 20; i++) { dot(g, cx, cy - (i / 20) * R, 0.9, pal.rule); dot(g, cx + (i / 20) * R, cy, 0.9, pal.rule); }
+        text('|0⟩', cx, cy - R - 13, 'center', pal.ink);
+        text('|1⟩', cx, cy + R + 13, 'center', pal.ink);
+        text('|+⟩', cx + R + 8, cy, 'left', pal.ink);
+        text('|−⟩', cx - R - 8, cy, 'right', pal.ink);
+
+        // The two states A is left in, the line between them, and rho on it.
+        const bs = branches(psi).filter((b) => b.state);
+        const pts = bs.map((b) => ({ b, ...at(slice(b.state!)) }));
+        if (pts.length === 2 && Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) > 8) {
+          const [a, b] = pts, n = Math.max(2, Math.round(Math.hypot(a.x - b.x, a.y - b.y) / 6));
+          for (let i = 1; i < n; i++) dot(g, a.x + ((b.x - a.x) * i) / n, a.y + ((b.y - a.y) * i) / n, 1.3, pal.ink);
+        }
+        const rho = at({ x: 0, z: rhoHeight(fromPercent(odds)) });
+        dot(g, rho.x, rho.y, 8.5, pal.plate); dot(g, rho.x, rho.y, 6.5, pal.signal);
+        text('ρ', rho.x + 11, rho.y - 4, 'left', pal.signal, `italic 700 15px ${sans}`);
+        g.lineWidth = 2;
+        for (const p of pts) {
+          dot(g, p.x, p.y, 8.5, pal.plate);
+          if (p.b.k === 0) dot(g, p.x, p.y, 6, pal.ink);
+          else { g.strokeStyle = pal.ink; g.beginPath(); g.arc(p.x, p.y, 5, 0, Math.PI * 2); g.stroke(); }
+        }
+        // Labels sit outward from the center, one label if the two marks nearly meet.
+        const out = (p: { x: number; y: number }) => {
+          const d = Math.hypot(p.x - cx, p.y - cy) || 1;
+          return d < 4 ? { x: p.x + 16, y: p.y } : { x: p.x + ((p.x - cx) / d) * 17, y: p.y + ((p.y - cy) / d) * 17 };
+        };
+        if (pts.length === 2 && Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) < 20) {
+          const o = out(pts[0]); text('0 or 1', o.x, o.y, 'center', pal.ink, `700 12px ${mono}`);
+        } else for (const p of pts) { const o = out(p); text(String(p.b.k), o.x, o.y, 'center', pal.ink, `700 12px ${mono}`); }
+        if (pts.length === 1) { const o = out(pts[0]); text(`only ${pts[0].b.k}`, o.x, o.y + 14, 'center', pal.ink2); }
+
+        // The batch: one column per pair. Partner row, then A row. Filled read 0, open read 1.
+        const pitch = (w - 16) / PAIRS, r = Math.min(pitch * 0.36, 5), x0 = 8 + pitch / 2;
+        text('partner: filled 0, open 1', 8, top + 6, 'left', pal.ink2);
+        text('A alone: filled 0, open 1', 8, top + 46, 'left', pal.ink2);
+        g.lineWidth = Math.max(1, r * 0.4);
+        const mark = (x: number, y: number, bit: number, color: string) => {
+          if (bit === 0) dot(g, x, y, r, color);
+          else { g.strokeStyle = color; g.beginPath(); g.arc(x, y, r - g.lineWidth / 2, 0, Math.PI * 2); g.stroke(); }
+        };
+        made.forEach((s, i) => {
+          const x = x0 + i * pitch;
+          if (!measured || i >= shown) { dot(g, x, top + 26, Math.max(0.7, r * 0.3), pal.rule); dot(g, x, top + 66, Math.max(0.7, r * 0.3), pal.rule); return; }
+          mark(x, top + 26, s.r, pal.ink); mark(x, top + 66, s.a, pal.signal);
+        });
+      }
+
+      const redraw = () => { if (!pending) pending = requestAnimationFrame(() => { pending = 0; draw(); }); };
+
+      /** The silent parts: outputs, value texts, table, shots, picture. Not a live region. */
+      function show() {
+        odds = +oddsIn.value; deg = +turnIn.value;
+        const l0 = fromPercent(odds);
+        psi = turned(l0, turnRad(deg)); made = shots(psi, ds);
+        oddsOut.textContent = `${odds}%`; turnOut.textContent = `${deg}°`;
+        oddsIn.setAttribute('aria-valuetext', oddsValueText(odds));
+        turnIn.setAttribute('aria-valuetext', turnValueText(deg));
+        const [b0, b1] = branches(psi);
+        v('pair').textContent = stateText(psi);
+        v('rho').textContent = rhoText(l0);
+        v('pa').textContent = fixed(purity(reducedA(psi)));
+        v('pp').textContent = fixed(pairPurity(psi));
+        v('b0').textContent = branchLine(b0); v('b1').textContent = branchLine(b1);
+        if (measured && shown === PAIRS) tallyEl.textContent = batchText(tally(made), odds, deg);
+        draw();
+      }
+
+      /** The live sentence: spoken on release of a slider and on button presses only. */
+      const say = () => { readout.textContent = describe(odds, deg, measured && shown === PAIRS ? tally(made) : undefined); };
+
+      const stop = () => { if (anim) { cancelAnimationFrame(anim); anim = 0; } };
+      // Off screen, a batch still filling in is shown whole at once.
+      const finish = () => { stop(); if (measured && shown < PAIRS) { shown = PAIRS; show(); say(); } };
+
+      // A new batch fills in column by column, so it reads as shots arriving. No animation for reduced motion or off screen.
+      function measure() {
+        stop();
+        ds = draws(Math.random); measured = true;
+        if (still || !seen) { shown = PAIRS; show(); say(); return; }
+        shown = 0; show();
+        tallyEl.textContent = `Measuring ${PAIRS} new pairs.`;
+        const t0 = performance.now();
+        const step = (now: number) => {
+          shown = Math.min(PAIRS, Math.ceil(((now - t0) / REVEAL) * PAIRS));
+          if (shown < PAIRS) { draw(); anim = requestAnimationFrame(step); } else { anim = 0; show(); say(); }
+        };
+        anim = requestAnimationFrame(step);
+      }
+
+      // Moving a slider redraws at once but stays quiet; the sentence is spoken when the slider is released.
+      for (const s of [oddsIn, turnIn]) { s.addEventListener('input', show); s.addEventListener('change', say); }
+      presets.forEach((b) => b.addEventListener('click', () => { turnIn.value = b.dataset.turn!; show(); say(); }));
+      $('.again').addEventListener('click', measure);
+
+      const size = () => {
+        const cw = canvas.getBoundingClientRect().width;
+        if (!cw) return;
+        const R = Math.min(cw / 2 - 34, 140);
+        h = 2 * R + 56 + 78;
+        canvas.style.height = `${h}px`;
+        ({ ctx, w } = fit(canvas)); w = cw;
+        pal = palette(); mono = token('--mono'); sans = token('--sans');
+        draw();
+      };
+      onResize(canvas, size);
+      onTheme(() => { pal = palette(); draw(); });
+      onSeen(this, (s) => { seen = s; if (!s) finish(); });
+      // Start from the controls as the page shows them: a browser can restore form values on going back.
+      size(); show();
+      const first = describe(odds, deg);
+      if (readout.textContent !== first) readout.textContent = first;
+    }
+  }
+  customElements.define('qce-hidden-partner', HiddenPartner);
+</script>
+
+<style>
+  qce-hidden-partner { display: grid; container-type: inline-size }
+  .cols { display: grid; gap: var(--s4); min-width: 0 }
+  .stage { display: grid; gap: var(--s3); align-content: start; min-width: 0 }
+  canvas { max-width: 26rem; justify-self: center }
+  .tally { font: 500 .9375rem var(--mono); text-align: center }
+  .key, .hint, .note { font-size: .875rem; color: var(--ink-2); max-width: var(--read) }
+  .tool-controls { display: grid; gap: var(--s4); align-content: start; align-items: start; min-width: 0 }
+  .slider { display: grid; gap: var(--s1); min-width: 0 }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2) }
+  .row output { flex: none; font-size: 1.125rem }
+  .presets { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--s3); margin: 0 }
+  dl div { display: grid; gap: var(--s1); min-width: 0 }
+  dd { margin: 0; font: 500 1rem var(--mono); overflow-wrap: anywhere }
+  var { font-style: normal; text-transform: none }
+  .again { justify-self: start }
+  .tool-readout { min-height: 12em }
+  @container (min-width: 38rem) {
+    .cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--s5); align-items: start }
+    canvas { max-width: none }
+    .tool-readout { min-height: 7em }
+  }
+</style>
