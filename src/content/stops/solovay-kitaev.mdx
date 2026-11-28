@@ -27,7 +27,7 @@ The lab searches H, T and T† words without counting equivalent gates twice. It
 
 <Depth level="engineer">
 
-For a fixed dimension and a finite inverse-closed alphabet dense in SU(d), the Solovay–Kitaev algorithm obtains $\epsilon$ accuracy with length $O(\log^c(1/\epsilon))$, with $c\approx3.97$ in [Dawson and Nielsen](https://arxiv.org/abs/quant-ph/0505030). Improved variants have smaller exponents. Counting words and small balls in SU(d) gives a worst-case lower bound of order $\log(1/\epsilon)$. The recursive construction uses group commutators, not exhaustive search.
+For a fixed dimension and a finite inverse-closed alphabet dense in SU(d), the Solovay–Kitaev algorithm obtains $\epsilon$ accuracy with length $O(\log^c(1/\epsilon))$, with $c\approx3.97$ in [Dawson and Nielsen](https://arxiv.org/abs/quant-ph/0505030). [Kuperberg (2023)](https://arxiv.org/abs/2306.13158) improves the exponent to $1.44042\ldots+\delta$ for any fixed positive $\delta$. Counting words and small balls in SU(d) gives a worst-case lower bound of order $\log(1/\epsilon)$. The recursive construction uses group commutators, not exhaustive search.
 
 We demonstrate bounded breadth-first search over H, T, T† modulo global phase, with shortest-word ties and a numerical deduplication tolerance. The distance is $\min_\alpha\|U-e^{i\alpha}V\|_F$. For 2 by 2 unitaries its square is $4-2|\operatorname{Tr}(U^\dagger V)|$. The implementation aligns phase before taking differences to avoid cancellation near equality. These finite search results illustrate convergence for chosen targets, not a proof of the asymptotic theorem.
 
