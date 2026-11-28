@@ -2,8 +2,8 @@
 description: "Use a third qubit to control a swap, and verify that the number of ones is conserved."
 answer: "The Fredkin gate swaps two target qubits only when its control is 1."
 myth:
-  claim: "Fredkin destroys one target when it copies the other into its place."
-  truth: "A swap exchanges the two complete states and can be undone."
+  claim: "SWAP never entangles separate inputs, so controlled SWAP cannot either."
+  truth: "A superposed control and distinct target states can become entangled by Fredkin."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -14,7 +14,7 @@ import { lab } from '../../lib/sims/fredkin.ts';
 
 Imagine two labeled boxes and a lever. When the lever is off, leave the boxes exactly where they are. When it is on, exchange them. If one box carries a red ball and the other a blue ball, they trade places, but no ball is added or lost. Use the same lever and exchange again to undo it.
 
-In a quantum experiment the lever has its own amplitudes. The two boxes may become linked to it through the exchange. The picture breaks because the boxes and lever do not have definite hidden values for every measurement; the exchange changes a joint quantum state.
+In a quantum experiment the lever has a wave-like description of its possible results. The two boxes may become linked to it through the exchange. The picture breaks because the boxes and lever do not have definite hidden values for every measurement; the exchange changes a joint quantum state.
 
 </Depth>
 
