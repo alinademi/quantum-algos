@@ -1,5 +1,5 @@
 ---
-description: "Continuous-variable quantum computation encodes information in modes with continuous observables, rather than only finite-dimensional qubits."
+description: "Squeeze, displace and rotate a Gaussian mode of light, and inspect its continuous measurement uncertainty."
 answer: "Continuous-variable quantum computation encodes information in modes with continuous observables, rather than only finite-dimensional qubits."
 myth:
   claim: "A continuous observable provides unlimited readable classical information in one measurement."
@@ -7,27 +7,31 @@ myth:
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
+import GaussianQuadrature from '../../components/tools/GaussianQuadrature.astro';
 import GateLab from '../../components/tools/GateLab.astro';
 import { lab } from '../../lib/sims/cv-model.ts';
 
 <Depth level="kid">
 
-Instead of an arrow with two amplitudes, picture the position and momentum of a quantum oscillator. You can shift, rotate and squeeze its uncertainty pattern.
+Imagine a spot of light described not by two possible values but by a cloud of possible measurement results. The cloud has a center and width in two directions. An optical device can move the center, rotate the cloud or squeeze it narrower in one direction while spreading it in the other. Light modes can perform calculations by passing through such devices and connecting to other modes. For general quantum computing, those simple changes need an extra kind of nonlinear operation, which can be supplied by certain materials. The picture breaks because the cloud is not a swarm of light particles: it illustrates measurement uncertainty, and a single reading never gives unlimited information.
 
 </Depth>
 
 <Depth level="student">
 
-A vacuum mode has equal uncertainty in both quadratures. Squeezing reduces one variance while increasing the other. Displacing moves the center without changing variances; a rotation turns both the center and uncertainty ellipse.
+In continuous-variable computation, modes of light provide continuous quantum observables called quadratures, x and p, rather than two-level qubits. Vacuum has equal quadrature uncertainty. Squeezing reduces one variance and increases the other, displacement shifts the means without changing covariance, and rotation turns both the mean and uncertainty ellipse. Optical beam splitters can couple modes. These Gaussian operations alone with Gaussian inputs and measurements admit efficient classical descriptions. Universal computation additionally needs a non-Gaussian resource, such as a Kerr nonlinearity or a cubic phase gate. The [uncertainty principle](/learn/uncertainty/) limits simultaneous precision, and finite energy and measurement precision matter. This lab models only a single pure Gaussian mode.
 
 </Depth>
 
 <Depth level="engineer">
 
-Use dimensionless quadratures with $[x,p]=i$, vacuum covariance $I/2$, and symmetrized covariance $V_{jk}=\langle\{R_j-\bar R_j,R_k-\bar R_k\}\rangle/2$. The pure squeezed vacuum has variances $e^{-2r}/2$ and $e^{2r}/2$. A rotation O maps $V\mapsto OVO^T$ and the displacement similarly. $\det V=1/4$ for this pure Gaussian family, and $\Delta x\Delta p\ge1/2$. Gaussian preparations, operations and Gaussian measurements alone admit efficient classical descriptions; universal CV computation under standard gate-set constructions requires non-Gaussian resources. See [Lloyd and Braunstein](https://arxiv.org/abs/quant-ph/9810082).
+Use dimensionless quadratures $[x,p]=i$, vacuum covariance $I/2$, and symmetric covariance $V_{jk}=\langle\{R_j-\bar R_j,R_k-\bar R_k\}\rangle/2$. Squeezing gives variances $e^{-2r}/2$ and $e^{2r}/2$. Rotation O maps $V\mapsto OVO^T$ and $\bar R\mapsto O\bar R$; displacement shifts $\bar R$ and leaves V unchanged. Here $\det V=1/4$ and $\Delta x\Delta p\ge1/2$. Gaussian light modes, linear optics, squeezing and Gaussian measurements are efficiently described by means and covariance. Universal CV computation requires an additional non-Gaussian resource, e.g. $e^{i\gamma x^3}$ or Kerr evolution ([Lloyd and Braunstein](https://arxiv.org/abs/quant-ph/9810082)). Physical finite energy and precision limit idealized operations.
+
+The ideas used here build on [Universal gate sets](/learn/universal/), [Qudits](/learn/qudits/), [Photonic qubits](/learn/photonic/).
 
 </Depth>
 
 <Lab title="Transform a Gaussian mode" intro="Change squeezing, displacement and rotation; inspect the means, covariance and uncertainty product.">
+  <GaussianQuadrature />
   <GateLab id="cv-model" lab={lab} />
 </Lab>
