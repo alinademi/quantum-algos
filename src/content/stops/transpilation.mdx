@@ -1,5 +1,5 @@
 ---
-description: "Transpilation rewrites a logical circuit for a particular target, potentially optimizing gates, mapping wires, routing interactions and translating into."
+description: "Follow optimization, placement, routing, native translation and scheduling on a three-qubit line."
 answer: "Transpilation rewrites a logical circuit for a particular target, potentially optimizing gates, mapping wires, routing interactions and translating into native operations."
 myth:
   claim: "A transpiler finds the globally best possible circuit."
@@ -12,19 +12,21 @@ import { lab } from '../../lib/sims/transpilation.ts';
 
 <Depth level="kid">
 
-Your circuit might ask distant wires to interact. A device only lets neighbors talk. A compiler moves the qubits, rewrites the instructions, and finds a legal schedule.
+Imagine sending instructions to a small factory. First choose which workbench receives each part. Many factories only let neighboring benches pass parts to each other, so a distant pair must exchange positions with others before they can interact. Replace any instructions the factory does not understand with equivalent actions it does understand. Remove unnecessary pairs of actions, and put independent tasks into the same round when possible. This process translates a design into a legal set of factory steps. It may find a good plan without finding the best possible one. The picture breaks because a quantum factory moves whole quantum states using reversible swaps, not copies of physical parts.
 
 </Depth>
 
 <Depth level="student">
 
-In this example a remote CNOT between the ends of a three-qubit line is implemented by SWAPs and a neighboring CNOT. Adjacent identical CNOTs can cancel. The original layout is restored by reversing the SWAPs.
+A transpiler takes a logical [circuit](/learn/circuits/) and makes it executable on a chosen target. Layout assigns logical wires to physical qubits. Routing inserts SWAPs when a gate needs distant sites. In our three-site line, a remote CNOT uses a swap, a neighboring CNOT and an inverse swap. Optimization uses [identities](/learn/circuit-identities/), such as canceling identical adjacent CNOTs. Translation replaces each logical gate with [native operations](/learn/native-gates/). Scheduling assigns legal layers or physical times. The lab restores the initial layout, then checks the full matrix up to global phase. Real transpilers may keep a final permutation, use different heuristics, and optimize for different cost or error objectives.
 
 </Depth>
 
 <Depth level="engineer">
 
 A transpiler can choose an initial logical-to-physical layout, insert routing operations, translate to a native gate set and schedule under target constraints. It may track a final permutation instead of restoring the initial layout; this lab restores it. Exact unitary preservation can be checked by column-wise comparison with global phase, whereas cost minimization is a separate problem.
+
+The ideas used here build on [Universal gate sets](/learn/universal/).
 
 </Depth>
 
