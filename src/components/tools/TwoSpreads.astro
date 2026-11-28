@@ -1,0 +1,337 @@
+---
+// Fresh copies of one qubit state: one batch is measured in Z, another in X, each copy once. The spreads of the two
+// lists of results are compared with Robertson's bound dZ dX >= |<Y>|. Every shot is a Born-rule draw from sims/uncertainty.ts.
+import { COPIES, PRESETS, exact, fmt, headText, verdict, sliderText } from '../../lib/sims/uncertainty.ts';
+const uid = 'ts-' + Math.random().toString(36).slice(2, 8);
+const start = { tilt: 0, turn: 0 };
+const e = exact(start);
+const N = 100;
+const rows = [
+  { key: 'z', name: 'Average ⟨Z⟩', exact: fmt(e.z) },
+  { key: 'dZ', name: 'Spread ΔZ', exact: fmt(e.dZ) },
+  { key: 'x', name: 'Average ⟨X⟩', exact: fmt(e.x) },
+  { key: 'dX', name: 'Spread ΔX', exact: fmt(e.dX) },
+  { key: 'product', name: 'ΔZ × ΔX', exact: fmt(e.product) },
+];
+---
+<qce-two-spreads class="tool">
+  <div class="views">
+    <figure>
+      <figcaption><b>Z results</b> <span data-cap="Z">on {N} copies</span></figcaption>
+      <canvas data-view="Z" aria-hidden="true"></canvas>
+    </figure>
+    <figure>
+      <figcaption><b>X results</b> <span data-cap="X">on {N} other copies</span></figcaption>
+      <canvas data-view="X" aria-hidden="true"></canvas>
+    </figure>
+    <figure class="map">
+      <figcaption><b>Spread map</b> ΔZ across, ΔX up</figcaption>
+      <canvas data-view="map" aria-hidden="true"></canvas>
+    </figure>
+  </div>
+
+  <div class="panel">
+    <fieldset>
+      <legend class="label">State</legend>
+      <div class="chips" role="group" aria-label="Preset states">
+        {PRESETS.map((p, i) => <button type="button" data-tilt={p.angles.tilt} data-turn={p.angles.turn} data-name={p.label} aria-pressed={String(i === 0)}>{p.label}</button>)}
+      </div>
+      <div class="row">
+        <label for={`${uid}-tilt`}>Tilt the state from <span class="ket">|0⟩</span></label>
+        <output for={`${uid}-tilt`} data-out="tilt">0°</output>
+      </div>
+      <input id={`${uid}-tilt`} data-in="tilt" type="range" min="0" max="180" step="1" value="0" aria-valuetext={sliderText(0, start)} />
+      <div class="row">
+        <label for={`${uid}-turn`}>Turn the state around Z</label>
+        <output for={`${uid}-turn`} data-out="turn">0°</output>
+      </div>
+      <input id={`${uid}-turn`} data-in="turn" type="range" min="0" max="359" step="1" value="0" aria-valuetext={sliderText(0, start)} />
+    </fieldset>
+
+    <fieldset>
+      <legend class="label">Copies per question</legend>
+      <div class="chips">
+        {COPIES.map((n) => <label><input type="radio" name={`${uid}-n`} value={n} checked={n === N} />{n}</label>)}
+      </div>
+      <button class="btn btn-sm" type="button" data-new>New batch of copies</button>
+    </fieldset>
+  </div>
+
+  <table>
+    <caption class="label">The numbers</caption>
+    <thead><tr><th scope="col"><span class="visually-hidden">Quantity</span></th><th scope="col">Exact</th><th scope="col">From copies</th></tr></thead>
+    <tbody>
+      {rows.map((r) => <tr><th scope="row">{r.name}</th><td data-e={r.key}>{r.exact}</td><td data-m={r.key}></td></tr>)}
+      <tr><th scope="row">Bound <span class="ket">|⟨Y⟩|</span></th><td data-e="bound">{fmt(e.bound)}</td><td class="na">not measured</td></tr>
+    </tbody>
+  </table>
+
+  <p class="tool-readout" aria-live="polite">{headText(start)} {verdict(start)}</p>
+  <p class="note">Each copy starts in the same state and is measured once, in Z or in X, never both. The two lists come from different copies, so no measurement disturbs another. Z gives +1 for <span class="ket">|0⟩</span> and −1 for <span class="ket">|1⟩</span>; X gives +1 for <span class="ket">|+⟩</span> and −1 for <span class="ket">|−⟩</span>. Each result is a Born-rule draw for an ideal qubit, and each copy keeps its own random draw, so moving a slider flips dots instead of re-rolling them. The sliders reach pure states only: the surface of the Bloch sphere.</p>
+  <p class="note">In the result pictures, solid dots gave +1 and rings gave −1. Under each line, the solid bar runs one spread either side of the average of these copies; the dashed bar does the same for the exact state. On the spread map, the ring marks the exact spreads and the solid dot the spreads from these copies. No qubit state lies inside the dotted quarter circle, where <span class="ket">ΔZ² + ΔX²</span> is less than 1. The dotted curve marked “bound” is Robertson's <span class="ket">ΔZ × ΔX = |⟨Y⟩|</span> for this state (absent when the bound is 0), and the ring is never below it.</p>
+</qce-two-spreads>
+
+<script>
+  import { exact, stateName, countPlus, countStats, pileFit, boundCurve, fmt, readout, sliderText, MAX, type Angles, type Exact, type Obs } from '../../lib/sims/uncertainty.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  type Pane = { c: HTMLCanvasElement; ctx: CanvasRenderingContext2D | null; w: number; h: number };
+  type Colors = ReturnType<typeof palette>;
+  /** A new batch takes this long to arrive, in ms, whatever its size. */
+  const REVEAL = 1200;
+  const TAU = Math.PI * 2;
+
+  function ring(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, lw: number) {
+    ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke();
+  }
+  /** A dotted line from (x0, y0) to (x1, y1). */
+  function dots(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, gap: number, r: number, color: string) {
+    const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / gap));
+    for (let k = 0; k <= n; k++) dot(ctx, x0 + ((x1 - x0) * k) / n, y0 + ((y1 - y0) * k) / n, r, color);
+  }
+  /** Text with a halo in the plate color, so it reads over dots. */
+  function text(ctx: CanvasRenderingContext2D, s: string, x: number, y: number, align: CanvasTextAlign, color: string, col: Colors, font: string) {
+    ctx.font = font; ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    ctx.lineWidth = 4; ctx.strokeStyle = col.plate; ctx.strokeText(s, x, y);
+    ctx.fillStyle = color; ctx.fillText(s, x, y);
+  }
+
+  class TwoSpreads extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const pane = (c: HTMLCanvasElement): Pane => ({ c, ctx: null, w: 0, h: 0 });
+      const view = { Z: pane($('[data-view="Z"]')), X: pane($('[data-view="X"]')), map: pane($('[data-view="map"]')) };
+      const panes = [view.Z, view.X, view.map];
+      const input = { tilt: $<HTMLInputElement>('[data-in="tilt"]'), turn: $<HTMLInputElement>('[data-in="turn"]') };
+      const presets = [...this.querySelectorAll<HTMLButtonElement>('[data-tilt]')];
+      const radios = [...this.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+      const say = $('.tool-readout');
+      const cellsE = [...this.querySelectorAll<HTMLElement>('[data-e]')], cellsM = [...this.querySelectorAll<HTMLElement>('[data-m]')];
+      const fresh = () => Array.from({ length: MAX }, () => Math.random());
+      /** Set text, keeping kets, |⟨Y⟩| and short formulas like "ΔX = 0.87" on one line. */
+      const put = (el: Element, t: string) => el.replaceChildren(...t.split(/(\|⟨Y⟩\||Δ[ZX] × Δ[ZX] = \S+?(?=[,.]?(?:\s|$))|Δ[ZX] = \S+?(?=[,.]?(?:\s|$))|\|[^|⟩\s]{1,3}⟩)/).map((part, i) =>
+        i % 2 ? Object.assign(document.createElement('span'), { className: 'ket', textContent: part }) : part));
+
+      let a: Angles = { tilt: 0, turn: 0 };
+      let n = +(radios.find((r) => r.checked)?.value ?? 100);
+      let usZ = fresh(), usX = fresh(); // one fixed uniform draw per copy, per question
+      let shown = n, credit = 0, raf = 0, last = 0, seen = false;
+
+      const counts = (e: Exact) => ({ kZ: countPlus(usZ, e.pZ, shown), kX: countPlus(usX, e.pX, shown) });
+
+      // ---- Words
+
+      function words(e: Exact, kZ: number, kX: number) {
+        const mz = countStats(kZ, shown), mx = countStats(kX, shown);
+        $('[data-cap="Z"]').textContent = `on ${shown} copies: ${kZ} gave +1, ${shown - kZ} gave −1`;
+        $('[data-cap="X"]').textContent = `on ${shown} other copies: ${kX} gave +1, ${shown - kX} gave −1`;
+        const ex: Record<string, number> = { z: e.z, dZ: e.dZ, x: e.x, dX: e.dX, product: e.product, bound: e.bound };
+        const me: Record<string, number> = { z: mz.mean, dZ: mz.spread, x: mx.mean, dX: mx.spread, product: mz.spread * mx.spread };
+        cellsE.forEach((td) => { td.textContent = fmt(ex[td.dataset.e!]); });
+        cellsM.forEach((td) => { td.textContent = shown ? fmt(me[td.dataset.m!]) : '…'; });
+      }
+
+      /** The live readout speaks only when a batch is complete: on slider release, presets and buttons. */
+      const speak = () => {
+        if (shown < n) return;
+        const { kZ, kX } = counts(exact(a));
+        put(say, readout(a, n, kZ, kX));
+      };
+
+      // ---- Drawing
+
+      /** Results of one question: a pile at +1 (solid dots), a pile at −1 (rings), then the average ± spread bars. */
+      function results(p: Pane, k: number, m: number, sd: number, em: number, ed: number, col: Colors) {
+        const ctx = p.ctx!, { w, h } = p;
+        ctx.clearRect(0, 0, w, h);
+        const pad = 10, at = (v: number) => pad + ((v + 1.5) / 3) * (w - 2 * pad);
+        const bars = 40, ticks = 20, base = h - bars - ticks;
+        const f = pileFit(0.9 * (at(1) - at(0)), base - 6, n);
+        if (!f.pitch) return;
+        const r = Math.max(0.7, f.pitch * 0.36), gw = f.cols * f.pitch;
+        [{ v: 1, c: k }, { v: -1, c: shown - k }].forEach(({ v, c }) => {
+          const x0 = at(v) - gw / 2;
+          for (let j = 0; j < c; j++) {
+            const x = x0 + ((j % f.cols) + 0.5) * f.pitch, y = base - (Math.floor(j / f.cols) + 0.5) * f.pitch;
+            if (v === 1) dot(ctx, x, y, r, col.signal);
+            else ring(ctx, x, y, Math.max(0.5, r - 0.5), col.ink2, Math.min(1.8, Math.max(0.8, r * 0.55)));
+          }
+        });
+        // The result line, from −1.5 to 1.5, with ticks at −1, 0 and +1.
+        dots(ctx, at(-1.5), base + 3, at(1.5), base + 3, 5, 0.8, col.ink2);
+        const mono = token('--mono');
+        for (const [v, s] of [[-1, '−1'], [0, '0'], [1, '+1']] as const) {
+          dot(ctx, at(v), base + 3, 2, col.ink);
+          text(ctx, s, at(v), base + 12, 'center', col.ink2, col, `500 11px ${mono}`);
+        }
+        // Average ± one spread: solid for these copies, dashed for the exact state.
+        const bar = (y: number, mean: number, s: number, solid: boolean) => {
+          const x0 = at(mean - s), x1 = at(mean + s), color = solid ? col.ink : col.ink2;
+          ctx.strokeStyle = color; ctx.lineWidth = solid ? 2 : 1.5; ctx.setLineDash(solid ? [] : [4, 3]);
+          ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke(); ctx.setLineDash([]);
+          ctx.beginPath(); ctx.moveTo(x0, y - 5); ctx.lineTo(x0, y + 5); ctx.moveTo(x1, y - 5); ctx.lineTo(x1, y + 5); ctx.stroke();
+          if (solid) dot(ctx, at(mean), y, 3.5, color); else { ctx.fillStyle = col.plate; ctx.beginPath(); ctx.arc(at(mean), y, 3.5, 0, TAU); ctx.fill(); ring(ctx, at(mean), y, 3.5, color, 1.5); }
+        };
+        if (shown) bar(base + ticks + 8, m, sd, true);
+        bar(base + ticks + 26, em, ed, false);
+      }
+
+      /** The spread map: ΔZ across, ΔX up, both 0 to 1. */
+      function spreadMap(p: Pane, e: Exact, mz: number, mx: number, col: Colors) {
+        const ctx = p.ctx!, { w, h } = p;
+        ctx.clearRect(0, 0, w, h);
+        const L = 30, B = 30, T = 12, R = 14, S = Math.min(w - L - R, h - T - B);
+        if (S <= 0) return;
+        const ox = L, oy = T + S, P = (dz: number, dx: number): [number, number] => [ox + dz * S, oy - dx * S];
+        const mono = token('--mono');
+        // Frame: dotted lines at 0 and 1 on both axes.
+        dots(ctx, ...P(0, 0), ...P(1, 0), 6, 0.9, col.ink2);
+        dots(ctx, ...P(0, 0), ...P(0, 1), 6, 0.9, col.ink2);
+        dots(ctx, ...P(1, 0), ...P(1, 1), 6, 0.7, col.rule);
+        dots(ctx, ...P(0, 1), ...P(1, 1), 6, 0.7, col.rule);
+        // The corner no qubit state reaches, ΔZ² + ΔX² < 1: a faint field of dots inside a dotted quarter circle.
+        const step = Math.max(7, S / 20);
+        ctx.globalAlpha = 0.4;
+        for (let i = 0.5; i * step < S; i++) for (let j = 0.5; j * step < S; j++) {
+          const dz = (i * step) / S, dx = (j * step) / S;
+          if (dz * dz + dx * dx < 0.97) dot(ctx, ...P(dz, dx), 0.9, col.ink2);
+        }
+        ctx.globalAlpha = 1;
+        const arcN = Math.max(24, Math.round((S * Math.PI) / 2 / 5));
+        for (let k = 0; k <= arcN; k++) { const t = (k / arcN) * (Math.PI / 2); dot(ctx, ...P(Math.cos(t), Math.sin(t)), 1.1, col.ink); }
+        text(ctx, 'no qubit', ...P(0.33, 0.4), 'center', col.ink2, col, `500 11px ${mono}`);
+        text(ctx, 'state here', ...P(0.33, 0.4 - 14 / S), 'center', col.ink2, col, `500 11px ${mono}`);
+        // Robertson's bound for this state: ΔZ ΔX = |⟨Y⟩|.
+        if (e.bound > 0) {
+          // Dots every 5 px along the curve, so it reads as dotted at any size.
+          const pts = boundCurve(e.bound, 96).map(([z, x]) => P(z, x));
+          let carry = 0;
+          dot(ctx, ...pts[0], 1.4, col.hot);
+          for (let k = 1; k < pts.length; k++) {
+            const [x0, y0] = pts[k - 1], [x1, y1] = pts[k], len = Math.hypot(x1 - x0, y1 - y0);
+            for (carry += len; carry >= 5; carry -= 5) { const t = 1 - (carry - 5) / len; dot(ctx, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, 1.4, col.hot); }
+          }
+          // Label at the curve's right end: above it, or below it when the curve runs near the top edge.
+          const [bx, by] = P(1, e.bound);
+          text(ctx, 'bound', bx - 10, e.bound < 0.8 ? by - 11 : by + 14, 'right', col.hot, col, `600 11px ${mono}`);
+        }
+        // Ticks and axis names.
+        text(ctx, '0', ox - 8, oy + 12, 'center', col.ink2, col, `500 11px ${mono}`);
+        text(ctx, '1', ox + S, oy + 12, 'center', col.ink2, col, `500 11px ${mono}`);
+        text(ctx, '1', ox - 14, T, 'center', col.ink2, col, `500 11px ${mono}`);
+        text(ctx, 'ΔZ', ox + S / 2, oy + 22, 'center', col.ink, col, `600 12px ${mono}`);
+        text(ctx, 'ΔX', ox - 16, T + S / 2, 'center', col.ink, col, `600 12px ${mono}`);
+        // Points: the spreads from these copies (solid dot), and the exact spreads (ring).
+        if (shown) dot(ctx, ...P(mz, mx), 4, col.signal);
+        ring(ctx, ...P(e.dZ, e.dX), 7, col.ink, 2);
+      }
+
+      function update() {
+        const e = exact(a), { kZ, kX } = counts(e);
+        words(e, kZ, kX);
+        if (!view.map.ctx) return;
+        const col = palette(), mz = countStats(kZ, shown), mx = countStats(kX, shown);
+        results(view.Z, kZ, mz.mean, mz.spread, e.z, e.dZ, col);
+        results(view.X, kX, mx.mean, mx.spread, e.x, e.dX, col);
+        spreadMap(view.map, e, mz.spread, mx.spread, col);
+      }
+
+      // ---- A batch arriving
+
+      function step(now: number) {
+        raf = 0;
+        credit += (Math.max(0, Math.min(64, now - last)) * n) / REVEAL; last = now;
+        const k = Math.floor(credit); credit -= k;
+        shown = Math.min(n, shown + k);
+        update();
+        if (shown < n) { if (seen) raf = requestAnimationFrame(step); }
+        else speak();
+      }
+      const kick = () => { if (!raf && seen && shown < n) { last = performance.now(); raf = requestAnimationFrame(step); } };
+      /** Show copies up to n: at once with reduced motion, else arriving over REVEAL ms. */
+      const arrive = () => {
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        credit = 0;
+        if (reduceMotion()) shown = n;
+        update();
+        if (shown < n) kick(); else speak();
+      };
+
+      // ---- Controls
+
+      const sync = () => {
+        input.tilt.value = String(a.tilt); input.turn.value = String(a.turn);
+        $('[data-out="tilt"]').textContent = `${a.tilt}°`;
+        $('[data-out="turn"]').textContent = `${a.turn}°`;
+        input.tilt.setAttribute('aria-valuetext', sliderText(a.tilt, a));
+        input.turn.setAttribute('aria-valuetext', sliderText(a.turn, a));
+        const name = stateName(a);
+        presets.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.name === name)));
+      };
+      (['tilt', 'turn'] as const).forEach((key) => {
+        input[key].addEventListener('input', () => { a = { ...a, [key]: +input[key].value }; sync(); update(); });
+        input[key].addEventListener('change', speak);
+      });
+      presets.forEach((b) => b.addEventListener('click', () => {
+        a = { tilt: +b.dataset.tilt!, turn: +b.dataset.turn! };
+        sync(); update(); speak();
+      }));
+      radios.forEach((r) => r.addEventListener('change', () => {
+        n = +r.value;
+        shown = Math.min(shown, n); // fewer copies: drop the rest; more: the new ones arrive
+        arrive();
+      }));
+      $('[data-new]').addEventListener('click', () => { usZ = fresh(); usX = fresh(); shown = 0; arrive(); });
+
+      const size = () => { panes.forEach((p) => { const f = fit(p.c); p.ctx = f.ctx; p.w = f.w; p.h = f.h; }); update(); };
+      onResize(this, size);
+      onTheme(() => update());
+      onSeen(this, (v) => { seen = v; if (v) kick(); });
+      sync();
+      size();
+      speak();
+    }
+  }
+  customElements.define('qce-two-spreads', TwoSpreads);
+</script>
+
+<style>
+  .views { display: grid; gap: var(--s3) }
+  figure { display: grid; gap: var(--s2); align-content: start; min-width: 0 }
+  figcaption { font-size: .875rem; line-height: 1.35; color: var(--ink-2) }
+  figcaption b { color: var(--ink); font-weight: 600 }
+  [data-view="Z"], [data-view="X"] { height: 9.5rem }
+  .map canvas { aspect-ratio: 1; height: auto; max-width: 19rem }
+
+  .panel { display: grid; gap: var(--s4); align-items: start }
+  fieldset { display: grid; align-content: start; gap: var(--s3); margin: 0; padding: 0; border: 0; min-width: 0 }
+  legend { padding: 0; margin-bottom: var(--s3) }
+  .chips { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .chips label, .chips button {
+    position: relative; display: inline-grid; place-items: center; min-width: 3.25rem; min-height: 2.75rem; padding: 0 .9rem;
+    border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 1rem var(--mono); cursor: pointer;
+  }
+  .chips input { position: absolute; opacity: 0; width: 1px; height: 1px }
+  .chips label:hover, .chips button:hover { border-color: var(--ink) }
+  .chips label:has(:checked), .chips button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .chips label:has(:focus-visible) { outline: 3px solid var(--signal); outline-offset: 2px }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2) }
+  .row output { flex: none; font-size: 1.25rem }
+  [data-new] { justify-self: start }
+
+  table { width: 100%; max-width: 28rem; border-collapse: collapse; font-size: .9375rem }
+  caption { text-align: left; padding-bottom: var(--s2) }
+  th, td { padding: var(--s1) var(--s2); border-bottom: 1px dotted var(--rule); text-align: left; font-weight: 500 }
+  thead th { color: var(--ink-2); font-size: .8125rem }
+  td { font-family: var(--mono); white-space: nowrap }
+  td.na { font-family: inherit; color: var(--ink-2); white-space: normal }
+  .note { max-width: var(--read); font-size: .875rem; color: var(--ink-2) }
+  .ket, .tool-readout :global(.ket) { white-space: nowrap }
+
+  @media (min-width: 40rem) {
+    .views { grid-template-columns: minmax(0, 1fr) minmax(0, 17rem); column-gap: var(--s4) }
+    .views .map { grid-column: 2; grid-row: 1 / span 2 }
+    [data-view="Z"], [data-view="X"] { height: 10rem }
+    .panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--s5) }
+  }
+</style>

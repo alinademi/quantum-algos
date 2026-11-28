@@ -1,0 +1,62 @@
+---
+description: "What is the uncertainty principle? Some pairs of quantities never both have sharp values. Measure many qubit copies and test Robertson's bound."
+answer: "The uncertainty principle says some pairs of quantities, like position and momentum or a qubit's Z and X, never both give the same result every time, in any quantum state. In Robertson's form, for many copies of one state, the spread of A's results times the spread of B's results is at least half the absolute value of ⟨ψ|(AB − BA)|ψ⟩."
+myth:
+  claim: "The uncertainty principle means that measuring one thing disturbs the other."
+  truth: "Robertson's relation is about how results spread over many copies of one state, each copy measured once, for one quantity. Measurement can disturb a system, but that trade-off is a separate set of results."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import TwoSpreads from '../../components/tools/TwoSpreads.astro';
+
+<Depth level="kid">
+
+A short clap happens at one clear moment, but it has no clear pitch. A long whistle has a clear pitch, but no single moment. No sound has both.
+
+A qubit has a trade like that. Make many copies of a qubit, all started as 0. Ask some copies "up or down?" and others "left or right?". Each copy answers one question, once. "Up or down?" gets "up" every time. "Left or right?" gets left or right at random, about half each. Change the start: if one question gets nearly sure answers, the other one's answers must scatter. Quantum theory says no qubit state gives sure answers to both.
+
+Where the picture breaks: you hear a whole sound, but a qubit gives one answer per copy, so the scatter only shows over many copies. And no copy is asked twice, so this is not one question spoiling the next.
+
+</Depth>
+
+<Depth level="student">
+
+An [observable](/learn/observables/) like Z gives +1 for 0 and −1 for 1. Measure Z once on each of many copies of one state. The spread ΔZ is the standard deviation of the results around their [average](/learn/expectation-values/). Spread 0 is a sharp value: every copy gives the same result.
+
+Copies started as 0 give +1 every time in Z, so $\Delta Z = 0.$ Measure X on other copies: +1 and −1 come up half each, so $\Delta X = 1.$ No qubit state makes both spreads 0.
+
+Robertson's relation sets a floor: $\Delta A \times \Delta B \ge \tfrac{1}{2}\,|\langle AB - BA\rangle|.$ For Z and X, the [commutator](/learn/commutators/) ZX − XZ is 2iY, so $\Delta Z \times \Delta X \ge |\langle Y\rangle|.$ Take |+i⟩ = (|0⟩ + i|1⟩)/√2, made from 0 by a Hadamard gate, then an S gate, with [Bloch vector](/learn/bloch/) along Y. There $\langle Y\rangle = 1,$ so $\Delta Z \times \Delta X \ge 1.$ A ±1 result spreads at most 1, so both spreads are exactly 1.
+
+Each copy is measured once, so this is not one measurement disturbing the next. Measuring a copy does change it, but that is a different claim.
+
+</Depth>
+
+<Depth level="engineer">
+
+For an observable $A$ and a state $|\psi\rangle,$ the average is $\langle A\rangle = \langle\psi|A|\psi\rangle,$ and the uncertainty is the standard deviation of the results over many identically prepared copies:
+
+$$
+\Delta A = \sqrt{\langle A^2\rangle - \langle A\rangle^2}
+$$
+
+It is 0 exactly when $|\psi\rangle$ is an eigenstate of $A.$ Let $|f\rangle = (A - \langle A\rangle)|\psi\rangle$ and $|g\rangle = (B - \langle B\rangle)|\psi\rangle.$ Cauchy-Schwarz gives $\Delta A\,\Delta B \ge |\langle f|g\rangle| \ge |\mathrm{Im}\langle f|g\rangle|,$ and $\mathrm{Im}\langle f|g\rangle = \langle[A, B]\rangle/2i.$ That is Robertson's relation:
+
+$$
+\Delta A\,\Delta B \ge \tfrac{1}{2}\left|\langle[A, B]\rangle\right|
+$$
+
+If both spreads are 0, $|\psi\rangle$ is a common eigenvector, so $[A, B]|\psi\rangle = 0.$ For Paulis, $[Z, X] = 2iY$ and $Y$ has eigenvalues $\pm 1,$ so $[Z, X]$ sends no state to 0: $Z$ and $X$ are never both sharp. With Bloch vector $\vec r,$ $(\Delta Z)^2 = 1 - r_z^2,$ $(\Delta X)^2 = 1 - r_x^2,$ and
+
+$$
+\Delta Z\,\Delta X \ge |r_y|
+$$
+
+The bound depends on the state: 0 for $|0\rangle$ (where $\Delta Z = 0,$ $\Delta X = 1$), 1 for $|{+i}\rangle.$ Since $|\vec r| \le 1,$ every qubit state has $(\Delta Z)^2 + (\Delta X)^2 \ge 1.$ For position and momentum, $[x, p] = i\hbar$ gives $\Delta x\,\Delta p \ge \hbar/2$ in every state with finite spreads.
+
+The meaning is statistical: measure $A$ on some copies and $B$ on others, each copy once. It does not say that measuring $A$ on a copy disturbs $B$ for that copy. That disturbance is real: measuring $Z$ on $|{+}\rangle$ leaves $|0\rangle$ or $|1\rangle,$ so a later $X$ result is random. But it is a different claim. Does error times disturbance have a floor of $\hbar/2$? It depends on the definitions. With Ozawa's ([arXiv:quant-ph/0207121](https://arxiv.org/abs/quant-ph/0207121)), no: a position measurement can have zero error and finite momentum disturbance, so the product is 0. With Busch, Lahti and Werner's ([arXiv:1306.1565](https://arxiv.org/abs/1306.1565)), yes. Which fits Heisenberg's idea is still [debated](https://plato.stanford.edu/entries/qt-uncertainty/#ReceDebaErroDistRela). Either way, these are separate results from Robertson's.
+
+</Depth>
+
+<Lab title="Try to make both spreads small" intro="Set a state, then measure Z on one batch of fresh copies and X on another. Try to push both spreads to 0: the ring on the spread map never reaches the corner.">
+  <TwoSpreads />
+</Lab>
