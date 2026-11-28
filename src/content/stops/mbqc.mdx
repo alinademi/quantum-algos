@@ -1,5 +1,5 @@
 ---
-description: "Measurement-based quantum computation performs gates by measuring qubits of an entangled resource state and using classical feed-forward."
+description: "Perform a one- or two-step cluster computation and adjust the second measurement angle using the first outcome."
 answer: "Measurement-based quantum computation performs gates by measuring qubits of an entangled resource state and using classical feed-forward."
 myth:
   claim: "Measurements cannot implement any coherent gate because they destroy the measured qubit."
@@ -12,22 +12,24 @@ import { lab } from '../../lib/sims/mbqc.ts';
 
 <Depth level="kid">
 
-Make a connected piece of quantum material first. Asking questions of its parts moves the encoded information through it. Random answers tell you which correction to make.
+Imagine preparing a big group of linked quantum pieces before the calculation starts. You then ask each piece a carefully chosen question and discard the piece that you have measured. The stored quantum information moves through the group and changes along the way. The answers are random, but you can adjust the next question using the earlier answers so the desired change still happens. You can often keep track of the remaining corrections instead of doing them physically. A line of pieces can carry one logical state; a two-dimensional pattern can connect logical states to perform general calculations. The picture breaks because the links are quantum entanglement, not ordinary wires.
 
 </Depth>
 
 <Depth level="student">
 
-Entangle an input with a |+⟩ helper using CZ, then measure the input in an angled basis. The helper now carries a rotated input, possibly with an X correction. The input wire itself is consumed. Larger cluster-state patterns can implement universal circuits.
+Prepare an entangled cluster from |+⟩ states and CZ edges. Measuring the input in an angled basis transfers its rotated state to the next qubit, with a known X byproduct if the result m is 1. For a second step, an earlier X flips the next angle: use α or −α according to m. Track the final byproducts in a classical record; they need not be physically applied. This [feed-forward](/learn/mid-circuit/) is essential for general non-Clifford angles. A one-dimensional chain implements single-qubit gates, while a universal cluster construction uses a two-dimensional pattern to connect logical wires. [Stabilizers](/learn/stabilizer-states/) describe the ideal cluster resource.
 
 </Depth>
 
 <Depth level="engineer">
 
-For measurement basis $|\pm_\alpha\rangle=(|0\rangle\pm e^{i\alpha}|1\rangle)/\sqrt2$, the two-node cluster gives output $X^m H R_Z(-\alpha)|\psi\rangle$ up to global phase, with equiprobable outcomes m. Measuring via $R_Z(-\alpha)$ then H realizes this basis. Adaptive measurement angles and byproduct tracking enable universal computation on suitable cluster states ([Raussendorf and Briegel](https://doi.org/10.1103/PhysRevLett.86.5188)).
+For $|\pm_\alpha\rangle=(|0\rangle\pm e^{i\alpha}|1\rangle)/\sqrt2$, the two-site cluster yields $X^m H R_Z(-\alpha)|\psi\rangle$ up to global phase, with equiprobable m. Implement measurement by $R_Z(-\alpha)$, H and Z readout. In a two-step chain with intended angles α and β, choose the second angle $(-1)^m\beta$; then the output is $X^{m_2}Z^m H R_Z(-\beta)H R_Z(-\alpha)|\psi\rangle$ up to phase. Keep these known Pauli byproducts in a classical frame and adjust later measurement angles or final interpretation. The lab can remove them mathematically to compare the logical state, not claim physical correction is necessary. Linear chains implement one-qubit gates; universal cluster computation uses a two-dimensional resource with entangling patterns.
+
+The ideas used here build on [Entanglement](/learn/entanglement/), [Measurement](/learn/measurement/), [CNOT](/learn/cnot/).
 
 </Depth>
 
-<Lab title="Compute by measuring" intro="Choose the input and angle, then compare the two corrected or uncorrected measurement branches.">
+<Lab title="Compute by measuring" intro="Choose the input, angles and feed-forward, then compare the logical output in every measurement branch.">
   <GateLab id="mbqc" lab={lab} />
 </Lab>
