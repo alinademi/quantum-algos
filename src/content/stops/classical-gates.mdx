@@ -1,9 +1,9 @@
 ---
-description: "A classical logic gate computes an output bit from one or more input bits using a truth table."
+description: "Try five logic gates with two input bits, then rebuild them using NAND alone."
 answer: "A classical logic gate computes an output bit from one or more input bits using a truth table."
 myth:
   claim: "Every logic gate can be run backward."
-  truth: "AND and OR lose information about their inputs. NOT is reversible."
+  truth: "AND, OR, XOR and NAND lose input information if only their output is kept; NOT is reversible."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -12,19 +12,25 @@ import { lab } from '../../lib/sims/classical-gates.ts';
 
 <Depth level="kid">
 
-Imagine a lamp with two switches. An AND gate lights it only when both switches are on. An OR gate lights it when at least one is on. A NOT gate flips a single switch value.
+Picture two switches and a lamp. One rule lights the lamp only when both switches are on. Another lights it when at least one is on. A third lights it when the two switches disagree. You can also make a rule that flips a single switch's answer, and one that lights the lamp unless both switches are on.
+
+The last rule is special. Give it the same switch twice and it flips the answer. Combine several copies and you can build all the other rules, and any finite rule about bits. The picture breaks because real circuits work with voltages rather than little switches and lamps.
 
 </Depth>
 
 <Depth level="student">
 
-XOR outputs 1 when its two inputs differ. NAND is NOT AND. Every Boolean function can be built from NAND gates alone: NOT(a) = NAND(a,a), and AND is NAND followed by NOT. Try all four pairs in the lab.
+A [bit](/learn/binary/) is 0 or 1. NOT flips a bit. AND gives 1 only for 11. OR gives 1 for 01, 10 or 11. XOR gives 1 for 01 or 10. NAND is the opposite of AND, so it gives 0 only for 11.
+
+NAND alone can build every Boolean function. NOT(a) is NAND(a,a). AND(a,b) is NOT(NAND(a,b)). OR(a,b) is NAND(NOT(a),NOT(b)). Since NOT and AND can build every Boolean function, so can NAND. XOR needs four NAND operations in one common construction. Try the truth table, then follow the NAND steps for the same input.
 
 </Depth>
 
 <Depth level="engineer">
 
-For bits $a,b$, AND is $ab$, XOR is addition modulo 2, and OR is $a+b-ab$ using ordinary integer arithmetic. NAND is $1-ab$. NAND is functionally complete: NOT and AND are expressible with NAND, and these generate all Boolean functions. A usual Boolean gate may map several inputs to one output; a quantum gate must instead be a reversible linear map on its full register.
+For bits $a,b$, AND is $ab$, OR is $a+b-ab$, XOR is $(a+b)\bmod2$, and NAND is $1-ab$. NOT is $1-a$. NAND is functionally complete: NOT and AND can be expressed with NAND, and any truth table can be expressed as an OR of ANDs of literals (using NOT for negated inputs). By De Morgan's law OR can be built from NOT and AND.
+
+AND, OR, XOR and NAND map more than one input pair to the same output. They discard information if only their output is kept. NOT is a bijection. An ideal quantum gate must be a unitary map on its full input space, so irreversible Boolean operations need a reversible embedding, as in [Toffoli](/learn/toffoli/).
 
 </Depth>
 
