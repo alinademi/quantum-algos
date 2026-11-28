@@ -195,14 +195,14 @@ export function sumsText(rho: Matrix): string {
 /** What rho_A is, in words. */
 export function verdict(rhoA: Matrix): string {
   const q = num(purity(rhoA)), k = kind(rhoA);
-  if (k === 'fully') return `That is I/2, the fully mixed state: A alone gives 50/50 whichever way it is measured. Purity tr(ρ_A²) = ${q}, the least a qubit can have.`;
+  if (k === 'fully') return `That is I/2, the fully mixed state: a state of A, but not a pure one. A alone gives 50/50 in every basis. Purity tr(ρ_A²) = ${q}, the least a qubit can have.`;
   if (k === 'pure') {
     // A pure qubit has at most one sure test among these three (the Bloch vector points along at most one axis).
     const sure = TESTS.find((t) => oddsA(rhoA, t).some((p) => Math.abs(p - 1) < DUST));
     const then = sure ? ` The ${TEST_NAMES[sure]} test gives ${NAMES[sure][oddsA(rhoA, sure)[0] > 0.5 ? 0 : 1]} every time.` : '';
     return `That is a pure state: A has a state vector of its own, ${ketText(ownKet(rhoA))}, and the pair is a product. Purity tr(ρ_A²) = 1.${then}`;
   }
-  return `That is a mixed state: no measurement of A alone is sure. Purity tr(ρ_A²) = ${q}, below 1.`;
+  return `That is a mixed state: no basis test of A alone is sure. Purity tr(ρ_A²) = ${q}, below 1.`;
 }
 
 /** A's reduced state in one sentence: its diagonal, its off-diagonal entry and the verdict. */

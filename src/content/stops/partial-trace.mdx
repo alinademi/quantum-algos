@@ -3,7 +3,7 @@ description: "Trace out one qubit of a pair to get the state of the other. A Bel
 answer: "The partial trace turns the density matrix of a pair into one for a single part, ρ_A, which sets the odds of every measurement on that part alone. For half of a Bell pair it gives I/2, the fully mixed state."
 myth:
   claim: "If you know a whole system exactly, you know each part exactly."
-  truth: "Not always. A Bell pair is one exact state, yet each qubit alone is fully mixed: any test on it gives 50/50. What is known exactly is how the two results relate in every test, not what either part gives."
+  truth: "Not always. A Bell pair is one exact pure state, yet each qubit alone is in the mixed state I/2, with no pure state: a test in any basis gives 50/50. What is known exactly is the joint odds of the two parts, not what either part gives."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -11,9 +11,9 @@ import HalfPair from '../../components/tools/HalfPair.astro';
 
 <Depth level="kid">
 
-Start two qubits as 0. A Hadamard gate on the first, then a CNOT, makes a Bell pair: an entangled pair whose results always match, 00 or 11.
+Start two qubits as 0. A Hadamard gate on the first, then a CNOT, makes a Bell pair: an entangled pair whose 0/1 results always match, 00 or 11.
 
-Now ignore the second qubit and test only the first. Whatever test you pick, its two results come up with equal chance. A qubit with a state of its own always has some test that gives the same result every time. This one has none. We call it fully mixed: plain odds, and nothing is more unknown for a qubit.
+Now ignore the second qubit and test only the first. Pick any test with two results: they come up with equal chance. A qubit in a pure state always has some test that gives the same result every time. This one has none. We call it fully mixed: plain odds, and nothing is more unknown for a qubit.
 
 The rule for ignoring a qubit is the partial trace. It turns the description of the pair into a description of one part.
 
@@ -27,7 +27,7 @@ Start two qubits as 0. A Hadamard gate on the first, then a CNOT, makes the Bell
 
 Its density matrix is a 4 by 4 grid: each entry is the amplitude of a row's ket times that of a column's ket (in general the column's amplitude is complex-conjugated). Four entries are ½, for rows and columns 00 and 11. The rest are 0.
 
-To get the first qubit A alone, trace out B. Cut the grid into four 2 by 2 blocks and add the two diagonal entries of each block. Top left: ½ + 0 = ½. Bottom right: 0 + ½ = ½. The other two give 0. So A's grid is I/2, the fully mixed state: any test on A alone gives 50/50. The two ½ entries that link 00 and 11 sit off the diagonals of their blocks, so the trace drops them.
+To get the first qubit A alone, trace out B. Cut the grid into four 2 by 2 blocks and add the two diagonal entries of each block. Top left: ½ + 0 = ½. Bottom right: 0 + ½ = ½. The other two give 0. So A's grid is I/2, the fully mixed state. A has a state, but not a pure one: a test of A alone in any basis gives 50/50. The two ½ entries that link 00 and 11 sit off the diagonals of their blocks, so the trace drops them.
 
 Without the CNOT, A is |+⟩ and B is 0. A's grid is ½ in all four entries, and the +/− test gives + every time.
 
@@ -46,10 +46,10 @@ In the basis $|ab\rangle$, $(\rho_A)_{aa'} = \sum_b \langle ab|\rho_{AB}|a'b\ran
 Take $|\Phi^+\rangle = (|00\rangle + |11\rangle)/\sqrt2$. Since $\operatorname{tr}_B(|ab\rangle\langle a'b'|) = \delta_{bb'}\,|a\rangle\langle a'|$, the cross terms $|00\rangle\langle 11|$ and $|11\rangle\langle 00|$ vanish and
 
 $$
-\rho_A = \tfrac12\big(|0\rangle\langle 0| + |1\rangle\langle 1|\big) = I/2,
+\rho_A = \tfrac12\big(|0\rangle\langle 0| + |1\rangle\langle 1|\big) = I/2.
 $$
 
-with purity $\operatorname{tr}\rho_A^2 = \tfrac12$ while the pair has purity 1.
+This is a state of $A$, but not a pure one. Every two-outcome projective test on $A$ gives 50/50, while a three-outcome trine test gives $\tfrac13$ each and a one-outcome test gives 1. The purity is $\operatorname{tr}\rho_A^2 = \tfrac12$, while the pair has purity 1. The pair's state fixes the joint odds for every pair of tests on $A$ and $B$; for $|\Phi^+\rangle$ the 0/1 results always match, but not every pair of tests does.
 
 The tool's pair, started as $|00\rangle$, then $R_Y$ on $A$ with $\sin^2(\theta/2) = p$, then a CNOT, is $\sqrt{1-p}\,|00\rangle + \sqrt p\,|11\rangle$. It gives $\rho_A = \mathrm{diag}(1-p,\, p)$, pure only at $p = 0$ or $1$. Without the CNOT, $\rho_A$ is pure.
 

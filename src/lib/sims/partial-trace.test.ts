@@ -441,7 +441,10 @@ test('sumText and sumsText show the sum each entry of rho_A is made from', () =>
 test('verdict: fully mixed, pure with a sure test, pure with none, mixed', () => {
   const v = (p: number, l: boolean) => pt.verdict(pt.reducedA(pt.pair(p, l)));
   assert.match(v(0.5, true), /I\/2, the fully mixed state/);
-  assert.match(v(0.5, true), /50\/50 whichever way/);
+  assert.match(v(0.5, true), /a state of A, but not a pure one/);
+  assert.match(v(0.5, true), /50\/50 in every basis/);
+  assert.doesNotMatch(v(0.5, true), /no state|whichever way/);
+  assert.match(v(0.3, true), /no basis test of A alone is sure/);
   assert.match(v(0.5, true), /0\.5/);
   assert.match(v(0.5, false), /pure state/);
   assert.match(v(0.5, false), /The \+\/− test gives \+ every time/);
@@ -503,4 +506,33 @@ test('sorted by B\'s 0/1 result, A of the Bell pair is |0> or |1>; averaged over
   }
   closeM(avg, pt.reducedA(s));
   closeM(avg, half);
+});
+
+test('half a Bell pair is I/2: a state, not a pure one; 50/50 for every two-outcome projective test, but not for a trine or a one-outcome test', () => {
+  const rhoA = pt.reducedA(pt.pair(0.5, true));
+  closeM(rhoA, half);
+  assert.equal(pt.kind(rhoA), 'fully');
+  close(pt.purity(rhoA), 0.5);
+  // Two-outcome projective tests along many real and complex directions: chance of the first result is 1/2.
+  for (let k = 0; k < 40; k++) {
+    const u = q.fromBloch(0.1 + 0.07 * k, 0.31 * k);
+    close(pt.chance(rhoA, u), 0.5);
+  }
+  // A trine (three outcomes, elements (2/3)|v><v| at 120 degrees on the Bloch circle): 1/3 each, so not 50/50.
+  const trine = [0, 1, 2].map((j) => q.fromBloch((2 * Math.PI * j) / 3, 0));
+  const odds = trine.map((v) => (2 / 3) * pt.chance(rhoA, v));
+  odds.forEach((x) => close(x, 1 / 3));
+  close(sum(odds), 1);
+  // The three elements (2/3)|v><v| add to the identity.
+  const elems = trine.map((v) => v.map((x) => v.map((y) => q.scale(q.mul(x, q.conj(y)), 2 / 3))));
+  closeM(elems.reduce((acc, m) => acc.map((row, i) => row.map((x, j) => q.add(x, m[i][j])))), q.I);
+  // A one-outcome test (the identity) gives 1.
+  close(tr(rhoA).re, 1);
+  // The pair's joint odds are fixed, but not every pair of tests matches: Phi+ always matches in 0/1 and +/-, and never in +i/-i.
+  const s = pt.pair(0.5, true);
+  const match = (t: pt.Test) => {
+    const [u0, u1] = pt.kets(t);
+    return [[u0, u0], [u1, u1]].reduce((tot, [a, b]) => tot + q.abs2(q.inner(q.tensor(a, b), s)), 0);
+  };
+  close(match('z'), 1); close(match('x'), 1); close(match('y'), 0);
 });
