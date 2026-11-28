@@ -73,7 +73,7 @@ const presets = [[0, 'Quantum pair |00⟩, or a coin that always picks |00⟩'],
   </dl>
 
   <p class="tool-readout" aria-live="polite">{readout('quantum', p, none, none)}</p>
-  <p class="note">A simulation of ideal, noise-free qubits. Each result is a Born rule draw from your browser's random numbers. A coin pair first flips a coin to pick |00⟩ or |11⟩, then measures the state it picked. The tool makes only these pairs: quantum pairs √(1−p)|00⟩ + √p|11⟩ with real, non-negative amplitudes, and coin pairs over |00⟩ and |11⟩. Other entangled pairs, like (|01⟩ + |10⟩)/√2, can score 150% or less, so a Born rule score over 150% proves entanglement but a lower one proves nothing. Changing the pair clears both panels.</p>
+  <p class="note">A simulation of ideal, noise-free qubits. Each result is a Born rule draw from your browser's random numbers. A coin pair first flips a coin to pick |00⟩ or |11⟩, then measures the state it picked. The tool makes only these pairs: quantum pairs √(1−p)|00⟩ + √p|11⟩ with real, non-negative amplitudes, and coin pairs over |00⟩ and |11⟩. Other entangled pairs, like (|01⟩ + |10⟩)/√2, can score 150% or less, so a Born rule score over 150% proves entanglement but a lower one proves nothing. The score also trusts that both tests measure the qubits as described; a Bell test needs no such trust. Changing the pair clears both panels.</p>
 </qce-linked-pairs>
 
 <script>
