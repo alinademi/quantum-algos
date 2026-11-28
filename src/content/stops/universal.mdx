@@ -13,7 +13,7 @@ import { lab } from '../../lib/sims/universal.ts';
 
 <Depth level="kid">
 
-Imagine building machines from a box of parts. With parts that can turn by any angle and a part that connects two moving pieces, you can reproduce any allowed transformation of a finite collection of pieces. What if your box contains only a few fixed parts? You cannot reproduce every turn exactly, but a well-chosen box lets you get as close as you need. More parts give you more choices of approximations. This is the difference between exact and approximate universality. The picture breaks because the pieces are rules for changing quantum amplitudes, and some transformations need enormously many rules even when the box is universal.
+Imagine building machines from a box of parts. With parts that can turn by any angle and a part that connects two moving pieces, you can reproduce any allowed transformation of a finite collection of pieces. What if your box contains only a few fixed parts? You cannot reproduce every turn exactly, but a well-chosen box lets you get as close as you need. More parts give you more choices of approximations. This is the difference between exact and approximate universality. The picture breaks because the parts are gates that change quantum amplitudes, and some transformations need enormously many rules even when the box is universal.
 
 </Depth>
 
@@ -25,9 +25,9 @@ Arbitrary [one-qubit rotations](/learn/rotations/) plus [CNOT](/learn/cnot/) bui
 
 <Depth level="engineer">
 
-Single-qubit gates plus CNOT can synthesize any finite-dimensional qubit unitary up to global phase ([Barenco et al.](https://arxiv.org/abs/quant-ph/9503016)). H, T and CNOT generate a dense family up to global phase. One example is $R_Y(\pi/2)R_Z(\pi)=-iH$; another is CZ from conjugating CNOT by H on the target. Universality does not promise short circuits for every unitary.
+Single-qubit gates plus CNOT can synthesize any finite-dimensional qubit unitary up to global phase ([Barenco et al.](https://arxiv.org/abs/quant-ph/9503016)). H, T and CNOT generate a dense family up to global phase. One example is $R_Y(\pi/2)R_Z(\pi)=-iH$; another is CZ from conjugating CNOT by H on the target. For a circuit of m ideal unitaries, replace each by a unitary within operator-norm error $\epsilon/m$ after aligning its global phase. A telescoping expansion of the product, using unitary norm 1, bounds the total error by ε. [Solovay-Kitaev](/learn/solovay-kitaev/) gives polylogarithmic overhead in inverse precision for a suitable inverse-closed dense set at fixed dimension. Universality does not guarantee short circuits: almost all n-qubit unitaries require exponentially many one- and two-qubit gates for exact synthesis, by the parameter count in [decomposition](/learn/decomposition/).
 
-The ideas used here build on [Phase gates](/learn/phase-gates/).
+The T [phase gate](/learn/phase-gates/) supplies the extra non-Clifford rotation.
 
 </Depth>
 
