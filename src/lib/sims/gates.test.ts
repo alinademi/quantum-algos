@@ -4,7 +4,7 @@ import * as g from './gate-lab.ts';
 import { unitaryError } from './gates.ts';
 
 import { checkLabs, close, state, matrix, phase } from './gate-lab-checks.ts';
-const {last}=await checkLabs(['pauli', 'gates']);
+const {run,last}=await checkLabs(['pauli', 'gates']);
 test('unitary gates and Paulis: adjoint reverses, Y signs, and XY=iZ',()=>{
  for(const m of Object.values(g.G))close(unitaryError(m),0);
  close(unitaryError([[q.c(1),q.c(0)],[q.c(0),q.c(2)]]),3);
@@ -13,3 +13,5 @@ test('unitary gates and Paulis: adjoint reverses, Y signs, and XY=iZ',()=>{
  matrix(q.matMul(q.X,q.Y),phase(q.Z,Math.PI/2));
  for(const axis of ['X','Y','Z'])state(last('pauli',{start:'+i',axis}).state!,g.ket('+i'));
 });
+
+test('H distinguishes states with identical initial odds; adjoint restores the actual complex state',()=>{for(const [start,wanted] of [['+',0],['−',1]] as const){const s=run('gates',{start,gate:'H'});q.probs(s[0].state!).forEach(p=>close(p,.5));state(s[1].state!,q.basis(1,wanted));}for(const start of g.kets)for(const gate of ['X','H','Z','S','T','Y'])state(last('gates',{start,gate}).state!,g.ket(start));});
