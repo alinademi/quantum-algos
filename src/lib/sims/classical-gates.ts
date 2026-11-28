@@ -23,8 +23,8 @@ export const viaNand=(name:string,a:number,b:number)=>nandTrace(name,a,b).out;
 export const lab: Lab = {
   controls: [choice('gate','Logic gate',['NOT','AND','OR','XOR','NAND']), choice('a','Input A',['0','1']), choice('b','Input B',['0','1'],v=>v.gate!=='NOT')],
   run: ({gate,a,b}) => [
-    details('Truth table','The output for each possible input; the selected inputs are shown in the next step.', ['00','01','10','11'].map(s=>row(s,boolean(gate,+s[0],+s[1])))),
-    details('Selected inputs','Each gate gives one deterministic classical bit.',[row('A',a),row('B',b),row(gate,boolean(gate,+a,+b))]),
+    details('Truth table','The output for each possible input; the selected inputs are shown in the next step.', (gate==='NOT'?['0','1']:['00','01','10','11']).map(s=>row(s,boolean(gate,+s[0],+(s[1]??'0'))))),
+    details('Selected inputs','Each gate gives one deterministic classical bit.',[row('A',a),...(gate==='NOT'?[]:[row('B',b)]),row(gate,boolean(gate,+a,+b))]),
     details('NAND only','The same result, calculated using only NAND gates in order.',[...nandTrace(gate,+a,+b).trace.map((t,i)=>row('Gate '+(i+1),'NAND('+t.a+', '+t.b+') = '+t.out)),row('Output',viaNand(gate,+a,+b))])
   ],
 };
