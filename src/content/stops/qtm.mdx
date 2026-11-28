@@ -1,5 +1,5 @@
 ---
-description: "A quantum Turing machine is a quantum model of computation with a tape, head and internal state evolving by a suitable unitary transition rule."
+description: "Explore a finite quantum tape-head model and learn how quantum Turing machines relate to circuit computation."
 answer: "A quantum Turing machine is a quantum model of computation with a tape, head and internal state evolving by a suitable unitary transition rule."
 myth:
   claim: "A quantum Turing machine reads every tape position simultaneously and returns all answers."
@@ -12,13 +12,13 @@ import { lab } from '../../lib/sims/qtm.ts';
 
 <Depth level="kid">
 
-Imagine a tape reader that may move left or right in superposition. Instead of choosing one path immediately, its possible paths can interfere.
+Imagine a long strip of squares, each holding a symbol, and a reader that can move one square left or right. A rule tells the reader how to change its own setting, what to write and where to move next. In the quantum version, the state has wave amplitudes for different possible arrangements of the strip and reader. Later operations can make contributions reinforce or cancel. This was an early formal model of a universal quantum computer; it has the same computational power as the circuit model when resources are compared fairly. Our tiny four-position ring illustrates only motion, not an entire machine. Real models must preserve the quantum evolution of the entire tape.
 
 </Depth>
 
 <Depth level="student">
 
-A quantum configuration specifies the internal state, head position and tape symbols. Transition amplitudes can coherently connect configurations. The lab simplifies this to a head on a four-position ring with a two-state direction register and fixed tape symbols. It is a quantum walk, not a universal Turing machine.
+Deutsch's 1985 paper introduced a universal quantum Turing machine, an early formal universal quantum computer model. A configuration specifies the internal state, head position and tape symbols. Transition amplitudes link configurations according to a unitary rule. The lab fixes the tape symbols and uses a head moving on a four-position ring, with a two-state direction control. This is a quantum walk, not a universal machine. Properly defined QTMs and uniform [universal circuits](/learn/universal/) simulate each other with polynomial overhead in standard models, meaning their [asymptotic](/learn/big-o/) computational power agrees. Measuring the head still yields just one position per run.
 
 </Depth>
 
