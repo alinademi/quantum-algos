@@ -1,5 +1,5 @@
 ---
-description: "The four Bell states form an orthonormal basis of maximally entangled two-qubit states. H and CNOT can prepare and decode them."
+description: "Prepare and decode all four Bell states, then compare which outcomes their amplitudes allow."
 answer: "The four Bell states form an orthonormal basis of maximally entangled two-qubit states. H and CNOT can prepare and decode them."
 myth:
   claim: "The two bits in a Bell state always have the same outcome in every basis."
@@ -12,13 +12,17 @@ import { lab } from '../../lib/sims/bell-states.ts';
 
 <Depth level="kid">
 
-Prepare a pair of qubits with linked outcomes. You cannot tell which answer one qubit will give by itself, but the pair has a well-defined joint state.
+Picture two special dice made together. Each die by itself has unpredictable answers, but the pair can have a reliable pattern. In one case the two answers always agree. In another they always disagree. There are two quantum versions of each pattern, distinguished by the way their waves will add or cancel if you run the preparation backwards before reading them.
+
+This gives four different ways to link two ideal qubits. The dice picture breaks because ordinary dice could carry hidden instructions for every possible question. A Bell state is an entangled joint quantum state, and measuring each die separately in just one way cannot tell all four states apart.
 
 </Depth>
 
 <Depth level="student">
 
-Apply H on the first bit then CNOT. Starting with each of 00, 01, 10 and 11 makes a different Bell state. Reverse the preparation to tell all four apart in a Bell-basis measurement.
+The four Bell states are entangled two-qubit states made using H on the first qubit and [CNOT](/learn/cnot/). Started as 00, there are equal amplitudes for 00 and 11, so a measurement gives either with equal chance, never 01 or 10. Started as 10, the 11 amplitude has the opposite sign. Started as 01 or 11, the nonzero amplitudes are for 01 and 10, with plus or minus signs.
+
+The four states form a basis. Reverse the preparation, CNOT then [H](/learn/hadamard/), and measure both wires: each Bell state gives its distinct original label with certainty. This is a Bell-basis measurement.
 
 </Depth>
 
@@ -26,8 +30,10 @@ Apply H on the first bit then CNOT. Starting with each of 00, 01, 10 and 11 make
 
 For input $|a,b\rangle$, the circuit produces $(|0,b\rangle+(-1)^a|1,1\oplus b\rangle)/\sqrt2$. These are $\Phi^\pm$ for $b=0$, $\Psi^\pm$ for $b=1$. Each partial trace is $I/2$. The inverse, CNOT then H, maps the Bell basis to the computational basis. Merely measuring in Z cannot distinguish the two signs.
 
+The ideas used here build on [Entanglement](/learn/entanglement/).
+
 </Depth>
 
-<Lab title="Prepare and decode the Bell basis" intro="Select the two input bits and watch the entangled state appear, then optionally decode it.">
+<Lab title="Prepare and decode the Bell basis" intro="Choose a two-bit label and step through the preparation or its inverse to see the amplitudes.">
   <GateLab id="bell-states" lab={lab} />
 </Lab>
