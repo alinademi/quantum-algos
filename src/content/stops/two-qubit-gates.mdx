@@ -1,5 +1,5 @@
 ---
-description: "Two-qubit gate families include exchange, interaction rotations, controlled gates and hardware-inspired entanglers."
+description: "Try exchange and interaction gates used to build real quantum processors, and undo their ideal actions."
 answer: "Two-qubit gate families include exchange, interaction rotations, controlled gates and hardware-inspired entanglers."
 myth:
   claim: "Any two-qubit gate entangles every input."
@@ -12,19 +12,27 @@ import { lab } from '../../lib/sims/two-qubit-gates.ts';
 
 <Depth level="kid">
 
-Two qubits can exchange places, exchange parts of their waves or pick up phases together. These operations are not all the same.
+Imagine two musical instruments coupled by a string. You can exchange their notes, partially share their waves, or change how their waves line up without exchanging the notes. Different machines make different interactions easier: one can exchange states directly, another can make the timing of two states depend on their combination.
+
+Ideal quantum gates describe a family of these interactions. Some exchange the full states, some exchange only part of an amplitude, and some change joint phases. The picture breaks because the two instruments have ordinary waves. Quantum amplitudes describe the joint measurements of two qubits, and the interactions can make states that cannot be described separately.
 
 </Depth>
 
 <Depth level="student">
 
-iSWAP exchanges 01 and 10 and attaches i. Square-root SWAP squares to SWAP. XX and ZZ rotations act through products of Pauli operators. fSim mixes 01 and 10 and adds a phase to 11.
+There are several two-qubit gate families. iSWAP exchanges 01 and 10 and attaches i. √SWAP is a partial exchange that squares to SWAP. RXX and RZZ are interaction rotations; RZZ changes phases and can entangle a |++⟩ input. fSim puts 01 into a superposition of 01 and 10, and adds a phase to 11. Here MS(θ) uses the RXX(θ) convention, with the usual maximally entangling MS at 90°. ECR is an echoed cross-resonance entangler.
+
+Different hardware makes different interactions natural: trapped ions use MS-like gates, cross-resonance superconducting devices use ECR, and tunable couplers support exchange and fSim-like operations. The lab models ideal matrices, not actual pulse errors.
 
 </Depth>
 
 <Depth level="engineer">
 
-Use the ordered basis 00, 01, 10, 11. $R_{PP}(\theta)=e^{-i\theta P\otimes P/2}$; the lab uses the two-qubit XX convention for MS. fSim has the odd-parity block $\begin{pmatrix}\cos\theta&-i\sin\theta\\-i\sin\theta&\cos\theta\end{pmatrix}$, diagonal entries 1 and $e^{-i\phi}$ on 00 and 11. ECR uses the IBM [ECRGate convention](https://quantum.cloud.ibm.com/docs/en/api/qiskit/qiskit.circuit.library.ECRGate) reordered to q0-first. Physical implementations may differ in phases and pulse conventions.
+In basis order 00, 01, 10, 11, iSWAP sends 01 to $i|10\rangle$ and 10 to $i|01\rangle$. For √SWAP the symmetric subspace has eigenvalue 1 and antisymmetric eigenvalue i; squaring gives SWAP. $R_{PP}(\theta)=e^{-i\theta P\otimes P/2}$, with $P=X,Z$. Here MS(θ)=RXX(θ); physical phase conventions vary.
+
+The fSim odd-parity block has rows $(\cos\theta,-i\sin\theta)$ and $(-i\sin\theta,\cos\theta)$, with diagonal factors 1 on 00 and $e^{-i\phi}$ on 11. ECR uses IBM's [matrix convention](https://quantum.cloud.ibm.com/docs/en/api/qiskit/qiskit.circuit.library.ECRGate), reordered to q0-first. See [Krantz et al.](https://arxiv.org/abs/1904.06560), section IV, for exchange and cross-resonance interactions. MS is used in trapped-ion systems; exact native implementations depend on hardware. Not every input is entangled by each gate.
+
+The ideas used here build on [Controlled gates](/learn/controlled-gates/), [Toffoli and SWAP](/learn/toffoli/).
 
 </Depth>
 
