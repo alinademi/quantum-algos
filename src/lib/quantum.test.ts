@@ -89,3 +89,10 @@ test('draw never returns a zero-chance outcome, even when chances sum a hair und
   assert.equal(q.draw([0, 1], () => 0), 1);
   for (let k = 0; k < 2000; k++) assert.notEqual(q.draw([0.3, 0, 0.7 - 1e-13], Math.random), 1);
 });
+
+test('measureQubit never picks a branch with no amplitude, even when the norm is a hair under 1', () => {
+  const s = q.normalize([q.c(0), q.c(0), q.c(1), q.c(1)]);
+  for (const u of [0, 0.5, 1 - Number.EPSILON / 2]) assert.equal(q.measureQubit(s, 0, () => u).result, 1);
+  assert.equal(q.measureQubit(q.basis(2, 0), 0, () => 1 - Number.EPSILON / 2).result, 0);
+  assert.throws(() => q.measureQubit([q.c(0), q.c(0)], 0, () => 0.5));
+});

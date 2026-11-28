@@ -91,7 +91,11 @@ export const probOne = (s: State, q: number, n = Math.log2(s.length)) => s.reduc
 
 /** Measure qubit q: returns the result and the state after it (collapsed and renormalized). */
 export function measureQubit(s: State, q: number, rand: () => number, n = Math.log2(s.length)): { result: 0 | 1; state: State } {
-  const result = rand() < probOne(s, q, n) ? 1 : 0;
+  // Sum each branch on its own: a branch with no amplitude has chance exactly 0 and is never picked.
+  const p1 = probOne(s, q, n), p0 = s.reduce((t, a, i) => t + (bit(i, q, n) ? 0 : abs2(a)), 0);
+  if (!(p0 + p1 > 0)) throw new Error('measureQubit: zero state');
+  const u = rand();
+  const result = p1 === 0 ? 0 : p0 === 0 ? 1 : u * (p0 + p1) < p1 ? 1 : 0;
   return { result, state: normalize(s.map((a, i) => (bit(i, q, n) === result ? a : c(0)))) };
 }
 
