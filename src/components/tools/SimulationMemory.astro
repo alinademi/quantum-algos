@@ -4,26 +4,27 @@ import { lab } from '../../lib/sims/classical-simulation.ts';
 <qce-simulation-memory class="tool">
   <div class="tool-controls">
     {lab.controls.map(c=><label>{c.key==='shape'?'State pattern':c.label}<select data-key={c.key}>{c.options.map(o=><option value={o.value}>{o.label}</option>)}</select></label>)}
+    <label>Measure four qubits in <select data-basis><option>Z</option><option>X</option></select></label>
     <button class="btn btn-sm" type="button" data-run>Sample four qubits</button>
   </div>
   <div class="comparison">
     <p>Calculated storage, log₂(bytes) scale (not measured)</p>
     <p>Dense <span data-dense></span></p><div class="track"><i data-dense-bar></i></div>
     <p>Matrix product <span data-mps></span></p><div class="track"><i data-mps-bar></i></div>
-    <p data-stabilizer></p>
+    <p data-stabilizer></p><div class="track" data-generator-track><i data-generator-bar></i></div>
   </div>
   <canvas aria-hidden="true"></canvas>
   <p class="tool-readout" aria-live="polite"></p>
-  <p class="note">Dense and MPS storage use 16 bytes per complex slot, including zeros, with no overhead. Bond dimensions assume fixed wire order. Each dot is one fresh measurement of the four-qubit example, not the large state.</p>
+  <p class="note">Dense and MPS storage use 16 bytes per complex slot, including zeros, with no overhead. Bond dimensions assume the chosen wire order. Generator storage packs 2 bits per Pauli letter plus a sign per rule; it is not full simulator RAM. MPS can need more slots than a dense vector. Each dot is one fresh measurement of the four-qubit example, not the large state.</p>
 </qce-simulation-memory>
 <script>
-  import { memory,demonstration } from '../../lib/sims/classical-simulation.ts';
+  import { memory,sampleState } from '../../lib/sims/classical-simulation.ts';
   import { probs,sample } from '../../lib/quantum.ts';
   import { fit,palette,dot,pct,onResize,onTheme,onSeen } from '../../lib/draw.ts';
   class SimulationMemory extends HTMLElement {
     connectedCallback(){
       const $=<T extends Element>(s:string)=>this.querySelector<T>(s)!;
-      const canvas=$<HTMLCanvasElement>('canvas'),n=$<HTMLSelectElement>('[data-key=n]'),shape=$<HTMLSelectElement>('[data-key=shape]');
+      const canvas=$<HTMLCanvasElement>('canvas'),n=$<HTMLSelectElement>('[data-key=n]'),shape=$<HTMLSelectElement>('[data-key=shape]'),basis=$<HTMLSelectElement>('[data-basis]');
       let p:number[]=[],counts:number[]=[],seen=true;
       const draw=()=>{
         if(!seen||!counts.length)return;
@@ -41,12 +42,14 @@ import { lab } from '../../lib/sims/classical-simulation.ts';
         $('[data-mps]').textContent=m.mps.toLocaleString('en-US')+' bytes';
         $<HTMLElement>('[data-dense-bar]').style.width=Math.log2(Number(m.dense))/56*100+'%';
         $<HTMLElement>('[data-mps-bar]').style.width=Math.log2(Number(m.mps))/56*100+'%';
-        $('[data-stabilizer]').textContent=m.stabilizer?'Stabilizer description: '+n.value+' generators.':'Not a stabilizer state; MPS still has bond dimension 1.';
-        p=probs(demonstration(shape.value).at(-1)!.state!);counts=sample(p,100,Math.random);
-        $('.tool-readout').textContent='Started as |0000⟩, prepared '+shape.value+'. '+n.value+'-qubit calculated middle bond dimension '+m.bond+'; 100 four-qubit shots: '+counts.map((v,i)=>p[i]>1e-12?i.toString(2).padStart(4,'0')+' '+v+' (ideal '+pct(p[i])+')':'').filter(Boolean).join('; ')+'.';
+        $('[data-stabilizer]').textContent=m.stabilizer?'Stabilizer generator payload: '+m.generatorBytes+' bytes for '+n.value+' rules.':'Not a stabilizer state; MPS still has bond dimension 1.';
+        $<HTMLElement>('[data-generator-track]').hidden=!m.stabilizer;
+        $<HTMLElement>('[data-generator-bar]').style.width=Math.log2(m.generatorBytes)/56*100+'%';
+        p=probs(sampleState(shape.value,basis.value));counts=sample(p,100,Math.random);
+        $('.tool-readout').textContent='Started as |0000⟩, prepared '+shape.value+'. '+n.value+'-qubit calculated middle bond dimension '+m.bond+'; 100 four-qubit shots in '+basis.value+' (0/1 label the two eigenvalues): '+counts.map((v,i)=>p[i]>1e-12?i.toString(2).padStart(4,'0')+' '+v+' (ideal '+pct(p[i])+')':'').filter(Boolean).join('; ')+'.';
         draw();
       };
-      n.addEventListener('change',update);shape.addEventListener('change',update);$('[data-run]').addEventListener('click',update);
+      n.addEventListener('change',update);shape.addEventListener('change',update);basis.addEventListener('change',update);$('[data-run]').addEventListener('click',update);
       onResize(this,draw);onTheme(draw);onSeen(this,v=>{seen=v;if(v)draw();});update();
     }
   }

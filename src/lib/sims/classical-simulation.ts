@@ -1,16 +1,17 @@
-import { choice,details,row,product,gate,cx,sequence,type Lab } from './gate-lab.ts';
+import { choice,details,row,product,gate,cx,sequence,runOps,type Lab } from './gate-lab.ts';
 export const storage=(n:number)=>16n*2n**BigInt(n);
 // Open-boundary matrix-product states; count rectangular tensor slots, including zeros.
-export const shapes=['Product','GHZ','Crossed Bell pairs','T product'];
+export const shapes=['Product','GHZ','Crossed Bell pairs','Neighbor Bell pairs','T product'];
 export function bondDimension(n:number,k:number,shape:string){
  if(k===0||k===n||shape==='Product'||shape==='T product')return 1;
- return shape==='GHZ'?2:2**Math.min(k,n-k);
+ return shape==='GHZ'?2:shape==='Neighbor Bell pairs'?(k%2?2:1):2**Math.min(k,n-k);
 }
 export const mpsSlots=(n:number,shape:string)=>Array.from({length:n},(_,k)=>2*bondDimension(n,k,shape)*bondDimension(n,k+1,shape)).reduce((a,b)=>a+b,0);
 export const demonstration=(shape:string)=>sequence(product('0','0','0','0'),
- shape==='GHZ'?[gate('H'),cx(0,1),cx(1,2),cx(2,3)]:shape==='Crossed Bell pairs'?[gate('H'),gate('H',1),cx(0,2),cx(1,3)]:Array.from({length:4},(_,i)=>shape==='T product'?[gate('H',i),gate('T',i)]:[gate('H',i)]).flat(),
+ shape==='GHZ'?[gate('H'),cx(0,1),cx(1,2),cx(2,3)]:shape==='Crossed Bell pairs'?[gate('H'),gate('H',1),cx(0,2),cx(1,3)]:shape==='Neighbor Bell pairs'?[gate('H'),cx(0,1),gate('H',2),cx(2,3)]:Array.from({length:4},(_,i)=>shape==='T product'?[gate('H',i),gate('T',i)]:[gate('H',i)]).flat(),
  'The four-qubit example uses the same state pattern; memory is calculated for the selected qubit count.');
-export function memory(n:number,shape:string){return {dense:storage(n),mps:16n*BigInt(mpsSlots(n,shape)),bond:bondDimension(n,Math.floor(n/2),shape),stabilizer:shape!=='T product'};}
+export function memory(n:number,shape:string){return {dense:storage(n),mps:16n*BigInt(mpsSlots(n,shape)),bond:bondDimension(n,Math.floor(n/2),shape),stabilizer:shape!=='T product',generatorBytes:Math.ceil(n*(2*n+1)/8)};}
+export function sampleState(shape:string,basis:string){const s=demonstration(shape).at(-1)!.state!;return basis==='X'?runOps(s,Array.from({length:4},(_,i)=>gate('H',i))):s;}
 
 export const lab:Lab={
  controls:[choice('n','Number of qubits',['10','20','30','40','50']),choice('shape','Example on four qubits',shapes)],
