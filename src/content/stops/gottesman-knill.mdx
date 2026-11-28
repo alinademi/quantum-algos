@@ -20,9 +20,9 @@ Some quantum experiments work like that. A normal computer can predict their ans
 
 <Depth level="student">
 
-A circuit made of Clifford gates, starting in a [stabilizer state](/learn/stabilizer-states/), can be sampled efficiently on a normal computer. This is the Gottesman–Knill theorem. Update the short list of signed Pauli rules after each gate. To measure an observable Q, check whether +Q or −Q is a rule obtained by multiplying the generators. The respective expectations are +1 and −1: the answer is certain. Otherwise the expectation is zero, giving each sign with equal chance.
+A circuit made of Clifford gates, starting in a [stabilizer state](/learn/stabilizer-states/), can be sampled efficiently on a normal computer. This is the Gottesman–Knill theorem. Update the short list of signed Pauli rules after each gate. To measure an observable Q, check whether +Q or −Q is a rule obtained by multiplying the rules together. The respective expectations are +1 and −1: the answer is certain. Otherwise the expectation is zero, giving each sign with equal chance.
 
-The lab computes these odds without allocating a state vector, even for 64 qubits. Adding T supplies a universal set, and the theorem no longer guarantees efficient simulation.
+For 64 qubits, store 64 rules of 128 bits each plus signs rather than 2⁶⁴ complex amplitudes. Adding T supplies a universal set, and the theorem no longer guarantees efficient simulation.
 
 </Depth>
 
@@ -30,7 +30,7 @@ The lab computes these odds without allocating a state vector, even for 64 qubit
 
 A pure stabilizer state has $n$ independent signed Pauli generators, whose products form $S$. Represent them by binary X and Z components and signs. Clifford conjugation updates these in polynomial time, and Pauli measurements update the generators and can feed classical results forward. For Hermitian Pauli Q, the expectation is $+1$ if $Q\in S$, $-1$ if $-Q\in S$, and zero otherwise. The odds of $+1$ and $-1$ are $(1+E)/2$ and $(1-E)/2$.
 
-The lab uses binary elimination with sign tracking to test group membership before a single selected measurement. It illustrates the [classical simulation](/learn/classical-simulation/) theorem, not a full dynamic simulator. Adding T to [Clifford gates](/learn/clifford-group/) gives an approximately [universal set](/learn/universal/); Gottesman–Knill no longer covers arbitrary such circuits (some remain easy). See [binary arithmetic](/learn/gf2/) and [Aaronson and Gottesman](https://arxiv.org/abs/quant-ph/0406196).
+The lab uses binary elimination with sign tracking to test group membership before a single selected measurement. It illustrates the [classical simulation](/learn/classical-simulation/) of stabilizer circuits, not a full dynamic simulator. Adding T to [Clifford gates](/learn/clifford-group/) gives an approximately [universal set](/learn/universal/); Gottesman–Knill no longer covers arbitrary such circuits (some remain easy). See [binary arithmetic](/learn/gf2/) and [Aaronson and Gottesman](https://arxiv.org/abs/quant-ph/0406196).
 
 </Depth>
 

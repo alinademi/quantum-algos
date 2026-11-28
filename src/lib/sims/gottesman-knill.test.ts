@@ -17,3 +17,5 @@ test('signed expectations and the lab agree for all three cases',()=>{
  const d=lab.run({...defaults(lab),state:'Signed example',query:'Z on first'}).at(-1)!.distribution!;
  assert.deepEqual(d.p,[0,1]);
 });
+
+test('all preparation readouts name the actual input and prepared state',()=>{for(const state of ['GHZ','Product plus','Signed example']){const steps=lab.run({...defaults(lab),n:'64',state});for(const step of steps){assert.equal(step.start,'|0⟩^64');assert.match(step.note,/Started as/);assert.ok(step.rows!.some(r=>r.label==='Prepared state'&&r.value.length>0));}}});
