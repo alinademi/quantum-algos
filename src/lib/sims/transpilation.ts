@@ -22,7 +22,7 @@ export const lab:Lab={
   const initial=['0','0','0']; initial[placement[0]]=v.start;
   const sites=placement.map((_,site)=>placement.indexOf(site));
   const initialMap=sites.map((q,site)=>'site '+site+' holds logical q'+q).join('; ');
-  const routedSteps=sequence(product(...initial),routed,'SWAPs restore the chosen layout.','physical sites |'+initial.join('⟩ |')+'⟩; '+initialMap);
+  const routedSteps=sequence(product(...initial),routed,routed.at(-1)?.name==='SWAP'?'SWAPs restore the chosen layout.':'Routing is complete in the chosen layout.','physical sites |'+initial.join('⟩ |')+'⟩; '+initialMap);
   routedSteps.forEach((step,i)=>{
    const o=routed[i-1];
    if(o?.name==='SWAP'){const [a,b]=o.wires;[sites[a],sites[b]]=[sites[b],sites[a]];}
