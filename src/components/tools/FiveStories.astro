@@ -2,7 +2,7 @@
 // One two-slit run, told five ways. Every dot is one Born-rule shot of the same wave (model units, hbar = m = 1). The four stories that
 // keep the standard rules read each shot's random number the same way, so they put every dot in the same place; only the collapse story
 // (GRW, real units) changes the odds, and only for large objects. All numbers come from interpretations.ts, which is tested.
-import { STORIES, SIZES, CAP, BATCH, screenTable, brightShares, brightShare, strength, describe, sizeText, percent } from '../../lib/sims/interpretations.ts';
+import { STORIES, SIZES, FAR_APART, CAP, BATCH, screenTable, brightShares, brightShare, strength, describe, sizeText, percent } from '../../lib/sims/interpretations.ts';
 const uid = 'fs-' + Math.random().toString(36).slice(2, 8);
 const story0 = STORIES[0].id, shares0 = brightShares(screenTable()), v0 = strength(story0, 10 ** SIZES.start);
 ---
@@ -41,7 +41,7 @@ const story0 = STORIES[0].id, shares0 = brightShares(screenTable()), v0 = streng
     </div>
     <input id={`${uid}-size`} data-size type="range" min={SIZES.min} max={SIZES.max} step={SIZES.step} value={SIZES.start}
       aria-valuetext={sizeText(SIZES.start)} aria-describedby={`${uid}-size-hint`} />
-    <p class="hint" id={`${uid}-size-hint`}>Standard quantum mechanics predicts full stripes at any size, if the object is cut off from its surroundings. The collapse model predicts that the stripes fade as the object gets bigger. The slider changes the numbers only for the collapse story.</p>
+    <p class="hint" id={`${uid}-size-hint`}>Standard quantum mechanics predicts full stripes at any size, if the object is cut off from its surroundings. The collapse model predicts that the stripes fade as the object gets bigger. The slider changes the numbers only for the collapse story. {FAR_APART}</p>
   </div>
 
   <div class="tool-controls">
@@ -51,7 +51,7 @@ const story0 = STORIES[0].id, shares0 = brightShares(screenTable()), v0 = streng
   </div>
 
   <p class="tool-readout" aria-live="polite">{describe(story0, SIZES.start, { shots: 0, inBright: 0 }, shares0)}</p>
-  <p class="note">A simulation. Each shot sends one object at two slits with equal amplitudes for the two. The picture is in model units: two starting packets at the slits, spreading freely, with the wave drawn as dots and the screen's odds taken from it by the Born rule. The collapse numbers are in real units: GRW's original rate, one hit per particle about every 10¹⁶ seconds, and hit width 10⁻⁷ m, with the thought experiment that the two paths stay more than that apart for 1 second. A hit picks one path; with no hit the whole wave reaches the screen. Each shot has one random number for where it lands. The stories that keep the standard rules read it the same way, so switching between them never moves a dot: that shows they agree on the odds, not that a hidden number sits behind a Copenhagen-style dot. In the pilot-wave story the number is the starting place. The picture holds {CAP.toLocaleString('en')} dots. The view stops at the edge; a dot past it is counted but not drawn (fewer than 1 in 1,000). Dots are drawn by your browser's random numbers. The model is one dimension across the screen, and the pilot-wave paths are a sketch of that model, not of a real wall.</p>
+  <p class="note">A simulation. Each shot sends one object at two slits with equal amplitudes for the two. The picture is in model units: two starting packets at the slits, spreading freely, with the wave drawn as dots and the screen's odds taken from it by the Born rule. The collapse numbers are in real units: GRW's original rate, one hit per particle about every 10¹⁶ seconds, and hit width 10⁻⁷ m, with the thought experiment that the two paths stay far more than that apart for 1 second, the limit where a hit picks one path. With no hit the whole wave reaches the screen. Each shot has one random number for where it lands. The stories that keep the standard rules read it the same way, so switching between them never moves a dot: that shows they agree on the odds, not that a hidden number sits behind a Copenhagen-style dot. In the pilot-wave story the number is the starting place. The picture holds {CAP.toLocaleString('en')} dots. The view stops at the edge; a dot past it is counted but not drawn (fewer than 1 in 1,000). Dots are drawn by your browser's random numbers. The model is one dimension across the screen, and the pilot-wave paths are a sketch of that model, not of a real wall.</p>
 </qce-five-stories>
 
 <script>

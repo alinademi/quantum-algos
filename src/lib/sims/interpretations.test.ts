@@ -7,7 +7,7 @@ import {
   VIEW, offView, branches, startOf,
   LAMBDA, R_C, APART, SIZES, noHitOne, coherence, hitChance, meanWait, hitTime, APART_PICTURE,
   STORIES, CAP, BATCH, newShot, land, strength, pattern, brightBands, brightShares, brightShare,
-  tenTo, sizeText, percent, startText, storyText, sizeVerdict, describe,
+  tenTo, sizeText, percent, startText, storyText, sizeVerdict, describe, FAR_APART,
   type Story, type Shot,
 } from './interpretations.ts';
 
@@ -322,6 +322,13 @@ test('collapse: hitTime inverts P(hit by s) = 1 - e^{-N lambda s}; a hit lands i
   }
 });
 
+test('GRW teaching numbers: N lambda t = 1 gives 0.368 far apart, but 0.802 at D = r_C, and 0.368 only as D grows', () => {
+  const f = (d: number) => Math.exp(-(1 - Math.exp(-(d * d) / 4)));
+  close(coherence(1e16, 1, R_C), f(1), 1e-12); close(f(1), 0.8016, 5e-4);
+  close(coherence(1e16), Math.exp(-1), 1e-15); close(Math.exp(-1), 0.3679, 5e-4);
+  assert.ok(coherence(1e16, 1, 3 * R_C) < coherence(1e16, 1, R_C)); close(coherence(1e16, 1, 20 * R_C), Math.exp(-1), 1e-12);
+});
+
 test('collapse: the loss of coherence for paths a distance sep apart is 1 - the overlap of two hit Gaussians, e^{-sep^2/(4 R_C^2)}', () => {
   // Independent check: overlap of the hit shape G(q) = exp(-q^2 / (2 R_C^2)) with its copy shifted by sep, in units of R_C.
   const G = (x: number, s: number) => Math.exp(-(x * x) / 2) * Math.exp(-((x - s) * (x - s)) / 2);
@@ -477,6 +484,9 @@ test('stories keep their facts straight', () => {
   // Sizes: only the collapse verdict has numbers that change with size.
   assert.equal(sizeVerdict('qbism', 0), sizeVerdict('qbism', 20));
   assert.notEqual(sizeVerdict('collapse', 0), sizeVerdict('collapse', 20));
+  // The slider is the far-apart limit, and says so (the exact factor for closer paths is tested above).
+  assert.match(sizeVerdict('collapse', 16), /far apart/); assert.match(FAR_APART, /far apart/); assert.match(FAR_APART, /Closer paths lose fewer/);
+  assert.match(storyText('pilot-wave', null), /quantum equilibrium/); assert.match(storyText('many-worlds', null), /not a count of worlds/);
   assert.match(sizeVerdict('collapse', 16), /63\.2%/); assert.match(sizeVerdict('collapse', 16), /36\.8%/); assert.match(sizeVerdict('collapse', 16), /100%/);
   assert.match(sizeVerdict('collapse', 20), />99\.9%/); assert.match(sizeVerdict('collapse', 20), /<0\.1%/);
   assert.match(sizeVerdict('rule', 20), /Only the collapse story says otherwise/);

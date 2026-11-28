@@ -15,7 +15,7 @@
 //   In one dimension the continuity equation keeps the CDF fixed along a path, F_t(x(t)) = u, so the path that starts
 //   at quantile u is x(t) = Q_t(u). Starting with |psi|^2 odds, it stays with |psi|^2 odds (equivariance).
 // - Collapse (GRW): each particle is hit at random times, LAMBDA per second, and its wave is multiplied by a Gaussian of
-//   width R_C. N particles moved together on two paths more than R_C apart: any hit picks one path, so a hit comes
+//   width R_C. N particles moved together on two paths far more than R_C apart: any hit picks one path, so a hit comes
 //   at rate N LAMBDA. The tool imagines the paths kept apart for APART seconds. With no hit (chance e^{-N LAMBDA APART})
 //   the wave reaches the screen whole. After a hit the object is on one path (chance 1/2 each) and shows that path's
 //   broad band alone. Values: SEP "Collapse Theories", section 5 (f = 1e-16 per second, d = 1e-5 cm).
@@ -174,8 +174,10 @@ export const slitOf = (x0: number): 'left' | 'right' => (x0 < 0 ? 'left' : 'righ
 export const LAMBDA = 1e-16;
 /** Width of a hit (localization accuracy), in meters: GRW's value. */
 export const R_C = 1e-7;
-/** Seconds the tool imagines the two paths kept apart, more than R_C, before they meet. */
+/** Seconds the tool imagines the two paths kept apart, far more than R_C, before they meet. */
 export const APART = 1;
+/** Said next to the size slider: the collapse numbers assume far-apart paths. */
+export const FAR_APART = 'The collapse numbers assume the two paths stay far apart, much more than 10⁻⁷ m. Closer paths lose fewer stripes.';
 /** Sizes on the slider: N = 10^k particles. */
 export const SIZES = { min: 0, max: 20, step: 1, start: 0 } as const;
 
@@ -305,9 +307,9 @@ export function storyText(story: Story, last: { x0: number; landing: Landing } |
     case 'copenhagen':
       return 'Copenhagen-style story: the wave is a tool for working out the odds, not a picture of a path. The screen is described in everyday terms, and it shows one result. Views of this kind differ in the details.';
     case 'many-worlds':
-      return 'Many-worlds story: the wave never collapses, which gives up one result per run. The screen and you join the superposition, so every possible spot gets a dot, each in its own branch. The filled dot is this branch; the rings stand for a few of the others, drawn as equal slices of the weight. Each branch has weight |amplitude|²; Everettians derive why that weight acts as a chance; critics doubt it.';
+      return 'Many-worlds story: the wave never collapses, which gives up one result per run. The screen and you join the superposition, so every possible spot gets a dot, each in its own branch. The filled dot is this branch; the rings stand for a few of the others, drawn as equal slices of the weight, a picture and not a count of worlds. Each branch has weight |amplitude|²; Everettians derive why that weight acts as a chance; critics doubt it.';
     case 'pilot-wave':
-      return `Pilot-wave story: the object always has a place, steered by the wave, which went through both slits.${last ? ` This one came through the ${slitOf(last.x0)} slit.` : ''} The theory takes its starting place to be random with |ψ|² odds, so the dots follow the Born rule. In this mirror-image setup no path crosses the middle line.`;
+      return `Pilot-wave story: the object always has a place, steered by the wave, which went through both slits.${last ? ` This one came through the ${slitOf(last.x0)} slit.` : ''} The theory takes its starting place to be random with |ψ|² odds (quantum equilibrium), so the dots follow the Born rule. In this mirror-image setup no path crosses the middle line.`;
     case 'collapse':
       return last?.landing.hit
         ? `Collapse story (GRW): the wave really collapses, at random moments. This object was hit while the paths were apart, which left it on the ${last.landing.hit.side} path, so this dot belongs to that path's own broad band, with no stripes.`
@@ -322,7 +324,7 @@ export function sizeVerdict(story: Story, k: number): string {
   const n = 10 ** k, v = coherence(n);
   if (story !== 'collapse')
     return `Standard quantum mechanics predicts full stripes at any size, if the object is perfectly cut off from its surroundings.${story === 'rule' ? '' : ' This story agrees.'} Only the collapse story says otherwise.`;
-  return `GRW: with ${tenTo(k)} particles on paths kept apart for ${APART} second, a hit comes first in ${percent(hitChance(n), true)} of shots, so the stripes keep ${percent(v, true)} of their strength. Standard quantum mechanics predicts 100%.`;
+  return `GRW: with ${tenTo(k)} particles on paths kept far apart (much more than 10⁻⁷ m) for ${APART} second, a hit comes first in ${percent(hitChance(n), true)} of shots, so the stripes keep ${percent(v, true)} of their strength. Standard quantum mechanics predicts 100%.`;
 }
 
 /** The whole readout. counts: dots so far and how many landed in the bright bands. */
