@@ -8,8 +8,6 @@ myth:
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
 import GaussianQuadrature from '../../components/tools/GaussianQuadrature.astro';
-import GateLab from '../../components/tools/GateLab.astro';
-import { lab } from '../../lib/sims/cv-model.ts';
 
 <Depth level="kid">
 
@@ -33,5 +31,4 @@ Unlike a [qudit](/learn/qudits/) or a two-level [photonic qubit](/learn/photonic
 
 <Lab title="Transform a Gaussian mode" intro="Change squeezing, displacement and rotation; inspect the means, covariance and uncertainty product.">
   <GaussianQuadrature />
-  <GateLab id="cv-model" lab={lab} />
 </Lab>

@@ -2,17 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
 import * as g from './gate-lab.ts';
-import { unitaryError } from './gates.ts';
-import { pauli } from './pauli-strings.ts';
-import { evolveGenerators, prep } from './stabilizer-states.ts';
-import { expect } from './gottesman-knill.ts';
-import { search } from './solovay-kitaev.ts';
-import { shift } from './qtm.ts';
-import { evolution } from './adiabatic.ts';
-import { B1, B2 } from './topological-model.ts';
 import { gaussian,quadratureShots } from './cv-model.ts';
 
-import { checkLabs, close, state, matrix, phase, all, value } from './gate-lab-checks.ts';
+import { checkLabs,close,matrix } from './gate-lab-checks.ts';
 const {run,last}=await checkLabs(['cv-model']);
 test('Gaussian rotations preserve covariance determinant and Heisenberg bound; displacement does not change variance',()=>{
  for(const r of [0,.3,.7,1])for(const t of [0,.7,Math.PI/2,2.1]){
