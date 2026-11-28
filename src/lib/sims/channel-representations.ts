@@ -6,7 +6,8 @@
 // Watrous, The Theory of Quantum Information, Section 2.2.2 (Corollary 2.27: a channel has a Kraus operator list and a
 // Stinespring isometry with workspace dimension equal to the Choi rank; eq. 2.66, Phi(X) = Tr_X[(1 (x) X^T) J]).
 // Conventions:
-// - Qubits only. A two-qubit index is 2a + b: the first qubit is the left one, as in quantum.ts.
+// - Qubits only: one qubit in, one qubit out, so U is a unitary and the workspace has at most 4 levels. (In general the Stinespring map
+//   is an isometry, and the workspace has at most n*m levels for n in, m out.) A two-qubit index is 2a + b: the first qubit is the left one, as in quantum.ts.
 // - Choi: the INPUT is the first factor, J = sum_{a,b} |a><b| (x) Phi(|a><b|), a 4 by 4 matrix (as in the IBM course;
 //   the book's eq. 2.65 puts the output first). Row 2a + y, column 2b + y': a, b are input bits, y, y' are output bits.
 // - Stinespring: W is the first factor of the pair (W, X), like the formula Phi(rho) = Tr_G[U(|0><0|_W (x) rho)U^dagger].
@@ -16,7 +17,8 @@
 //   chosen only to make U unitary (Gram-Schmidt); any other fill gives the same channel.
 // - "Turning the workspace": U' = (V (x) I) U with V a real rotation by alpha in the planes (0,1) and (2,3) of the workspace.
 //   Kraus operators become A'_j = sum_k V_jk A_k, with A'_0 = cos(alpha) A_0 + sin(alpha) A_1 and
-//   A'_1 = -sin(alpha) A_0 + cos(alpha) A_1 (and the same for A_2, A_3). It is the same as measuring the workspace in a turned basis.
+//   A'_1 = -sin(alpha) A_0 + cos(alpha) A_1 (and the same for A_2, A_3). It is the same as measuring the workspace in a turned basis,
+//   so the workspace result j is a label of one reading, not a unique event: the channel stays, the columns of shots change.
 // - Channels (same as the noise-channels stop): p is the chance the noise acts. Bit flip: X with chance p. Phase flip: Z with
 //   chance p. Depolarizing: the qubit is replaced by I/2 with chance p. Amplitude damping: |1> decays to |0> with chance gamma = p.
 // - Shots: start as psi (one of six axis states) with W = |0>, apply U', measure the workspace in its standard basis (result j),
@@ -148,7 +150,8 @@ export function krausFromChoi(J: Matrix): Matrix[] | null {
   return vs && vs.map((v) => [0, 1].map((y) => [0, 1].map((a) => v[2 * a + y])));
 }
 
-/** The Choi rank: the fewest workspace levels any Stinespring form of this channel can use. Null if J is not positive semidefinite. */
+/** The Choi rank: the fewest workspace levels any Stinespring form of this channel can use. Numerical: a pivot or leftover below 1e-9 counts as 0.
+ *  Null if J is not positive semidefinite. */
 export const choiRank = (J: Matrix): number | null => decompose(J)?.length ?? null;
 
 // ---- Stinespring: a unitary on the workspace and the qubit
@@ -354,6 +357,6 @@ export function describe(ch: Channel, p: number, i: number, alpha: number, got?:
   const turnPart = alpha === 0 ? turnText(N, alpha)
     : `The workspace is turned by ${degrees(alpha)}: the Kraus operators ${sameA ? 'stayed' : 'changed'}, and the Choi matrix ${sameJ ? 'did not change' : 'changed too'}. ${turnText(N, alpha)}`;
   const need = rank === null ? '' : ` The fewest workspace levels this channel needs is ${rank}, the rank of its Choi matrix.`;
-  const tail = got === undefined ? '' : ` This batch of ${n} shots gave ${s.name} ${got} times. Each column groups the shots by the workspace result.`;
+  const tail = got === undefined ? '' : ` This batch of ${n} shots gave ${s.name} ${got} times. Each column groups the shots by the workspace result, a label that depends on how the workspace is measured.`;
   return `${head} ${odds} ${agree} ${turnPart}${need}${tail}`;
 }

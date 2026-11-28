@@ -187,6 +187,19 @@ test('the Choi rank is the fewest Kraus operators', () => {
   assert.equal(choiRank(q.kron(q.I, q.I)), 4);
 });
 
+test('the Choi rank is numerical: a weight below the tolerance counts as 0, a bigger one does not', () => {
+  const J = (eps: number) => real([[1, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 1 + eps]]); // rank 1 at eps = 0
+  assert.equal(choiRank(J(0)), 1);
+  assert.equal(choiRank(J(1e-12)), 1); // exactly rank 2 on paper, but the tiny piece is below the tolerance
+  assert.equal(choiRank(J(1e-3)), 2);
+});
+
+test('a zero-weight Kraus operator is still there in the workspace, but the Choi rank counts only the real ones', () => {
+  assert.equal(levels('bit'), 2);
+  assert.equal(choiRank(choiFromKraus(kraus('bit', 0))), 1);
+  assert.equal(choiRank(choiFromKraus(kraus('bit', 1))), 1);
+});
+
 // ---- Stinespring
 
 test('the Stinespring matrix is a unitary: 4 by 4 for a qubit workspace, 8 by 8 for two qubits', () => {
@@ -426,6 +439,7 @@ test('the readout names the start state and the noise, and is right about the ch
   assert.match(turnedText, /turned by 45°: the Kraus operators changed, and the Choi matrix did not change/);
   assert.match(turnedText, /A'0 = cos 45° A0 \+ sin 45° A1/);
   assert.match(turnedText, /This batch of 100 shots gave \|\+⟩ 51 times/);
+  assert.match(turnedText, /a label that depends on how the workspace is measured/);
   // Depolarizing needs two workspace qubits and four Kraus operators.
   assert.match(describe('depol', 0.5, 1, 30), /workspace of two qubits/);
   assert.match(describe('depol', 0.5, 1, 30), /A2 with A3/);

@@ -1,9 +1,9 @@
 ---
-description: "Any noise can be built as a unitary on a qubit plus a helper that is then dropped (Stinespring). One matrix, the Choi matrix, stores a channel."
-answer: "A Stinespring form writes any quantum channel as a unitary on the qubit and a helper system that starts as 0, then drops the helper. The Choi matrix stores the same channel as one matrix: the channel applied to the second qubit of (|00⟩+|11⟩)/√2, times 2."
+description: "Any one-qubit noise can be built as a unitary plus a helper that is then dropped (Stinespring). One matrix, the Choi matrix, stores a channel."
+answer: "A Stinespring form writes a channel from one qubit to one qubit as a unitary on the qubit and a helper system that starts as 0, then drops the helper. The Choi matrix stores the same channel as one matrix: the channel applied to the second qubit of (|00⟩+|11⟩)/√2, times 2."
 myth:
   claim: "Noise breaks quantum rules: gates are reversible, so a noisy step that cannot be undone needs new physics."
-  truth: "Standard quantum mechanics needs nothing new. Every channel can be built as a reversible unitary on the qubit plus a helper, and then the helper is dropped. The record of what happened sits in the helper, so the qubit alone cannot undo a noisy step."
+  truth: "Standard quantum mechanics needs nothing new. A one-qubit channel can be built as a reversible unitary on the qubit plus a helper, and then the helper is dropped. The lost detail sits in the helper, so the qubit alone cannot undo a noisy step."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -15,7 +15,7 @@ Noise can look like magic: a qubit goes in, and a blurry one comes out. Here is 
 
 Give your qubit a helper (one or two qubits) that starts as 0. The two make one clean, reversible move together. Then the helper walks away with its notes, and you never see it again.
 
-The notes record what happened, such as whether a bit flip took place. Without them, your qubit looks fuzzy. The fuzz is just the part you stopped tracking.
+Read one way, the notes say whether a bit flip took place. Read another way, they say something else. The blur is the same. Without them, your qubit looks fuzzy. The fuzz is just the part you stopped tracking.
 
 You can also keep the whole noise machine as one table. Send the second qubit of a Bell pair (an entangled pair) through it, then write down the two qubits' state. Double that table: it is the Choi matrix. It tells you what the machine does to anything you send in later.
 
@@ -25,9 +25,9 @@ Where the picture breaks: this is a model. A real helper is the world around the
 
 <Depth level="student">
 
-A [channel](/learn/channels/) is any physical change of a qubit's state, noise included.
+A [channel](/learn/channels/) is any physical change of a qubit's state when no result is picked out, noise included.
 
-**A channel is a clean step with a helper.** Add a helper of one or two qubits that starts as 0, do one reversible step (a unitary) on both, then drop the helper. Every one-qubit channel can be built this way; two helper qubits are always enough. For a bit flip with chance p, the helper records whether the flip happened: measured, it says "flipped" with chance p.
+**A channel is a clean step with a helper.** Add a helper of one or two qubits that starts as 0, do one reversible step (a unitary) on both, then drop the helper. Every channel from one qubit to one qubit can be built this way; two helper qubits are always enough. For a bit flip with chance p, the helper can mark whether the flip happened: measured in its own basis, it says "flipped" with chance p. Measure it another way and the labels change, but the channel does not.
 
 **One table stores a channel.** Apply the channel to the second qubit of the Bell pair (|00⟩+|11⟩)/√2, write the two qubits' state as a 4 by 4 table, and double every entry. That is the Choi matrix. Doing nothing gives 1s in the four corners. A bit flip with p = 0.2 gives 0.8 in the corners and 0.2 in the four middle entries. Started as 0, it gives 0 again with chance 80%: the top left block shows 0.8 and 0.2.
 
@@ -48,9 +48,9 @@ $$
 \end{aligned}
 $$
 
-Put $A = U(|0\rangle_W \otimes I)$, an isometry. A workspace with as many levels as the Choi rank, at most 4, is enough. Two isometries for the same $\Phi$ with the same $\dim G$ differ by a unitary $V$ on $G$: $A' = (V \otimes I)A$.
+Put $A = U(|0\rangle_W \otimes I)$, an isometry. A workspace with as many levels as the Choi rank is enough; for one qubit in and one out that is at most 4 (in general at most $nm$). Two isometries for the same $\Phi$ with the same $\dim G$ differ by a unitary $V$ on $G$: $A' = (V \otimes I)A$.
 
-**Kraus.** The blocks $A_k = (\langle k|_G \otimes I)\,A$ give $\Phi(\rho) = \sum_k A_k \rho A_k^\dagger$ and $\sum_k A_k^\dagger A_k = I$. Turning $G$ gives $A'_j = \sum_k V_{jk} A_k$, the same $\Phi$.
+**Kraus.** The blocks $A_k = (\langle k|_G \otimes I)\,A$ give $\Phi(\rho) = \sum_k A_k \rho A_k^\dagger$ and $\sum_k A_k^\dagger A_k = I$. Turning $G$ gives $A'_j = \sum_k V_{jk} A_k$, the same $\Phi$. Measuring $G$ in a turned basis gives other labels $j$, so a label need not be one objective event.
 
 **Choi.** With input first (as in the IBM course; Watrous's TQI puts the output first, so swap the factors),
 

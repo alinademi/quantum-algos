@@ -65,7 +65,7 @@ const BITS = ['00', '01', '10', '11'];
   </div>
 
   <p class="tool-readout" aria-live="polite">{describe(CH0, P0, S0, TURN.start)}</p>
-  <p class="note">A simulation of ideal qubits: the workspace starts exactly as 0 and every gate is perfect. It shows that a standard circuit exists for each channel, not that a real device has this workspace. Each shot is drawn from your browser's random numbers with Born rule odds from U.</p>
+  <p class="note">A simulation of ideal qubits: the workspace starts exactly as 0 and every gate is perfect. It shows that a standard circuit exists for each of these one-qubit channels, not that a real device has this workspace. The workspace result depends on how the workspace is measured: turn the workspace and shots move between columns while the channel stays. The Choi rank is found numerically: a weight below about 10⁻⁹ counts as 0. Each shot is drawn from your browser's random numbers with Born rule odds from U.</p>
 </qce-channel-three-ways>
 
 <script>
