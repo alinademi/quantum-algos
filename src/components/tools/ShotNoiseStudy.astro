@@ -1,0 +1,57 @@
+---
+import { shotSizes } from '../../lib/sims/shots.ts';
+---
+<qce-shot-noise-study class="tool">
+  <div class="tool-controls controls">
+    <label>RY angle from |0⟩ <select data-angle><option>90</option><option>30</option><option>60</option><option>120</option><option>0</option><option>180</option></select></label>
+    <label>Show one batch of <select data-size>{shotSizes.map(n=><option value={n}>{n}</option>)}</select> shots</label>
+    <button class="btn btn-sm" type="button" data-run>Run 64 batches at each size</button>
+  </div>
+  <canvas aria-hidden="true"></canvas>
+  <p data-counts></p>
+  <dl data-table></dl>
+  <p class="tool-readout" aria-live="polite"></p>
+  <p class="note">Each dot is a fresh measurement, grouped by its result. The table reports the root mean square error of 64 separate batches and the exact predicted standard error. They need not agree perfectly. Every run starts from a fresh reset; hardware noise is not modeled.</p>
+</qce-shot-noise-study>
+<script>
+  import { shotStudy } from '../../lib/sims/shots.ts';
+  import { fit, palette, dot, onResize, onTheme, onSeen, pct } from '../../lib/draw.ts';
+  class ShotNoiseStudy extends HTMLElement {
+    connectedCallback(){
+      const $=<T extends Element>(s:string)=>this.querySelector<T>(s)!;
+      const angle=$<HTMLSelectElement>('[data-angle]'),size=$<HTMLSelectElement>('[data-size]'),canvas=$<HTMLCanvasElement>('canvas');
+      let results=shotStudy(+angle.value,Math.random),seen=true;
+      const draw=()=>{
+        if(!seen)return;
+        const {ctx,w,h}=fit(canvas),p=palette(),r=results.find(r=>r.n===+size.value)!;
+        ctx.clearRect(0,0,w,h);
+        const half=w/2, pitch=Math.min(6,Math.sqrt((half-12)*(h-20)/r.n)*.9),cols=Math.max(1,Math.floor((half-12)/pitch)),base=h-22;
+        for(const [i,n] of [r.n-r.ones,r.ones].entries()){
+          for(let j=0;j<n;j++)dot(ctx,half*i+6+(j%cols+.5)*pitch,base-(Math.floor(j/cols)+.5)*pitch,Math.max(.45,pitch*.33),i?p.signal:p.ink2);
+          ctx.fillStyle=p.ink;ctx.font='12px monospace';ctx.textAlign='center';ctx.fillText(i+' : '+n,half*(i+.5),h-5);
+        }
+      };
+      const update=()=>{
+        const r=results.find(r=>r.n===+size.value)!;
+        $('[data-counts]').textContent='Started as |0⟩, after RY('+angle.value+'°): '+r.ones+' ones of '+r.n+' shots; predicted '+pct(r.p)+'.';
+        $('[data-table]').replaceChildren(...results.map(v=>{const div=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=v.n+' shots';dd.textContent='Measured RMS '+v.error.toFixed(4)+' · predicted '+v.predicted.toFixed(4);div.append(dt,dd);return div;}));
+        $('.tool-readout').textContent='Started as |0⟩, after RY('+angle.value+'°). '+r.n+' shots: '+r.ones+' ones. Predicted standard error '+r.predicted.toFixed(4)+'.';draw();
+      };
+      const run=()=>{results=shotStudy(+angle.value,Math.random);update();};
+      angle.addEventListener('change',run);size.addEventListener('change',update);$('[data-run]').addEventListener('click',run);
+      onResize(this,draw);onTheme(draw);onSeen(this,v=>{seen=v;if(v)draw();});update();
+    }
+  }
+  customElements.define('qce-shot-noise-study',ShotNoiseStudy);
+</script>
+<style>
+  qce-shot-noise-study{display:grid;gap:var(--s3);min-width:0}
+  .controls{display:flex;flex-wrap:wrap;align-items:end;gap:var(--s2)}
+  label{display:grid;gap:var(--s1);flex:1 1 8rem;min-width:0}
+  select{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:var(--r);min-height:2.75rem}
+  canvas{width:100%;height:12rem}
+  dl{margin:0;display:grid;gap:var(--s2)}
+  dl :global(div){display:grid;gap:var(--s1);border-bottom:1px dotted var(--rule)}
+  dd{margin:0;font-family:var(--mono);overflow-wrap:anywhere}
+  .note{color:var(--ink-2);font-size:.875rem}
+</style>

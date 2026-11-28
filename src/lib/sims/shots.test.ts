@@ -1,0 +1,21 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as q from '../quantum.ts';
+import * as g from './gate-lab.ts';
+import { boolean, viaNand } from './classical-gates.ts';
+import { unitaryError } from './gates.ts';
+import { u, euler } from './single-qubit-unitary.ts';
+import { stderr, shotStudy } from './shots.ts';
+import { implementation } from './controlled-gates.ts';
+import { noScratch } from './multi-controlled.ts';
+import { fredkin } from './fredkin.ts';
+import { family } from './two-qubit-gates.ts';
+import { circuits } from './circuit-identities.ts';
+
+import { checkLabs, close, state, matrix, phase } from './gate-lab-checks.ts';
+const {run,last}=await checkLabs(['shots']);
+test('shot uncertainty follows the binomial standard error, including deterministic endpoints',()=>{
+ close(stderr(.5,100),.05);close(stderr(.5,10000),.005);close(stderr(1,100),0);close(stderr(0,100),0);
+ const counts=q.sample([0,1,0],100,()=>0.5);assert.deepEqual(counts,[0,100,0]);
+});
+test('seeded Born frequencies and RMS shrink with shot count',()=>{const p=.25;const n=20000;close(q.sample([1-p,p],n,q.rng(42))[1]/n,p,.015);const a=shotStudy(90,q.rng(921));for(const r of a)close(r.error/r.predicted,1,.35);close(a[0].predicted/a[1].predicted,2);assert.ok(a[3].error<a[0].error/4);assert.ok(shotStudy(0,q.rng(1)).every(r=>r.ones===0));});

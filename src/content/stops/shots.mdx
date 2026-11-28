@@ -1,5 +1,5 @@
 ---
-description: "A shot is one execution of a preparation and measurement circuit, yielding one sample from its outcome distribution."
+description: "Repeat a qubit experiment at different shot counts to compare the measured fraction with its predicted odds."
 answer: "A shot is one execution of a preparation and measurement circuit, yielding one sample from its outcome distribution."
 myth:
   claim: "More shots change the underlying state or make each sample more accurate."
@@ -7,27 +7,32 @@ myth:
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
-import GateLab from '../../components/tools/GateLab.astro';
-import { lab } from '../../lib/sims/shots.ts';
+import ShotNoiseStudy from '../../components/tools/ShotNoiseStudy.astro';
 
 <Depth level="kid">
 
-Imagine repeating the same experiment many times. You get one answer each time. After many answers you can estimate how often each answer happens.
+Imagine a bag containing equal numbers of two kinds of marble. Draw one, record its kind, then put it back and shake the bag. With four draws you may not get two of each. With a hundred draws the fraction is usually closer to half. The more draws you make, the less the fraction tends to wobble.
+
+There is a useful rule: four times as many draws halves the typical error, and a hundred times as many cuts it to one tenth. The picture breaks because a quantum shot means preparing a fresh qubit, applying its instructions and measuring it, not pulling a marble with a secret color already chosen.
 
 </Depth>
 
 <Depth level="student">
 
-Prepare the same ideal qubit for every shot. If 1 has probability p, the number of ones in N independent shots follows a binomial distribution. The fraction of ones is usually closer to p with more shots, but is not guaranteed to be closer on every run.
+Each shot runs the preparation and [measurement](/learn/measurement/) again. If a qubit has predicted probability p of giving 1, N independent shots give a count K of ones. The estimate K/N is random and can differ from p. Its typical spread, the standard error, is √(p(1−p)/N).
+
+At p = 0.5, 100 shots give a standard error of 0.05; 400 shots give 0.025. Four times more shots halves the typical error, so the law is 1/√N. More shots do not guarantee a closer answer in every single run. Try repeated independent batches and compare the measured errors to these [probability](/learn/probability/) predictions.
 
 </Depth>
 
 <Depth level="engineer">
 
-For independent identically prepared and measured copies, $K\sim\mathrm{Binomial}(N,p)$, $\hat p=K/N$, and $\operatorname{Var}(\hat p)=p(1-p)/N$. Standard error scales as $1/\sqrt N$. These formulas describe sampling uncertainty, not drift, hardware noise or correlated trials. A measured qubit is not simply reused as a fresh copy.
+For independent identically prepared and measured ideal qubits, $K\sim\mathrm{Binomial}(N,p)$ and $\hat p=K/N$. The expectation is $p$ and variance is $p(1-p)/N$. Thus $\operatorname{sd}(\hat p)=\sqrt{p(1-p)/N}$. It is zero for deterministic preparations. Confidence intervals require an appropriate sampling method; a standard deviation is not a guaranteed bound.
+
+If preparations are correlated, drift, or suffer noise, the binomial model may be inaccurate. Increasing N reduces independent sampling noise, not systematic error. Each shot starts from a fresh reset and preparation. The tool shows repeated batch estimates and the predicted standard error for each N.
 
 </Depth>
 
 <Lab title="Repeat the experiment" intro="Choose the preparation angle, run fresh shots and compare observed frequencies with the predicted probability and standard error.">
-  <GateLab id="shots" lab={lab} />
+  <ShotNoiseStudy />
 </Lab>
