@@ -2,17 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as q from '../quantum.ts';
 import * as g from './gate-lab.ts';
-import { boolean, viaNand } from './classical-gates.ts';
-import { unitaryError } from './gates.ts';
-import { u, euler } from './single-qubit-unitary.ts';
-import { stderr } from './shots.ts';
-import { implementation } from './controlled-gates.ts';
-import { noScratch } from './multi-controlled.ts';
-import { fredkin } from './fredkin.ts';
-import { family } from './two-qubit-gates.ts';
-import { circuits } from './circuit-identities.ts';
 
-import { checkLabs, close, state, matrix, phase } from './gate-lab-checks.ts';
+import { checkLabs,state,matrix,phase } from './gate-lab-checks.ts';
 const {run,last}=await checkLabs(['rotations']);
 test('rotations have spinor 2π sign and 4π period; positive Y acts toward +X',()=>{
  for(const a of ['X','Y','Z'])matrix(g.rotation(a,360).matrix,phase(q.I,Math.PI));
