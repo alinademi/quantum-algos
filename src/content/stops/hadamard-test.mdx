@@ -1,5 +1,5 @@
 ---
-description: "The Hadamard test estimates the real or imaginary part of the expectation value of a unitary on a prepared quantum state."
+description: "Use interference on one helper to estimate the real or imaginary part of a unitary overlap."
 answer: "The Hadamard test estimates the real or imaginary part of the expectation value of a unitary on a prepared quantum state."
 myth:
   claim: "One run returns the exact complex expectation value."
@@ -12,19 +12,19 @@ import { lab } from '../../lib/sims/hadamard-test.ts';
 
 <Depth level="kid">
 
-A helper qubit compares two paths: one in which an operation happened and one in which it did not. Interference tells you how those paths overlap.
+Imagine comparing a wave with a changed copy of its shape. A special device combines the original and altered contributions, so matching parts reinforce and opposing parts cancel. A second setting shifts one contribution by a quarter turn before combining them, helping reveal a different part of the comparison. You get only a single yes-or-no result each time. Repeat the experiment with freshly prepared waves to estimate the comparison more accurately. Four times as many trials halves the typical statistical error. The picture breaks because the experiment does not simply copy an unknown quantum wave, and it needs a controlled version of the change.
 
 </Depth>
 
 <Depth level="student">
 
-Prepare a helper in 0, apply H, apply U controlled by the helper, then H and measure the helper. Label 0 as +1 and 1 as −1. To estimate the imaginary part instead, insert S† before the final H.
+Prepare a helper in |0⟩, apply H, apply U controlled by that helper, then H and measure the helper. Give outcome 0 the value +1 and 1 the value −1. Their average estimates the real part of the [expectation](/learn/expectation-values/) of U in the original data state. For the imaginary part, put S† just before the last H. This is [phase kickback](/learn/phase-kickback/) and interference made measurable. The [controlled operation](/learn/controlled-gates/) must be available. Each shot produces one binary value; to halve the typical error use four times as many fresh shots, or about 1/ε² shots for additive error ε at fixed confidence.
 
 </Depth>
 
 <Depth level="engineer">
 
-Let $z=\langle\psi|U|\psi\rangle$. After controlled U the state is $(|0\rangle|\psi\rangle+|1\rangle U|\psi\rangle)/\sqrt2$. The helper has X expectation $\operatorname{Re}z$ and Y expectation $\operatorname{Im}z$. Measurement after H or after S† then H reports these, respectively. $p(0)=(1+E)/2$, where E is the selected component. Controlled U is an assumed available operation.
+Let $z=\langle\psi|U|\psi\rangle$. After controlled U the state is $(|0\rangle|\psi\rangle+|1\rangle U|\psi\rangle)/\sqrt2$. The helper has X expectation $\operatorname{Re}z$ and Y expectation $\operatorname{Im}z$. Measurement after H or after S† then H reports these respectively, with $p(0)=(1+E)/2$. The sample mean of N independent ±1 outcomes has variance $(1-E^2)/N$. Thus additive precision ε at fixed confidence costs $O(1/\epsilon^2)$ fresh preparations, assuming controlled U is available.
 
 </Depth>
 
