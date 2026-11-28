@@ -1,9 +1,9 @@
 ---
 description: "What is superposition? A qubit has two amplitudes that set the odds of 0 and 1 and can cancel out. Turn a qubit and run 1,000 shots."
-answer: "A qubit in superposition has two amplitudes, one for 0 and one for 1, that set the odds of each result. Unlike odds, amplitudes can be negative or complex and can cancel out, and a measurement still gives just one answer."
+answer: "A qubit in a pure superposition state has two amplitudes, one for 0 and one for 1, that set the odds of each result of a 0/1 measurement. Unlike odds, amplitudes can be negative or complex and can cancel out, and a measurement still gives just one answer."
 myth:
   claim: "A qubit is 0 and 1 at the same time."
-  truth: "Not quite: it holds two amplitudes, one for 0 and one for 1, that set the odds and can cancel out. It is not two bits at once, and not secretly 0 or 1 either; measure it and you get one answer."
+  truth: "Not quite: it holds two amplitudes, one for 0 and one for 1, that set the odds and can cancel out. It is not two bits at once, and not the same as a plain mix of 0 and 1; measure it and you get one answer."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -16,33 +16,33 @@ Picture a coin spinning on a table. It is not heads or tails yet. When it stops,
 
 A qubit is a bit like that coin, but you can tilt the odds before it lands. It keeps two numbers called amplitudes, one for 0 and one for 1, and they set the odds. Start a qubit as 0 and send it through a Hadamard gate. Measure many copies, and about half give 0 and half give 1. Each measurement gives just one answer.
 
-Here the coin picture breaks. An amplitude can be negative, so amplitudes can cancel out, and odds never do. Send the qubit through a second Hadamard gate and the two parts that lead to 1 cancel: it gives 0 every time. If it had secretly been 0 or 1 after the first gate, it would still give half and half.
+Here the coin picture breaks. An amplitude can be negative, so amplitudes can cancel out, and odds never do. Send the qubit through a second Hadamard gate and the two parts that lead to 1 cancel: it gives 0 every time. If all it had after the first gate was a secret 0 or 1, it would still give half and half.
 
 </Depth>
 
 <Depth level="student">
 
-A qubit's state has two amplitudes, one for 0 and one for 1. We write it as $a|0\rangle + b|1\rangle$. Square an amplitude's size to get the chance of that result. The two chances always add up to 100%.
+An ideal qubit's state has two amplitudes, one for 0 and one for 1. We write it as $a|0\rangle + b|1\rangle$. Measure it as 0 or 1, and square an amplitude's size to get the chance of that result. The two chances always add up to 100%.
 
 Start as 0 and apply a Hadamard gate. Both amplitudes become $1/\sqrt{2} \approx 0.71$, and $0.71^2 \approx 0.5$, so you get 0 half the time and 1 half the time. Each measurement gives just one answer.
 
-Amplitudes can be negative, or even complex, so they can cancel. Apply a second Hadamard gate and you get 0 every time: the two contributions to the amplitude for 1 are $+\tfrac{1}{2}$ and $-\tfrac{1}{2}$, and they cancel. A qubit that was secretly 0 or secretly 1, with 50/50 odds, would still give 50/50. So superposition is not a mix of 0 and 1. You meet this cancelling again at [Interference](/learn/interference/).
+Amplitudes can be negative, or even complex, so they can cancel. Apply a second Hadamard gate and you get 0 every time: the two contributions to the amplitude for 1 are $+\tfrac{1}{2}$ and $-\tfrac{1}{2}$, and they cancel. A qubit that was secretly 0 or secretly 1, with 50/50 odds, would still give 50/50. So a superposition is not a plain mix of 0 and 1. You meet this cancelling again at [Interference](/learn/interference/).
 
 </Depth>
 
 <Depth level="engineer">
 
-A qubit state is a unit vector in $\mathbb{C}^2$:
+A pure qubit state is a unit vector in $\mathbb{C}^2$:
 
 $$
 |\psi\rangle = \alpha|0\rangle + \beta|1\rangle,
 $$
 
-with complex amplitudes $\alpha$ and $\beta$ and $|\alpha|^2 + |\beta|^2 = 1$. A measurement in the computational basis gives one outcome: 0 with probability $|\alpha|^2$, 1 with probability $|\beta|^2$ (the Born rule). For example, $\tfrac{1+2i}{3}|0\rangle - \tfrac{2}{3}|1\rangle$ gives 0 with probability $5/9$.
+with complex amplitudes $\alpha$ and $\beta$ and $|\alpha|^2 + |\beta|^2 = 1$. An ideal measurement in the computational basis gives one outcome: 0 with probability $|\alpha|^2$, 1 with probability $|\beta|^2$ (the Born rule). For example, $\tfrac{1+2i}{3}|0\rangle - \tfrac{2}{3}|1\rangle$ gives 0 with probability $5/9$.
 
 Started as $|0\rangle$, a Hadamard gate gives $|{+}\rangle = \tfrac{1}{\sqrt{2}}(|0\rangle + |1\rangle)$; started as $|1\rangle$, it gives $|{-}\rangle = \tfrac{1}{\sqrt{2}}(|0\rangle - |1\rangle)$. Both measure 50/50, yet they are different states. Since $H^2 = I$, a second Hadamard sends $|{+}\rangle$ to $|0\rangle$ and $|{-}\rangle$ to $|1\rangle$ with certainty. In $H|{+}\rangle$ the two contributions to $|1\rangle$, $+\tfrac{1}{2}$ and $-\tfrac{1}{2}$, cancel.
 
-A 50/50 mix of $|0\rangle$ and $|1\rangle$ is plain odds over two states, and no $\alpha, \beta$ describe it (see [Mixed states](/learn/mixed-states/)). A Hadamard leaves it at 50/50: each branch gives 50/50, and probabilities only add.
+A 50/50 mix of $|0\rangle$ and $|1\rangle$ is plain odds over two states. It is not a pure state, so no $\alpha, \beta$ describe it (see [Mixed states](/learn/mixed-states/)). A Hadamard leaves it at 50/50: each branch gives 50/50, and probabilities only add.
 
 Global phase cannot be seen: $e^{i\gamma}|\psi\rangle$ gives the same statistics in every measurement. Relative phase can: $|{+}\rangle$ and $|{-}\rangle$ differ only in the sign of $\beta$, and a Hadamard, then a measurement, tells them apart. Quantum algorithms are built on this [interference](/learn/interference/).
 
