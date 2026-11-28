@@ -25,9 +25,11 @@ const groups = regions.map((r) => ({ r, xs: rest.filter((s) => s.region === r.id
 </div>
 
 <style>
-  .head a + a::before { content: ", "; display: inline-block; white-space: pre; text-decoration: none }
+  /* Each plain link is one line box tall (about 25px), a big enough target (WCAG 2.5.8). */
+  .fold:not(.pills) { line-height: 1.7 }
+  .fold:not(.pills) a { display: inline-block }
+  .fold:not(.pills) .head a:not(:last-child)::after { content: ","; display: inline-block; margin-right: .35em; text-decoration: none }
   .pills .head { display: flex; flex-wrap: wrap; gap: var(--s2) }
-  .pills .head a + a::before { content: none }
   .pills .head a { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 .9rem; border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); font-weight: 600; text-decoration: none }
   .pills .head a:hover { border-color: var(--ink) }
   summary { display: inline-flex; align-items: center; min-height: 2.75rem; font-weight: 600; color: var(--ink); list-style: none; cursor: pointer }
