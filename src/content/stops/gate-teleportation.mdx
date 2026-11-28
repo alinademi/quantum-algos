@@ -1,9 +1,9 @@
 ---
-description: "Gate teleportation uses a prepared resource state, entangling operations, measurement and a classical correction to implement a desired gate."
+description: "Inject a T gate from a prepared magic state and compare the conditional output with and without correction."
 answer: "Gate teleportation uses a prepared resource state, entangling operations, measurement and a classical correction to implement a desired gate."
 myth:
-  claim: "The target non-Clifford gate appears for free."
-  truth: "Preparing the resource state consumes the desired non-Clifford resource, and the correction matters."
+  claim: "Once you have a magic state, no correction is needed to inject T."
+  truth: "One measurement outcome implements T† up to phase; an S correction makes it T for arbitrary inputs."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -12,19 +12,19 @@ import { lab } from '../../lib/sims/gate-teleportation.ts';
 
 <Depth level="kid">
 
-Prepare a special helper first. After joining it to the data and reading the helper, you apply a correction based on the result. The data has received the desired operation.
+Imagine a machine that struggles to perform one special instruction on your data. Instead, prepare a special helper ahead of time, connect it to the data and read the helper's answer. That answer tells you whether the desired change happened or whether an easier correction is needed. Either way, with the right correction the data receives the intended change. The expensive helper can be prepared and checked away from the main calculation, but it is used up by the process. The picture breaks because the helper is a quantum state whose amplitudes matter, not a classical instruction card, and its measured outcome is genuinely random.
 
 </Depth>
 
 <Depth level="student">
 
-For T injection, prepare a helper in T|+⟩. Apply CNOT from data to helper, then measure the helper. Outcome 0 leaves T on the data. Outcome 1 leaves T† on the data up to global phase, and S fixes it.
+In many error-correcting architectures, [Clifford gates](/learn/clifford-group/) are relatively cheap while T is expensive. Prepare the magic state T|+⟩ offline, often purifying noisy copies by magic-state distillation. Apply CNOT from the data to this helper and measure the helper. Outcome 0 leaves T on the data; outcome 1 leaves T† up to global phase, so apply S to correct it. Both occur with probability 1/2. This is a form of [gate teleportation](/learn/teleportation/), transferring a desired operation using a resource state and classical feed-forward. It supplies a non-Clifford operation for [universality](/learn/universal/), but does not remove the cost of preparing the resource.
 
 </Depth>
 
 <Depth level="engineer">
 
-Write $|\psi\rangle=a|0\rangle+b|1\rangle$ and $\omega=e^{i\pi/4}$. After CNOT, projecting the magic qubit onto 0 gives $(a|0\rangle+\omega b|1\rangle)/\sqrt2$; outcome 1 gives $(\omega a|0\rangle+b|1\rangle)/\sqrt2$. Each has probability 1/2. Since $ST^\dagger=T$, feed-forward yields the target T gate in both branches, up to phase. The resource state is not created by Clifford gates alone. See [Gottesman and Chuang](https://arxiv.org/abs/quant-ph/9908010).
+Write $|\psi\rangle=a|0\rangle+b|1\rangle$ and $\omega=e^{i\pi/4}$. After CNOT, projecting the magic qubit onto 0 gives $(a|0\rangle+\omega b|1\rangle)/\sqrt2$; outcome 1 gives $(\omega a|0\rangle+b|1\rangle)/\sqrt2$. Each has probability 1/2. Since $ST^\dagger=T$, feed-forward yields the target T gate in both branches, up to phase. The resource state is not created by Clifford gates alone. In architectures where logical Clifford operations are relatively cheap, T injection moves the non-Clifford cost into offline preparation and magic-state distillation, as in [Bravyi and Kitaev](https://arxiv.org/abs/quant-ph/0403025). See [Gottesman and Chuang](https://arxiv.org/abs/quant-ph/9908010).
 
 </Depth>
 
