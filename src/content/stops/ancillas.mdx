@@ -18,16 +18,16 @@ Imagine borrowing a friend's notebook to help calculate an answer. If they give 
 
 <Depth level="student">
 
-An ancilla is an extra qubit in a [circuit](/learn/circuits/). A clean helper has a known starting state, commonly |0⟩; a dirty helper may be in an unknown state or entangled with another system. In the lab, four Toffoli gates implement a flip on target t controlled by three data bits a,b,c, using borrowed helper d. First XOR ab into d, XOR dc into t, restore d, then XOR dc into t again. The two target flips combine to abc, regardless of d's previous value. The whole transformation restores the helper and its correlations. Omit the last operation and compare the result.
+An ancilla is an extra qubit in a [circuit](/learn/circuits/). A clean helper has a known starting state, commonly |0⟩; a dirty helper may be in an unknown state or entangled with another system. In the lab, four Toffoli gates implement a flip on target t controlled by three data bits a,b,c, using borrowed helper d. First XOR ab into d, XOR dc into t, restore d, then XOR dc into t again. The two target flips combine to abc, regardless of d's previous value. The whole transformation restores the helper and its correlations. Try an entangled helper and omit the last operation: the borrowed register can lose its original correlations, even when a basis-value check would look fine.
 
 </Depth>
 
 <Depth level="engineer">
 
-For data operation V a clean helper may satisfy $U|\psi\rangle|0\rangle=V|\psi\rangle|0\rangle$. A borrowed helper requires the operator identity $U=V\otimes I_d$, including arbitrary correlations with a reference. The example uses Toffolis in order $(a,b\to d),(d,c\to t),(a,b\to d),(d,c\to t)$. In Boolean algebra the target changes by $(d\oplus ab)c\oplus dc=abc$, while d returns unchanged. Checking every basis column proves the exact operator identity, hence it also holds for superpositions and entangled inputs.
+For data operation V a clean helper may satisfy $U|\psi\rangle|0\rangle=V|\psi\rangle|0\rangle$. A borrowed helper requires the operator identity $U=V\otimes I_d$, including arbitrary correlations with a reference. The example uses Toffolis in order $(a,b\to d),(d,c\to t),(a,b\to d),(d,c\to t)$. In Boolean algebra the target changes by $(d\oplus ab)c\oplus dc=abc$, while d returns unchanged. Checking every basis column proves the exact operator identity, hence it also holds for superpositions and entangled inputs. The lab optionally entangles q3 with an untouched reference q5. It reports the overlap of their reduced state with the original Bell pair, as well as fidelity of the entire output to the ideal operation. Both equal 1 after the complete protocol; testing only the borrowed bit’s 0/1 odds would not suffice.
 
 </Depth>
 
-<Lab title="Try clean and dirty scratch" intro="Change the borrowed helper and data, then compare the four-Toffoli protocol with its incomplete version.">
+<Lab title="Try clean and dirty scratch" intro="Borrow a known, unknown or Bell-entangled helper, then compare the ideal target and borrowed-register overlaps with and without the final gate.">
   <GateLab id="ancillas" lab={lab} />
 </Lab>
