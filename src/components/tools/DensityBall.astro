@@ -1,0 +1,360 @@
+---
+// Mixes two pure qubit states with chances you set, then shows the density matrix ρ, its point in the Bloch ball and Born-rule shots on fresh copies; every number and every shot comes from ρ.
+import { RECIPES, START, COPIES, BASES, rhoOf, blochOf, len, purity, eigenvalues, cnum, num, vecText, describe, stateText, presetAt, type Basis } from '../../lib/sims/density-matrix.ts';
+const uid = 'db-' + Math.random().toString(36).slice(2, 8);
+const r0 = START, rho0 = rhoOf(r0), v0 = blochOf(rho0), [e0, e1] = eigenvalues(rho0), YAW = 30;
+const ings = [{ k: 'a', name: 'A', s: r0.a }, { k: 'b', name: 'B', s: r0.b }] as const;
+const bases = Object.entries(BASES) as [Basis, (typeof BASES)[Basis]][];
+---
+<qce-density-ball class="tool">
+  <div class="cols">
+    <div class="stage">
+      <canvas aria-hidden="true"></canvas>
+      <p class="tally" data-tally>Press Measure to test {COPIES} fresh copies.</p>
+      <p class="key">The faint dots only draw the Bloch ball; they are not measurements. A and B are your two pure states, on the surface. The large dot, ρ, is the state the recipe makes: it sits on the straight line from A to B, nearer the state with the higher chance, and the line from the center to it is its Bloch vector. Under the ball, each of the {COPIES} dots is a fresh copy measured once: filled gave the first result (0, + or +i), open gave the second. Each copy keeps its own random draw and compares it with the odds from ρ, so two recipes with the same ρ give the same dots. In a lab the dots would differ run to run; only their odds match. Drag the ball, or use Turn, to turn it.</p>
+    </div>
+
+    <div class="tool-controls">
+      <fieldset>
+        <legend class="label">The recipe</legend>
+        <div class="pair">
+          {ings.map((g) => (
+            <fieldset class="ing">
+              <legend>State {g.name}: <code data-name={g.k}>{stateText(g.s)}</code></legend>
+              <div class="slider">
+                <div class="row"><label for={`${uid}-${g.k}t`}>θ, down from |0⟩</label><output aria-live="off" for={`${uid}-${g.k}t`} data-out={`${g.k}t`}>{g.s.theta}°</output></div>
+                <input id={`${uid}-${g.k}t`} name={`${g.k}t`} type="range" min="0" max="180" step="1" value={g.s.theta} aria-valuetext={`${g.s.theta} degrees. State ${g.name}: ${stateText(g.s)}.`} />
+              </div>
+              <div class="slider">
+                <div class="row"><label for={`${uid}-${g.k}p`}>φ, around from |+⟩</label><output aria-live="off" for={`${uid}-${g.k}p`} data-out={`${g.k}p`}>{g.s.phi}°</output></div>
+                <input id={`${uid}-${g.k}p`} name={`${g.k}p`} type="range" min="0" max="359" step="1" value={g.s.phi} aria-valuetext={`${g.s.phi} degrees.${g.s.theta === 0 || g.s.theta === 180 ? ' At a pole, φ does not change the state.' : ''}`} />
+              </div>
+            </fieldset>
+          ))}
+        </div>
+        <div class="slider">
+          <div class="row"><label for={`${uid}-w`}>Chance of A</label><output aria-live="off" for={`${uid}-w`} data-out="w">{r0.p}% A, {100 - r0.p}% B</output></div>
+          <input id={`${uid}-w`} name="w" type="range" min="0" max="100" step="1" value={r0.p} aria-valuetext={`${r0.p} percent A, ${100 - r0.p} percent B`} />
+        </div>
+        <div class="named">
+          <span class="label" id={`${uid}-n`}>Recipes to try, half and half unless marked</span>
+          <div class="presets" role="group" aria-labelledby={`${uid}-n`}>
+            {RECIPES.map((r) => (
+              <button type="button" data-preset={r.name} aria-pressed={String(presetAt(r0) === r.name)}>{r.name}<span class="visually-hidden">: {r.said}</span></button>
+            ))}
+          </div>
+        </div>
+      </fieldset>
+
+      <div class="views">
+        <table>
+          <caption class="label">The density matrix <var>ρ</var></caption>
+          <thead><tr><td></td><th scope="col">⟨0|</th><th scope="col">⟨1|</th></tr></thead>
+          <tbody>
+            {[0, 1].map((i) => (
+              <tr><th scope="row">|{i}⟩</th>{[0, 1].map((j) => <td data-e={`${i}${j}`}>{cnum(rho0[i][j])}</td>)}</tr>
+            ))}
+          </tbody>
+        </table>
+        <p class="hint">The diagonal holds the odds of 0 and 1 and adds to 1. The other two entries are where superposition of 0 and 1 shows, with its relative phase; a plain mix of 0 and 1 has 0 there, but 0 there does not mean no superposition went in: half |+⟩, half |−⟩ also has 0 there. Numbers are rounded to two decimals; a 0 or 1 with no decimals is exact.</p>
+        <dl>
+          <div><dt class="label">Point (x, y, z)</dt><dd data-v="vec">{vecText(v0)}</dd></div>
+          <div><dt class="label">Length</dt><dd data-v="len">{num(len(v0))}</dd></div>
+          <div><dt class="label">Purity tr <var>ρ²</var></dt><dd data-v="pur">{num(purity(rho0))}</dd></div>
+          <div><dt class="label">Eigenvalues</dt><dd data-v="eig">{num(e0)} and {num(e1)}</dd></div>
+        </dl>
+      </div>
+
+      <fieldset class="basis">
+        <legend class="label">Measure each copy in</legend>
+        <div class="choices">
+          {bases.map(([k, b]) => (
+            <label><input type="radio" name={`${uid}-basis`} value={k} checked={k === 'z'} /> {b.name}</label>
+          ))}
+        </div>
+      </fieldset>
+
+      <button type="button" class="btn btn-sm btn-line again">Measure {COPIES} new copies</button>
+
+      <div class="slider">
+        <div class="row"><label for={`${uid}-y`}>Turn the ball</label><output aria-live="off" for={`${uid}-y`} data-out="yaw">{YAW}°</output></div>
+        <input id={`${uid}-y`} name="yaw" type="range" min="0" max="359" step="1" value={YAW} aria-valuetext={`${YAW} degrees`} />
+      </div>
+    </div>
+  </div>
+
+  <p class="tool-readout" aria-live="polite">{describe(r0, 'z')}</p>
+  <p class="note">A simulation of ideal, noise-free qubits. Each result is drawn from your browser's random numbers with Born rule odds ⟨v|ρ|v⟩. A recipe here mixes two pure states, and that reaches every point of the ball: every one-qubit state is some mix of two pure states.</p>
+</qce-density-ball>
+
+<script>
+  import {
+    COPIES, BASES, rhoOf, blochOf, pointAt, len, purity, eigenvalues, odds, results, firsts, cnum, num, vecText,
+    describe, stateText, presetAt, batchText, RECIPES, wrap, camera, project, spherePoints, segment,
+    type Recipe, type Basis, type Vec3,
+  } from '../../lib/sims/density-matrix.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  // Drawing only: these dots draw the ball, its equator and axes. They are not states or shots.
+  const SURFACE = spherePoints(520);
+  const EQUATOR = Array.from({ length: 120 }, (_, k) => pointAt({ theta: 90, phi: k * 3 }));
+  const AXES: Vec3[] = [];
+  for (let k = 0; k < 3; k++) for (let i = -20; i <= 20; i++) { const v: Vec3 = [0, 0, 0]; v[k] = i / 20; AXES.push(v); }
+  const ENDS: [string, Vec3][] = [['|0⟩', [0, 0, 1.22]], ['|1⟩', [0, 0, -1.22]], ['|+⟩', [1.22, 0, 0]], ['|−⟩', [-1.22, 0, 0]], ['|+i⟩', [0, 1.22, 0]], ['|−i⟩', [0, -1.22, 0]]];
+  const ORIGIN: Vec3 = [0, 0, 0];
+  const ROWS = 5, COLS = COPIES / ROWS, TILT = 20, REVEAL = 700; // REVEAL: ms for a new batch to fill in
+
+  type Item = { d: number; x: number; y: number; r: number; color: string; a: number; halo: boolean };
+
+  class DensityBall extends HTMLElement {
+    connectedCallback() {
+      const $ = <T extends Element>(s: string) => this.querySelector<T>(s)!;
+      const input = (n: string) => $<HTMLInputElement>(`input[name="${n}"]`);
+      const output = (n: string) => $<HTMLOutputElement>(`[data-out="${n}"]`);
+      const canvas = $<HTMLCanvasElement>('canvas'), readout = $('.tool-readout'), tally = $('[data-tally]');
+      const sliders = { at: input('at'), ap: input('ap'), bt: input('bt'), bp: input('bp'), w: input('w') };
+      const thetaIn = { a: sliders.at, b: sliders.bt }, phiIn = { a: sliders.ap, b: sliders.bp };
+      const yIn = input('yaw');
+      const radios = [...this.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+      const presets = [...this.querySelectorAll<HTMLButtonElement>('[data-preset]')];
+      const still = reduceMotion();
+
+      const read = (): Recipe => ({
+        a: { theta: +sliders.at.value, phi: +sliders.ap.value },
+        b: { theta: +sliders.bt.value, phi: +sliders.bp.value },
+        p: +sliders.w.value,
+      });
+
+      let ctx: CanvasRenderingContext2D | null = null, w = 0, h = 0, col = palette();
+      let rec = read(), rho = rhoOf(rec), yaw = +yIn.value;
+      let basis = (radios.find((r) => r.checked)?.value ?? 'z') as Basis;
+      // One fixed uniform draw per copy, so the batch stays the same batch while the controls move.
+      let us = Array.from({ length: COPIES }, () => Math.random());
+      let shots = results(us, odds(rho, basis)[0]);
+      let shown = COPIES, seen = false, anim = 0, pending = 0;
+
+      function draw() {
+        if (!ctx || !w) return;
+        const g = ctx, cx = w / 2, cy = w / 2, R = w / 2 - (16 + 0.08 * w), u = R / 100;
+        const cam = camera(yaw, TILT), items: Item[] = [];
+        const at = (p: Vec3) => { const s = project(p, cam); return { x: cx + R * s.x, y: cy - R * s.y, d: s.depth }; };
+        const put = (p: Vec3, r: number, color: string, a = 1, lift = 0, halo = false) => {
+          const s = at(p);
+          items.push({ d: s.d + lift, x: s.x, y: s.y, r, color, a, halo });
+        };
+        const shade = (p: Vec3, back: number, front: number) => back + ((front - back) * (project(p, cam).depth + 1)) / 2;
+        const line = (a: Vec3, b: Vec3, r: number, color: string, alpha: number) => {
+          const k = Math.max(2, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) * 26));
+          for (const p of segment(a, b, k)) put(p, r, color, alpha, 0.001);
+        };
+        g.clearRect(0, 0, w, h);
+
+        // The ball: an outline, surface dots (fainter at the back), the equator and the three axes.
+        for (let k = 0; k < 144; k++) dot(g, cx + R * Math.cos((k * Math.PI) / 72), cy + R * Math.sin((k * Math.PI) / 72), Math.max(0.6, u * 0.6), col.rule);
+        for (const p of SURFACE) put(p, Math.max(0.6, u * 0.8), col.ink2, shade(p, 0.1, 0.36));
+        for (const p of EQUATOR) put(p, Math.max(0.7, u * 0.9), col.ink2, shade(p, 0.25, 0.75));
+        for (const p of AXES) put(p, Math.max(0.7, u * 0.9), col.ink2, shade(p, 0.25, 0.75));
+
+        // The recipe: A and B on the surface, the line between them, and ρ on it with its Bloch vector.
+        const A = pointAt(rec.a), B = pointAt(rec.b), v = blochOf(rho), foot: Vec3 = [v[0], v[1], 0];
+        line(A, B, Math.max(0.9, u * 1.1), col.ink, 0.9);
+        if (Math.hypot(v[0], v[1]) > 0.04) line(ORIGIN, foot, Math.max(0.6, u * 0.7), col.ink2, 0.6);
+        if (Math.abs(v[2]) > 0.04 && Math.hypot(v[0], v[1]) > 0.04) line(foot, v, Math.max(0.6, u * 0.7), col.ink2, 0.6);
+        line(ORIGIN, v, Math.max(1, u * 1.4), col.signal, 1);
+        const rAB = Math.max(3, u * 3.6), rRho = Math.max(4, u * 5.5);
+        put(A, rAB, col.ink, 1, 0.02, true);
+        put(B, rAB, col.ink, 1, 0.02, true);
+        put(v, rRho, col.signal, 1, 0.05, true);
+
+        items.sort((a, b) => a.d - b.d);
+        for (const it of items) {
+          g.globalAlpha = it.a;
+          if (it.halo) dot(g, it.x, it.y, it.r + 2, col.plate);
+          dot(g, it.x, it.y, it.r, it.color);
+        }
+        g.globalAlpha = 1;
+
+        // Labels: the six named states at the axis ends, then A, B and ρ beside their dots.
+        const fs = Math.round(Math.min(14, Math.max(11, R * 0.11)));
+        const write = (text: string, x: number, y: number, color: string, font: string) => {
+          g.font = font; g.textAlign = 'center'; g.textBaseline = 'middle';
+          const half = g.measureText(text).width / 2 + 2;
+          const lx = Math.min(w - half, Math.max(half, x)), ly = Math.min(w - fs, Math.max(fs, y));
+          g.lineWidth = 4; g.lineJoin = 'round'; g.strokeStyle = col.plate; g.strokeText(text, lx, ly);
+          g.fillStyle = color; g.fillText(text, lx, ly);
+        };
+        const mono = `500 ${fs}px ${token('--mono')}`, bold = `700 ${fs}px ${token('--mono')}`, sans = `italic 600 ${fs + 2}px ${token('--sans')}`;
+        const sa = at(A), sb = at(B), sr = at(v), dots = [{ ...sr, r: rRho }, { ...sa, r: rAB }, { ...sb, r: rAB }];
+        // An axis label never covers a dot: it slides outward from the center until it clears them.
+        g.font = mono;
+        for (const [name, p] of ENDS) {
+          const s = at(p), half = g.measureText(name).width / 2 + 2;
+          let { x, y } = s;
+          const k = Math.hypot(x - cx, y - cy) || 1, ux = (x - cx) / k, uy = (y - cy) / k;
+          const hits = () => dots.some((o) => Math.abs(x - o.x) < half + o.r + 6 && Math.abs(y - o.y) < fs / 2 + o.r + 6);
+          for (let i = 0; i < 24 && hits(); i++) { x += ux * 3; y += uy * 3; }
+          write(name, x, y, col.ink, mono);
+        }
+        // A and B sit beside their dots along the rim, A one way and B the other, so they stay apart when the states meet.
+        const side = (s: { x: number; y: number }, sign: number) => {
+          const k = Math.hypot(s.x - cx, s.y - cy), off = rAB + fs * 0.75;
+          const tx = k > 1 ? -(s.y - cy) / k : 1, ty = k > 1 ? (s.x - cx) / k : 0;
+          return [s.x + sign * tx * off, s.y + sign * ty * off] as const;
+        };
+        write('A', ...side(sa, 1), col.ink, bold);
+        write('B', ...side(sb, -1), col.ink, bold);
+        write('ρ', sr.x - rRho - fs * 0.6, sr.y - rRho - fs * 0.3, col.signal, sans);
+
+        // The batch: one dot per fresh copy measured once. Filled gave the first result, open the second.
+        const top = w + 4, pitch = Math.min((w - 16) / COLS, (h - top - 4) / ROWS, 16), r = pitch * 0.36;
+        const x0 = (w - COLS * pitch) / 2 + pitch / 2;
+        g.lineWidth = Math.max(1, pitch * 0.12); g.strokeStyle = col.ink2;
+        shots.forEach((s, i) => {
+          const x = x0 + (i % COLS) * pitch, y = top + (Math.floor(i / COLS) + 0.5) * pitch;
+          if (i >= shown) dot(g, x, y, Math.max(0.6, r * 0.3), col.rule);
+          else if (s === 0) dot(g, x, y, r, col.signal);
+          else { g.beginPath(); g.arc(x, y, r - g.lineWidth / 2, 0, Math.PI * 2); g.stroke(); }
+        });
+      }
+
+      const redraw = () => { if (!pending) pending = requestAnimationFrame(() => { pending = 0; draw(); }); };
+
+      /** The silent parts: outputs, names, matrix, numbers, presets, the batch and the picture. Not a live region. */
+      function show() {
+        rec = read(); rho = rhoOf(rec);
+        shots = results(us, odds(rho, basis)[0]);
+        for (const k of ['a', 'b'] as const) {
+          const s = rec[k], name = k.toUpperCase(), pole = s.theta === 0 || s.theta === 180;
+          output(`${k}t`).textContent = `${s.theta}°`; output(`${k}p`).textContent = `${s.phi}°`;
+          $(`[data-name="${k}"]`).textContent = stateText(s);
+          thetaIn[k].setAttribute('aria-valuetext', `${s.theta} degrees. State ${name}: ${stateText(s)}.`);
+          phiIn[k].setAttribute('aria-valuetext', `${s.phi} degrees.${pole ? ' At a pole, φ does not change the state.' : ''}`);
+        }
+        output('w').textContent = `${rec.p}% A, ${100 - rec.p}% B`;
+        sliders.w.setAttribute('aria-valuetext', `${rec.p} percent A, ${100 - rec.p} percent B`);
+        for (const i of [0, 1]) for (const j of [0, 1]) $(`[data-e="${i}${j}"]`).textContent = cnum(rho[i][j]);
+        const v = blochOf(rho), [hi, lo] = eigenvalues(rho);
+        $('[data-v="vec"]').textContent = vecText(v);
+        $('[data-v="len"]').textContent = num(len(v));
+        $('[data-v="pur"]').textContent = num(purity(rho));
+        $('[data-v="eig"]').textContent = `${num(hi)} and ${num(lo)}`;
+        const name = presetAt(rec);
+        presets.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.preset === name)));
+        if (shown === COPIES) tally.textContent = batchText(firsts(shots), basis);
+        draw();
+      }
+
+      /** The live sentence: spoken on release of a slider, on choices and on button presses only. */
+      const say = () => { readout.textContent = describe(rec, basis, firsts(shots)); };
+
+      const stop = () => { if (anim) { cancelAnimationFrame(anim); anim = 0; } };
+      // Off screen, a batch still filling in is shown whole at once.
+      const finish = () => { stop(); if (shown < COPIES) { shown = COPIES; show(); say(); } };
+
+      // A new batch fills in dot by dot, so it reads as shots arriving. No animation for reduced motion or off screen.
+      function measure() {
+        stop();
+        us = us.map(() => Math.random());
+        if (still || !seen) { show(); say(); return; }
+        shown = 0; show();
+        tally.textContent = `Measuring ${COPIES} fresh copies in the ${BASES[basis].name} basis.`;
+        const t0 = performance.now();
+        const step = (now: number) => {
+          shown = Math.min(COPIES, Math.ceil(((now - t0) / REVEAL) * COPIES));
+          if (shown < COPIES) { draw(); anim = requestAnimationFrame(step); } else { anim = 0; show(); say(); }
+        };
+        anim = requestAnimationFrame(step);
+      }
+
+      const showView = () => {
+        yIn.value = String(wrap(Math.round(yaw)));
+        output('yaw').textContent = `${yIn.value}°`;
+        yIn.setAttribute('aria-valuetext', `${yIn.value} degrees`);
+      };
+
+      // Moving a slider redraws at once but stays quiet; the sentence is spoken when the slider is released.
+      for (const s of Object.values(sliders)) {
+        s.addEventListener('input', show);
+        s.addEventListener('change', say);
+      }
+      presets.forEach((b) => b.addEventListener('click', () => {
+        const r = RECIPES.find((x) => x.name === b.dataset.preset)!;
+        sliders.at.value = String(r.a.theta); sliders.ap.value = String(r.a.phi);
+        sliders.bt.value = String(r.b.theta); sliders.bp.value = String(r.b.phi);
+        sliders.w.value = String(r.p);
+        show(); say();
+      }));
+      radios.forEach((r) => r.addEventListener('change', () => { if (r.checked) { basis = r.value as Basis; show(); say(); } }));
+      $('.again').addEventListener('click', measure);
+      yIn.addEventListener('input', () => { yaw = +yIn.value; showView(); redraw(); });
+
+      // Drag sideways to turn the ball. The Turn slider does the same by keyboard.
+      let drag: number | null = null;
+      canvas.addEventListener('pointerdown', (e) => { drag = e.clientX; canvas.setPointerCapture(e.pointerId); });
+      canvas.addEventListener('pointermove', (e) => {
+        if (drag === null) return;
+        yaw = wrap(yaw - (e.clientX - drag) * 0.6); drag = e.clientX;
+        showView(); redraw();
+      });
+      for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.addEventListener(t, () => { drag = null; });
+
+      const size = () => { ({ ctx, w, h } = fit(canvas)); draw(); };
+      onResize(canvas, size);
+      onTheme(() => { col = palette(); draw(); });
+      onSeen(this, (v) => { seen = v; if (!v) finish(); });
+      // Start from the controls as the page shows them: a browser can restore form values on going back.
+      showView(); size(); show();
+      const first = describe(rec, basis);
+      if (readout.textContent !== first) readout.textContent = first;
+    }
+  }
+  customElements.define('qce-density-ball', DensityBall);
+</script>
+
+<style>
+  qce-density-ball { display: grid; container-type: inline-size }
+  .cols { display: grid; gap: var(--s4); min-width: 0 }
+  .stage { display: grid; gap: var(--s3); align-content: start; min-width: 0 }
+  canvas { aspect-ratio: 4 / 5; max-width: 26rem; justify-self: center; touch-action: pan-y; cursor: grab }
+  canvas:active { cursor: grabbing }
+  .tally { font: 500 .9375rem var(--mono); text-align: center }
+  .key, .hint, .note { font-size: .875rem; color: var(--ink-2); max-width: var(--read) }
+  .tool-controls { display: grid; gap: var(--s4); align-content: start; align-items: start; min-width: 0 }
+  fieldset { display: grid; gap: var(--s3); min-width: 0; margin: 0; padding: 0; border: 0 }
+  legend { padding: 0; margin-bottom: var(--s2) }
+  .pair { display: grid; gap: var(--s3) }
+  .ing { padding-top: var(--s2); border-top: 1px dotted var(--rule) }
+  .ing legend { font-weight: 600 }
+  .slider { display: grid; gap: var(--s1); min-width: 0 }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2) }
+  .row output { flex: none; font-size: 1.125rem }
+  .named { display: grid; gap: var(--s2) }
+  .presets { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .presets button { min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); color: var(--ink); font: 500 .9375rem var(--mono); cursor: pointer }
+  .presets button:hover { border-color: var(--ink) }
+  .presets button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper) }
+  .views { display: grid; gap: var(--s3); min-width: 0 }
+  table { justify-self: start; border-collapse: collapse; font: 500 1rem var(--mono) }
+  var { font-style: normal; text-transform: none }
+  caption { padding-bottom: var(--s2); text-align: left }
+  th, td { padding: .3rem .6rem; text-align: right }
+  thead th { color: var(--ink-2); font-weight: 500 }
+  tbody th { color: var(--ink-2); font-weight: 500; text-align: left; padding-left: 0 }
+  tbody td { border: 1px solid var(--rule); background: var(--paper) }
+  tbody tr:first-child td:nth-of-type(1), tbody tr:last-child td:nth-of-type(2) { font-weight: 700 }
+  dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: var(--s3) }
+  dl div { display: grid; gap: var(--s1); min-width: 0 }
+  dd { margin: 0; font: 500 1rem var(--mono); overflow-wrap: anywhere }
+  .choices { display: flex; flex-wrap: wrap; gap: var(--s2) }
+  .choices label { display: inline-flex; align-items: center; gap: var(--s2); min-height: 2.75rem; padding: 0 var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); font: 500 .9375rem var(--mono); cursor: pointer }
+  .choices label:hover { border-color: var(--ink) }
+  .choices label:has(:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink) }
+  .choices input { width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--signal) }
+  .again { justify-self: start }
+  .tool-readout { min-height: 6.4em }
+  @container (min-width: 38rem) {
+    .cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--s5); align-items: start }
+    canvas { max-width: none }
+    .tool-readout { min-height: 4.8em }
+  }
+</style>
