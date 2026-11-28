@@ -1,0 +1,296 @@
+---
+// Two ideal qubits in one real pure state. The reader turns A's measuring basis and B's, and each pair of Born rule results lands as a
+// dot in one of four cells. Where A and B never differ, the bases are Schmidt bases and the state is a short sum of matched pairs.
+import { makeState, schmidt, jointChances, turnedBasis, amplitudeMatrix, amplitudesIn, entropy, amp, lambdaText, basisText, readout, type Kind } from '../../lib/sims/schmidt.ts';
+const uid = 'sb-' + Math.random().toString(36).slice(2, 8);
+const kind: Kind = 'lopsided', state = makeState(kind), sd = schmidt(state), ch = jointChances(state, turnedBasis(0), turnedBasis(0));
+const show = (m: { re: number }[][]) => m.map((row) => row.map((x) => amp(x.re)));
+const C = show(amplitudeMatrix(state)), Y = show(amplitudesIn(state, turnedBasis(0), turnedBasis(0)));
+const choices: [Kind, string][] = [
+  ['lopsided', 'Lopsided pair: 0.8|0⟩|+⟩ + 0.6|1⟩|−⟩'],
+  ['bell', 'Bell pair: (|00⟩ + |11⟩)/√2'],
+  ['product', 'Product state: |0⟩|+⟩'],
+  ['random', 'A random real state'],
+];
+---
+<qce-schmidt-bases class="tool">
+  <fieldset class="picks">
+    <legend>Pick a state of two qubits, A and B</legend>
+    {choices.map(([k, text]) => (
+      <label><input type="radio" name={`${uid}-state`} value={k} checked={k === kind} /> <span>{text}</span></label>
+    ))}
+  </fieldset>
+  <div class="tool-controls">
+    <button type="button" class="btn btn-sm btn-line" data-new>Draw a new random state</button>
+  </div>
+
+  <div class="turns">
+    <div class="turn">
+      <div class="row"><label for={`${uid}-a`}>Turn A's basis</label><span class="val doto" data-val="a">0°</span></div>
+      <input id={`${uid}-a`} data-turn="a" type="range" min="0" max="179" step="1" value="0" aria-valuetext={`0 degrees. ${basisText(0)}`} />
+      <p class="basis" data-basis="a">{basisText(0)}</p>
+    </div>
+    <div class="turn">
+      <div class="row"><label for={`${uid}-b`}>Turn B's basis</label><span class="val doto" data-val="b">0°</span></div>
+      <input id={`${uid}-b`} data-turn="b" type="range" min="0" max="179" step="1" value="0" aria-valuetext={`0 degrees. ${basisText(0)}`} />
+      <p class="basis" data-basis="b">{basisText(0)}</p>
+    </div>
+  </div>
+
+  <div class="tool-controls">
+    <button type="button" class="btn btn-sm" data-send="10">Send 10 pairs</button>
+    <button type="button" class="btn btn-sm" data-send="50">Send 50 pairs</button>
+    <button type="button" class="btn btn-sm btn-line" data-clear>Clear</button>
+    <button type="button" class="btn btn-sm btn-line" data-show>Show the Schmidt bases</button>
+  </div>
+  <p class="hint">Each pair is measured once: A in its basis, B in its own. The dot lands in the cell for A's result (row) and B's result (column). Changing the state or either basis clears the dots.</p>
+
+  <canvas aria-hidden="true"></canvas>
+  <p class="key">
+    <span class="k0">A and B agree (00 or 11)</span><span class="k1">A and B differ (01 or 10)</span>
+    <span class="kt">Each cell shows its Born rule chance, and how many pairs landed there.</span>
+  </p>
+
+  <div class="tables">
+    <table data-amps="std">
+      <caption>The state's amplitudes with the 0/1 basis on both qubits (row: A's bit, column: B's bit)</caption>
+      <thead><tr><td></td><th scope="col">B: 0</th><th scope="col">B: 1</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">A: 0</th><td data-s="0">{C[0][0]}</td><td data-s="1">{C[0][1]}</td></tr>
+        <tr><th scope="row">A: 1</th><td data-s="2">{C[1][0]}</td><td data-s="3">{C[1][1]}</td></tr>
+      </tbody>
+    </table>
+    <table data-amps="you">
+      <caption>The same state in your two bases (row: A's result, column: B's result)</caption>
+      <thead><tr><td></td><th scope="col">B: 0</th><th scope="col">B: 1</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">A: 0</th><td data-y="0">{Y[0][0]}</td><td data-y="1">{Y[0][1]}</td></tr>
+        <tr><th scope="row">A: 1</th><td data-y="2">{Y[1][0]}</td><td data-y="3">{Y[1][1]}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <dl class="score">
+    <div><dt class="label">Schmidt coefficients</dt><dd><b class="doto" data-lambda>{lambdaText(sd)}</b><span>Positive numbers, largest first. A matched pair has chance |coefficient|², and the chances add to 100%.</span></dd></div>
+    <div><dt class="label">Schmidt rank</dt><dd><b class="doto" data-rank>{sd.rank}</b><span data-rank-text>{sd.rank === 1 ? 'One term: a product state.' : 'Two terms: entangled.'}</span></dd></div>
+    <div><dt class="label">Entanglement entropy</dt><dd><b class="doto" data-entropy>{entropy(sd.lambda).toFixed(2)}</b><span>bits. 0 for a product state, 1 for the most entangled pair of qubits.</span></dd></div>
+  </dl>
+
+  <p class="tool-readout" aria-live="polite">{readout(kind, state, 0, 0, [0, 0, 0, 0])}</p>
+  <p class="note">A simulation of ideal, noise-free qubits. Each result is a Born rule draw from your browser's random numbers. Turning a basis by θ makes result 0 the state cos θ|0⟩ + sin θ|1⟩ and result 1 the state −sin θ|0⟩ + cos θ|1⟩. That is a turn of 2θ on the Bloch sphere, in one plane only. So the tool reaches real states and these real bases only. A state with complex amplitudes can need complex bases, which are not here. Turn one basis by 90° and its two results swap names: "agree" becomes "differ". With equal coefficients, as in the Bell pair, every turn of A works, as long as B is turned the same way.</p>
+</qce-schmidt-bases>
+
+<script>
+  import {
+    makeState, randomHidden, schmidt, jointChances, turnedBasis, amplitudeMatrix, amplitudesIn, entropy, amp, lambdaText, percent, basisText, readout,
+    schmidtTurns, shoot, tally, type Kind, type Hidden, type Chances, type Schmidt,
+  } from '../../lib/sims/schmidt.ts';
+  import { fit, palette, token, reduceMotion, onResize, onTheme, onSeen, dot } from '../../lib/draw.ts';
+
+  /** Most pairs on the page at once. ms between new pairs. ms a new dot stays enlarged. */
+  const CAP = 100, STEP = 25, POP = 260;
+  type Shot = { cell: 0 | 1 | 2 | 3; t: number };
+
+  class SchmidtBases extends HTMLElement {
+    connectedCallback() {
+      const root = this;
+      const $ = <T extends Element>(sel: string) => root.querySelector<T>(sel)!;
+      const radios = [...root.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+      const slider = { a: $<HTMLInputElement>('[data-turn="a"]'), b: $<HTMLInputElement>('[data-turn="b"]') };
+      const sends = [...root.querySelectorAll<HTMLButtonElement>('[data-send]')];
+      const canvas = $<HTMLCanvasElement>('canvas'), readoutEl = $<HTMLElement>('.tool-readout');
+      let ctx: CanvasRenderingContext2D | null = null, w = 0, h = 0;
+
+      let kind: Kind = 'lopsided', hidden: Hidden = randomHidden(Math.random), state = makeState(kind, hidden);
+      let sd: Schmidt = schmidt(state), degA = 0, degB = 0, ch: Chances = [0, 0, 0, 0];
+      let shots: Shot[] = [], queue = 0, last = 0, raf = 0, seen = false;
+
+      // ---- Drawing: a 2 by 2 grid. Row = A's result, column = B's result. One dot per pair, packed in a spiral from the middle of its cell.
+      function layout(width: number) {
+        const lab = 46, top = 26, cw = (width - lab) / 2, chh = Math.round(Math.min(cw * 1.1, 210));
+        const room = Math.min(cw, chh - 22) / 2 - 7, c = room / Math.sqrt(CAP), r = Math.max(1.6, Math.min(4.5, c * 0.45));
+        return { lab, top, cw, chh, c, r, h: Math.round(top + 2 * chh + 6) };
+      }
+      function paint(now = performance.now()) {
+        if (!ctx) return;
+        const pal = palette(), mono = token('--mono'), g = layout(w);
+        ctx.clearRect(0, 0, w, h);
+        ctx.textBaseline = 'alphabetic';
+        ctx.font = `500 12px ${mono}`;
+        const used = [0, 0, 0, 0];
+        const counts = [0, 0, 0, 0];
+        shots.forEach((s) => { counts[s.cell]++; });
+        for (let cell = 0; cell < 4; cell++) {
+          const row = cell >> 1, col = cell & 1, same = row === col;
+          const x = g.lab + col * g.cw, y = g.top + row * (g.chh + 6);
+          // Column and row labels.
+          if (row === 0) { ctx.fillStyle = pal.ink2; ctx.textAlign = 'center'; ctx.fillText(`B: ${col}`, x + g.cw / 2, g.top - 9); }
+          if (col === 0) { ctx.fillStyle = pal.ink2; ctx.textAlign = 'right'; ctx.fillText(`A: ${row}`, g.lab - 8, y + g.chh / 2 + 4); }
+          // The cell: solid edge where A and B agree, dashed where they differ.
+          ctx.fillStyle = pal.paper; ctx.fillRect(x + 1, y, g.cw - 2, g.chh);
+          ctx.strokeStyle = same ? pal.ink2 : pal.hot; ctx.lineWidth = 1.5; ctx.setLineDash(same ? [] : [5, 4]);
+          ctx.strokeRect(x + 1.75, y + 0.75, g.cw - 3.5, g.chh - 1.5); ctx.setLineDash([]);
+          // Born rule chance, then pairs so far, then the word for the cell.
+          ctx.fillStyle = pal.ink; ctx.textAlign = 'left'; ctx.fillText(percent(ch[cell]).replace('under ', '<').replace('over ', '>'), x + 8, y + 17);
+          ctx.fillStyle = pal.ink2; ctx.textAlign = 'right'; ctx.fillText(`n=${counts[cell]}`, x + g.cw - 8, y + 17);
+          ctx.textAlign = 'left'; ctx.font = `500 11px ${mono}`; ctx.fillText(same ? 'agree' : 'differ', x + 8, y + g.chh - 8); ctx.font = `500 12px ${mono}`;
+        }
+        // Dots, in the order the pairs were measured.
+        const cx = (col: number) => g.lab + col * g.cw + g.cw / 2, cy = (row: number) => g.top + row * (g.chh + 6) + 22 + (g.chh - 22) / 2 - 2;
+        for (const s of shots) {
+          const row = s.cell >> 1, col = s.cell & 1, k = used[s.cell]++;
+          const px = cx(col) + g.c * Math.sqrt(k + 0.5) * Math.cos(k * 2.399963), py = cy(row) + g.c * Math.sqrt(k + 0.5) * Math.sin(k * 2.399963);
+          const age = now - s.t, rr = g.r * (age < POP ? 1 + 0.5 * (1 - age / POP) : 1);
+          if (row === col) dot(ctx, px, py, rr, pal.signal);
+          else {
+            // A ring, so a pair that differs is told from one that agrees by shape as well as color.
+            dot(ctx, px, py, rr, pal.plate);
+            ctx.strokeStyle = pal.hot; ctx.lineWidth = Math.max(1.25, rr * 0.4);
+            ctx.beginPath(); ctx.arc(px, py, rr - ctx.lineWidth / 2, 0, Math.PI * 2); ctx.stroke();
+          }
+        }
+      }
+      function size() {
+        const width = canvas.getBoundingClientRect().width;
+        canvas.style.height = `${layout(width).h}px`;
+        ({ ctx, w, h } = fit(canvas));
+        paint();
+      }
+
+      // ---- Words and numbers. Cheap, so they update on every slider step; only the live readout waits for a release.
+      const say = () => { delete readoutEl.dataset.stale; readoutEl.textContent = readout(kind, state, degA, degB, tally(shots.map((s) => s.cell))); };
+      function show() {
+        sd = schmidt(state);
+        ch = jointChances(state, turnedBasis(degA), turnedBasis(degB));
+        for (const k of ['a', 'b'] as const) {
+          const deg = k === 'a' ? degA : degB;
+          $(`[data-val="${k}"]`).textContent = `${deg}°`;
+          $(`[data-basis="${k}"]`).textContent = basisText(deg);
+          slider[k].setAttribute('aria-valuetext', `${deg} degrees. ${basisText(deg)}`);
+        }
+        const m = amplitudeMatrix(state), y = amplitudesIn(state, turnedBasis(degA), turnedBasis(degB));
+        root.querySelectorAll<HTMLElement>('[data-s]').forEach((td) => { const i = +td.dataset.s!; td.textContent = amp(m[i >> 1][i & 1].re); });
+        root.querySelectorAll<HTMLElement>('[data-y]').forEach((td) => { const i = +td.dataset.y!; td.textContent = amp(y[i >> 1][i & 1].re); });
+        $('[data-lambda]').textContent = lambdaText(sd);
+        $('[data-rank]').textContent = String(sd.rank);
+        $('[data-rank-text]').textContent = sd.rank === 1 ? 'One term: a product state.' : 'Two terms: entangled.';
+        $('[data-entropy]').textContent = entropy(sd.lambda).toFixed(2);
+        paint();
+      }
+
+      // ---- Shots
+      const full = () => shots.length + queue >= CAP;
+      function buttons() { sends.forEach((b) => b.setAttribute('aria-disabled', String(full()))); }
+      const add = (now: number) => { shots.push({ cell: shoot(ch, Math.random), t: now }); queue--; };
+      /** Finish every queued pair at once and draw the end state: for reduced motion, and when the tool is off screen. */
+      const flush = () => { while (queue > 0) add(-Infinity); shots.forEach((s) => { s.t = -Infinity; }); paint(); buttons(); say(); };
+      function frame(now: number) {
+        raf = 0;
+        if (!seen) { flush(); return; }
+        if (now - last > 4 * STEP) last = now - STEP;
+        while (queue > 0 && now - last >= STEP) { add(now); last += STEP; }
+        paint(now);
+        if (queue > 0 || now < (shots.at(-1)?.t ?? -Infinity) + POP) raf = requestAnimationFrame(frame); else { buttons(); say(); }
+      }
+      const kick = () => { if (reduceMotion() || !seen) flush(); else if (!raf) raf = requestAnimationFrame(frame); };
+      function clear() {
+        shots = []; queue = 0;
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        buttons();
+      }
+
+      /** The state or a basis changed: drop the old dots, redraw. speak: also update the live readout (slider steps do not; release does). */
+      function change(speak: boolean) {
+        clear(); show();
+        if (speak) say(); else readoutEl.setAttribute('data-stale', '');
+      }
+      function pickState(k: Kind) {
+        kind = k;
+        if (k === 'random') hidden = randomHidden(Math.random);
+        state = makeState(kind, hidden);
+        degA = 0; degB = 0; slider.a.value = '0'; slider.b.value = '0';
+        change(true);
+      }
+
+      radios.forEach((r) => r.addEventListener('change', () => { if (r.checked) pickState(r.value as Kind); }));
+      $('[data-new]').addEventListener('click', () => { radios.forEach((r) => { r.checked = r.value === 'random'; }); pickState('random'); });
+      for (const k of ['a', 'b'] as const) {
+        const set = () => { if (k === 'a') degA = +slider.a.value; else degB = +slider.b.value; };
+        slider[k].addEventListener('input', () => { set(); change(false); });
+        slider[k].addEventListener('change', () => { set(); change(true); });
+      }
+      $('[data-show]').addEventListener('click', () => {
+        const t = schmidtTurns(state);
+        degA = t.a; degB = t.b; slider.a.value = String(t.a); slider.b.value = String(t.b);
+        change(true);
+      });
+      sends.forEach((b) => b.addEventListener('click', () => {
+        const room = CAP - shots.length - queue;
+        if (room <= 0) { say(); return; }
+        queue += Math.min(+b.dataset.send!, room);
+        buttons(); kick();
+      }));
+      $('[data-clear]').addEventListener('click', () => { clear(); paint(); say(); });
+
+      onResize(canvas, size);
+      onTheme(() => paint());
+      onSeen(this, (v) => { seen = v; if (!v && queue > 0) flush(); });
+      // Start from the controls as the page shows them: a browser can restore form values on going back.
+      kind = (radios.find((r) => r.checked)?.value ?? 'lopsided') as Kind;
+      state = makeState(kind, hidden);
+      degA = +slider.a.value; degB = +slider.b.value;
+      show(); buttons(); say();
+    }
+  }
+  customElements.define('qce-schmidt-bases', SchmidtBases);
+</script>
+
+<style>
+  .picks { display: grid; gap: var(--s2); min-width: 0; margin: 0; padding: 0; border: 0 }
+  .picks legend { padding: 0; margin-bottom: var(--s2); font-weight: 600 }
+  .picks label { display: flex; align-items: center; gap: var(--s2); min-height: 2.75rem; padding: var(--s2) var(--s3); border: 1.5px solid var(--rule); border-radius: var(--r); background: var(--paper); font-weight: 500; cursor: pointer; overflow-wrap: anywhere }
+  .picks label:hover { border-color: var(--ink) }
+  .picks label:has(:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink) }
+  .picks input { flex: none; width: 1.25rem; height: 1.25rem; margin: 0; accent-color: var(--signal) }
+
+  .turns { display: grid; gap: var(--s4) }
+  .turn { display: grid; gap: var(--s2); min-width: 0 }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3) }
+  .val { font: 900 2rem/1 var(--dots) }
+  .turn input[type="range"] { margin-inline: 0 }
+  .basis { max-width: var(--read); font: 500 .9375rem var(--mono); color: var(--ink-2); overflow-wrap: anywhere }
+
+  .hint, .note { max-width: var(--read); font-size: .9375rem; color: var(--ink-2) }
+  [aria-disabled="true"] { opacity: .45; cursor: not-allowed }
+  canvas { display: block; height: 18rem }
+
+  .key { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); font: 500 .875rem var(--mono); color: var(--ink-2) }
+  .key > span { display: inline-flex; align-items: center; gap: .4rem }
+  .key > span::before { content: ""; flex: none; width: .75rem; height: .75rem; border-radius: 50% }
+  .key > .k0::before { background: var(--signal) }
+  .key > .k1::before { border: 2px solid var(--hot) }
+  .key > .kt { font-family: var(--sans); font-size: .9375rem }
+  .key > .kt::before { display: none }
+
+  .tables { display: grid; gap: var(--s4); min-width: 0 }
+  .tables > table { min-width: 0 }
+  table { width: auto; border-collapse: collapse; font: 500 1rem var(--mono) }
+  caption { text-align: left; padding-bottom: var(--s1); font: 500 .875rem var(--sans); color: var(--ink-2) }
+  th, td { padding: var(--s1) var(--s2); border: 1px solid var(--rule); text-align: center; white-space: nowrap }
+  th { font-weight: 500; color: var(--ink-2) }
+  thead td { border: 0 }
+
+  .score { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr)); gap: 1px; margin: 0; background: var(--rule); border: 1px solid var(--rule) }
+  .score > div { display: grid; align-content: start; gap: var(--s1); min-width: 0; padding: var(--s3); background: var(--paper) }
+  .score dd { margin: 0; display: grid; gap: var(--s1); color: var(--ink-2); font-size: .9375rem }
+  .score b { font-size: 1.75rem; line-height: 1; color: var(--ink) }
+
+  .tool-readout[data-stale] { opacity: .55 }
+
+  @media (min-width: 40rem) {
+    .picks { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+    .turns { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+    .tables { grid-template-columns: repeat(2, max-content); gap: var(--s5) }
+    canvas { height: 22rem }
+  }
+</style>

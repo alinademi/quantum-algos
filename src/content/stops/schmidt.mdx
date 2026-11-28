@@ -1,0 +1,54 @@
+---
+description: "Any pure state of two parts is a short sum of matched pairs, once each side picks its own basis. Find those bases and read the entanglement. Try it live."
+answer: "The Schmidt decomposition writes any pure state of two parts as a short sum of matched pairs, with an orthonormal basis for each side. In those bases the two results always match, and the coefficients show how entangled the state is."
+myth:
+  claim: "Whether a state is entangled depends on the basis you write it in."
+  truth: "It does not. The Schmidt coefficients stay the same when you change basis on either side, and a state is entangled exactly when it has more than one. A new basis changes how the state looks, not how entangled it is."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import SchmidtBases from '../../components/tools/SchmidtBases.astro';
+
+<Depth level="kid">
+
+Alice and Bob each hold one qubit of a pair in one shared state. Each has a dial that sets the question they ask their qubit. For most settings their answers sometimes disagree.
+
+Here is the surprise. For any such pair, there is a setting for each dial where the answers match every time: Alice's first answer comes with Bob's first, her second with his second. How often each match happens depends on the pair.
+
+That short list of matches is the Schmidt decomposition. A Bell pair (started as 00, then a Hadamard gate on A and a CNOT) matches at many settings. A lopsided pair matches at one setting per dial, and one match is more likely. If only one match is left, the qubits are not entangled.
+
+Where the dial picture breaks: the disagreements are not noise or static. They come from the shared state and the two settings, and the right settings remove them.
+
+</Depth>
+
+<Depth level="student">
+
+Start as 00, then an RY gate on A (to 0.8 for 0 and 0.6 for 1), a [CNOT](/learn/cnot/), and a Hadamard gate on B: the state is 0.8|0⟩|+⟩ + 0.6|1⟩|−⟩. With the 0/1 basis on both qubits it has four terms (0.57, 0.57, 0.42 and −0.42 for 00, 01, 10, 11). With 0/1 for A and +/− for B, two remain.
+
+That is the Schmidt decomposition: any pure state of two parts is a sum of matched pairs, λ₁|a₁⟩|b₁⟩ + λ₂|a₂⟩|b₂⟩ + …, with orthonormal a's for A and orthonormal b's for B. The coefficients λ are positive. In those bases A and B always agree, and a pair has chance |λ|²: here 0.64 and 0.36.
+
+The number of terms is the Schmidt rank. Rank 1 is a product state. Two equal coefficients, as in a Bell pair, are the most entangled two qubits can be. A basis change on one side never changes the coefficients.
+
+</Depth>
+
+<Depth level="engineer">
+
+Let $|\psi\rangle = \sum_{jk}\psi_{jk}|j\rangle_A|k\rangle_B$ be a unit vector for parts of dimension $m$ and $n$, and $M = (\psi_{jk})$ its amplitude matrix. A singular value decomposition (the [SVD](/learn/svd-polar/)) $M = \sum_i \lambda_i\,u_i v_i^\dagger$, with $\lambda_i > 0$ and orthonormal $u_i$, $v_i$, gives
+
+$$
+|\psi\rangle = \sum_{i=1}^{r} \lambda_i\,|a_i\rangle|b_i\rangle,
+$$
+
+with $|a_i\rangle = \sum_j (u_i)_j|j\rangle$ and $|b_i\rangle = \sum_k (v_i)_k^{*}|k\rangle$, the complex conjugate of $v_i$. The rank $r \le \min(m, n)$ is the Schmidt rank, and $\sum_i \lambda_i^2 = 1$. The coefficients are unique. When the $\lambda_i$ differ, the bases are unique up to $|a_i\rangle \to e^{i\theta_i}|a_i\rangle$, $|b_i\rangle \to e^{-i\theta_i}|b_i\rangle$. When a $\lambda$ repeats, A's vectors for it can be any orthonormal basis of that eigenspace, and B's follow: $|b_i\rangle = \lambda_i^{-1}(\langle a_i|\otimes I)|\psi\rangle$. Example: $\tfrac{1}{\sqrt2}(|00\rangle + |11\rangle) = \tfrac{1}{\sqrt2}(|{+}{+}\rangle + |{-}{-}\rangle)$.
+
+Since $\rho_A = MM^\dagger = \sum_i \lambda_i^2\,|a_i\rangle\langle a_i|$, and $\rho_B = M^T M^{*} = \sum_i \lambda_i^2\,|b_i\rangle\langle b_i|$, the $\lambda_i^2$ are the shared nonzero eigenvalues of both [reduced states](/learn/partial-trace/). Measuring A in $\{a_i\}$ and B in $\{b_i\}$ gives the pair $(i, j)$ with chance $|\lambda_i|^2$ if $i = j$ and 0 otherwise.
+
+The state is a product exactly when $r = 1$. For two qubits $\lambda_1\lambda_2 = |\det M| = |\psi_{00}\psi_{11} - \psi_{01}\psi_{10}|$, the test from [entanglement](/learn/entanglement/). A unitary on each side, $U \otimes V$, maps the bases and keeps every $\lambda_i$. Two pure states of the same spaces with the same coefficients differ only by such a pair. So the coefficients carry a pure state's entanglement, such as its [entropy](/learn/entanglement-entropy/) $-\sum_i \lambda_i^2 \log_2 \lambda_i^2$.
+
+Example: $0.8|0\rangle|{+}\rangle + 0.6|1\rangle|{-}\rangle$ has $\lambda = (0.8, 0.6)$ and entropy 0.94 bits. The Lab uses real amplitudes and bases only.
+
+</Depth>
+
+<Lab title="Turn the bases until the pairs match" intro="Pick a state, turn A's basis and B's basis, and send pairs. Find settings where A and B never differ, then press Show the Schmidt bases to check.">
+  <SchmidtBases />
+</Lab>
