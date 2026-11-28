@@ -1,5 +1,5 @@
 ---
-description: "The Toffoli gate flips a target if both controls are 1. It is a reversible three-qubit gate."
+description: "Try reversible AND with Toffoli and exchange two qubits using three controlled flips."
 answer: "The Toffoli gate flips a target if both controls are 1. It is a reversible three-qubit gate."
 myth:
   claim: "Toffoli alone is universal for arbitrary quantum computation."
@@ -12,19 +12,27 @@ import { lab } from '../../lib/sims/toffoli.ts';
 
 <Depth level="kid">
 
-Two switches must both be on before the third bit flips. All three wires remain available; flip again to undo the operation.
+Imagine a locked box with two keys. It flips a token only if both keys are turned. The two keys are still there afterward, and turning the box mechanism again restores the token. Start the token at zero and it stores whether both keys were on.
+
+There is another useful reversible trick. To exchange two switches without a spare switch, flip the second according to the first, the first according to the second, then the second according to the first. Their values have swapped. These pictures break because quantum switches can carry complex amplitudes; the real gates act on their joint state without reading the switches.
 
 </Depth>
 
 <Depth level="student">
 
-Its action is (a,b,t) → (a,b,t XOR (a AND b)). A target initially in 0 stores the AND without deleting either original bit. The other reversible example in this lab swaps two wires using three CNOTs.
+Toffoli (CCNOT) maps three bits (a,b,t) to (a,b,t XOR (a AND b)). A target started at 0 stores the AND while the inputs remain. With an arbitrary target it still works reversibly; repeating Toffoli undoes the change.
+
+SWAP exchanges two qubits. Three [CNOTs](/learn/cnot/) make it: first control a onto b, then b onto a, then a onto b. For example 10 becomes 11, then 01, then stays 01. The same maps hold on amplitudes by linearity, not just on definite bits. The third wire in the SWAP example remains untouched. Neither operation measures its inputs.
 
 </Depth>
 
 <Depth level="engineer">
 
-$CCX|a,b,t\rangle=|a,b,t\oplus ab\rangle$ and $CCX^2=I$. Toffoli acts as a permutation matrix, so its linear extension also works on superpositions. With fixed constants it generates reversible classical computations, including NAND with target 1. No quantum phase or arbitrary superposition is generated from basis states by Toffoli alone.
+Toffoli acts as $|a,b,t\rangle\mapsto |a,b,t\oplus ab\rangle$. It is a self-inverse permutation matrix. With target 0 it embeds AND; with target 1 it embeds NAND. It is universal for reversible classical computation with suitable extra bits, not for arbitrary quantum unitaries on its own.
+
+The SWAP decomposition on two wires is
+$(a,b)\to(a,a\oplus b)\to(b,a\oplus b)\to(b,a)$,
+so $CX_{01}CX_{10}CX_{01}=SWAP$. These identities on all basis inputs establish equality of linear operators, including on entangled inputs. SWAP sends $|a,b\rangle$ to $|b,a\rangle$ and is its own inverse.
 
 </Depth>
 
