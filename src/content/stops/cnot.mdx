@@ -12,9 +12,9 @@ import { lab } from '../../lib/sims/cnot.ts';
 
 <Depth level="kid">
 
-Imagine two switches. The first tells a machine whether to flip the second. If the first is off, nothing changes. If the first is on, the second flips. The first switch itself is not read or changed by the classical rule. Running it twice returns both switches.
+Imagine two switches. The first tells a machine whether to flip the second. If the first is off, nothing changes. If the first is on, the second flips. The first switch itself is not read or changed by the classical rule. Running it twice puts both switches back where they started.
 
-Here is where the picture breaks: a quantum switch can have amplitudes for more than one possible result. Started with an even wave for the first and the second in 0, the machine links the pair. When measured in the 0/1 test they always agree, but either pair can come out. They are linked as one quantum state, not two hidden switches.
+Here is where the picture breaks: a quantum switch has a wave-like description for its possible results. Start the first in a wave with equal contributions for 0 and 1 and the second in 0, and the machine links the pair. When measured in the 0/1 test they always agree, but either pair can come out. They are linked as one quantum state, not two hidden switches.
 
 </Depth>
 
@@ -34,6 +34,6 @@ By linearity, starting with $|+\rangle|0\rangle$ gives $(|00\rangle+|11\rangle)/
 
 </Depth>
 
-<Lab title="Control a flip" intro="Prepare each wire independently and step through two CNOTs.">
+<Lab title="Control a flip" intro="Start with |+⟩ and |0⟩: compare concurrence 1 after one CNOT with 0 after two.">
   <GateLab id="cnot" lab={lab} />
 </Lab>
