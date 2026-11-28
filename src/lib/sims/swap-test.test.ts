@@ -9,3 +9,5 @@ test('Hadamard test real and imaginary sign and SWAP test distinguish overlaps',
  close(last('swap-test',{a:'0',theta:'180'}).distribution!.p[0],.5);
  close(last('swap-test',{a:'0',theta:'90'}).distribution!.p[0],.75);
 });
+
+test('SWAP measurement estimates squared overlap, including negative sample fluctuations',()=>{const r=last('swap-test',{a:'0',theta:'90'});close(r.distribution!.p[0],.75);close(r.estimate!.values[0],1);close(r.estimate!.values[1],-1);});
