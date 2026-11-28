@@ -1,9 +1,9 @@
 ---
-description: "Clifford gates map Pauli operators to Pauli operators, including their signs, under conjugation."
-answer: "Clifford gates map Pauli operators to Pauli operators, including their signs, under conjugation."
+description: "Conjugate Pauli strings by H, S and CNOT and see why T lies outside the Clifford group."
+answer: "Clifford gates map Pauli strings under conjugation to Pauli strings, possibly with a minus sign."
 myth:
-  claim: "Every gate that preserves the length of a Bloch vector is a Clifford."
-  truth: "All single-qubit unitaries preserve its length, but Cliffords permute the Pauli axes with signs."
+  claim: "Clifford circuits cannot create entanglement."
+  truth: "H and CNOT create Bell states using only Clifford gates, yet stabilizer simulation remains efficient."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -12,19 +12,21 @@ import { lab } from '../../lib/sims/clifford-group.ts';
 
 <Depth level="kid">
 
-A small collection of quantum operations moves the basic X, Y and Z questions around without making new kinds of questions.
+Imagine a toolkit that changes a fixed set of direction markings without inventing any new kinds of mark. One tool exchanges two directions; another sends one direction to a different direction with a possible sign change. A tool connecting two pieces can spread a mark across them. By combining these tools you still get only markings of the same kind, even when the pieces become linked. A different tool turns a marking partway between two directions, which breaks that rule. The picture breaks because these marks represent mathematical operations, not just arrows. The limited toolkit is important because its behavior can be tracked efficiently even for linked qubits.
 
 </Depth>
 
 <Depth level="student">
 
-H exchanges X and Z and changes the sign of Y. S sends X to Y. CNOT can spread a single-wire Pauli across two wires. T sends X to a combination of X and Y, so T is not Clifford.
+[Clifford gates](/learn/gottesman-knill/) map [Pauli strings](/learn/pauli-strings/) to signed Pauli strings when conjugating them. [H](/learn/hadamard/) exchanges X and Z and sends Y to −Y. S sends X to Y and Y to −X. [CNOT](/learn/cnot/) spreads X on the control to XX and Z on the target to ZZ. H, S and CNOT generate all Clifford operations up to global phase. T is outside this set: it sends X halfway between X and Y rather than to one signed Pauli. Although Clifford circuits can entangle qubits into Bell states, the signed-Pauli rule makes an important class of circuits efficient to simulate.
 
 </Depth>
 
 <Depth level="engineer">
 
 The Clifford group is the normalizer of the n-qubit Pauli group: $UPU^\dagger$ is Pauli for every Pauli P. H, S and CNOT generate it up to global phase. For example $TXT^\dagger=(X+Y)/\sqrt2$ is not a Pauli. This conjugation closure enables tracking stabilizers without an exponential state vector, but Clifford gates can still create entanglement.
+
+The ideas used here build on [Phase gates](/learn/phase-gates/), [Pauli gates](/learn/pauli/).
 
 </Depth>
 
