@@ -24,3 +24,4 @@ test('two-qubit families: unitary, exchange phases, fSim limits, XX interaction,
  state(q.matVec(ecr,q.basis(2,0)),[q.c(0),q.c(0),q.c(Math.SQRT1_2),q.c(0,-Math.SQRT1_2)]);
 });
 test('MS convention equals XX and RZZ entangles ++',()=>{matrix(family('MS (XX convention)',.8,0),family('RXX',.8,0));const [a,b,c,d]=q.matVec(family('RZZ',Math.PI/2,0),g.product('+','+'));close(2*q.abs(q.sub(q.mul(a,d),q.mul(b,c))),1);});
+test('ECR is echoed opposite ZX rotations with an X echo on q0',()=>{const zx=q.kron(q.Z,q.X);const rot=(t:number)=>g.eye(4).map((r,i)=>r.map((z,j)=>q.add(q.scale(z,Math.cos(t/2)),q.mul(q.c(0,-Math.sin(t/2)),zx[i][j]))));const ecr=q.matMul(rot(-Math.PI/4),q.matMul(q.kron(q.X,q.I),rot(Math.PI/4)));matrix(family('ECR',0,0),ecr);});

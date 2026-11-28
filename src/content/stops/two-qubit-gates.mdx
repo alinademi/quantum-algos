@@ -32,7 +32,7 @@ In basis order 00, 01, 10, 11, iSWAP sends 01 to $i|10\rangle$ and 10 to $i|01\r
 
 The fSim odd-parity block has rows $(\cos\theta,-i\sin\theta)$ and $(-i\sin\theta,\cos\theta)$, with diagonal factors 1 on 00 and $e^{-i\phi}$ on 11. ECR uses IBM's [matrix convention](https://quantum.cloud.ibm.com/docs/en/api/qiskit/qiskit.circuit.library.ECRGate), reordered to q0-first. See [Krantz et al.](https://arxiv.org/abs/1904.06560), section IV, for exchange and cross-resonance interactions. MS is used in trapped-ion systems; exact native implementations depend on hardware. Not every input is entangled by each gate.
 
-The ideas used here build on [Controlled gates](/learn/controlled-gates/), [Toffoli and SWAP](/learn/toffoli/).
+Unlike a block-diagonal [controlled gate](/learn/controlled-gates/), the exchange families act within the odd-parity subspace. Their relation to [SWAP](/learn/toffoli/) is visible on the basis inputs 01 and 10.
 
 </Depth>
 
