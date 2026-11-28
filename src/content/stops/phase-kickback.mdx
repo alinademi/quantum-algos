@@ -1,9 +1,9 @@
 ---
-description: "A controlled unitary can transfer its target eigenvalue into the relative phase of the control, while leaving the target in its eigenstate."
+description: "Explore how a controlled operation can change the relative phase of its control without changing its target."
 answer: "A controlled unitary can transfer its target eigenvalue into the relative phase of the control, while leaving the target in its eigenstate."
 myth:
-  claim: "The target always stays unchanged after a controlled gate."
-  truth: "That is guaranteed for an eigenstate of the applied unitary, not an arbitrary target."
+  claim: "A controlled gate never changes its control qubit."
+  truth: "With an eigenstate target, the eigenvalue becomes a relative phase on a superposed control."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
@@ -12,13 +12,13 @@ import { lab } from '../../lib/sims/phase-kickback.ts';
 
 <Depth level="kid">
 
-A switch controls a wave that already has a special shape. The wave keeps its shape, but the switch branches now have different phases. A later H can reveal that phase.
+Imagine a switch that sends a wave through one of two routes. One route leaves a second wave alone, while the other turns its peaks into troughs. If the second wave has just the right shape, it comes back with its shape intact, apart from a sign. That sign matters when the two routes join: their contributions can reinforce or cancel each other. The switch's wave has changed even though the second wave has kept its shape. This is the useful trick. Real quantum controls are not switches with definite positions, and the waves in the picture stand for numbers, not water.
 
 </Depth>
 
 <Depth level="student">
 
-Prepare the control in |+⟩ and the target in |−⟩. X acts on |−⟩ by multiplying it by −1. Consequently CNOT changes the control to |−⟩ while leaving the target in |−⟩. Try a non-eigenstate to see how this can fail.
+Start the control in |+⟩ and the target in |−⟩. The [CNOT](/learn/cnot/) applies X to the target only on the control's 1 component. X multiplies |−⟩ by −1, so the control becomes |−⟩ and the target remains |−⟩. With |+⟩ as target, the multiplier is +1 and the control stays |+⟩. A controlled phase gate with target |1⟩ similarly gives a relative phase to the control. Apply [H](/learn/hadamard/) then measure the control to turn these [phase](/learn/phase-gates/) differences into different odds. If the target is not an eigenstate, the two qubits can instead become entangled.
 
 </Depth>
 
