@@ -26,7 +26,7 @@ A transpiler takes a logical [circuit](/learn/circuits/) and makes it executable
 
 A transpiler can choose an initial logical-to-physical layout, insert routing operations, translate to a native gate set and schedule under target constraints. It may track a final permutation instead of restoring the initial layout; this lab restores it. Exact unitary preservation can be checked by column-wise comparison with global phase, whereas cost minimization is a separate problem.
 
-The ideas used here build on [Universal gate sets](/learn/universal/).
+A [universal gate set](/learn/universal/) allows a compiler to translate gates, but connectivity and scheduling still constrain how the translated operations run.
 
 </Depth>
 
