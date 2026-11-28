@@ -1,5 +1,5 @@
 ---
-description: "Parity measurement distinguishes even from odd parity, without necessarily revealing the individual values of the data qubits."
+description: "Use one helper qubit to learn whether two data bits agree while preserving their remaining coherence."
 answer: "Parity measurement distinguishes even from odd parity, without necessarily revealing the individual values of the data qubits."
 myth:
   claim: "Measuring parity means measuring both bits separately and taking XOR."
@@ -12,13 +12,13 @@ import { lab } from '../../lib/sims/parity-measurement.ts';
 
 <Depth level="kid">
 
-Ask whether two bits agree, not which bits they are. A helper can record the answer without learning the individual values.
+Imagine two cards inside a special box. A helper reports only whether the cards match, without showing either card. If the answer is yes, you cannot tell whether both cards show zero or both show one. In a quantum experiment that distinction is more than missing knowledge: the two possibilities can still contribute together to a wave. They can still cancel or reinforce in a later experiment. Reading both cards would give too much information and ruin that ability. The picture breaks because ordinary hidden cards already have definite faces; the quantum description uses amplitudes for the possible paired results.
 
 </Depth>
 
 <Depth level="student">
 
-Start a helper in 0. CNOT from each data wire into it computes XOR. Measuring only the helper distinguishes 00 or 11 from 01 or 10. For two |+⟩ inputs the conditional data state is an entangled Bell state.
+Prepare a helper in |0⟩. Apply [CNOT](/learn/cnot/) from each data wire into the helper. Its value on each basis input is the XOR of the two data bits. [Measure just the helper](/learn/partial-measurement/): 0 means even parity (00 or 11), and 1 means odd (01 or 10). With both data qubits in |+⟩, the even result leaves equal amplitudes for 00 and 11; the odd result leaves equal amplitudes for 01 and 10. Each is a Bell state. No record distinguishes the alternatives within the chosen parity, so their coherence survives. That is why measuring each data bit separately is not equivalent.
 
 </Depth>
 
