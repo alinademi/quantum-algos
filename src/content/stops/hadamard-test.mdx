@@ -2,8 +2,8 @@
 description: "Use interference on one helper to estimate the real or imaginary part of a unitary overlap."
 answer: "The Hadamard test estimates the real or imaginary part of the expectation value of a unitary on a prepared quantum state."
 myth:
-  claim: "One run returns the exact complex expectation value."
-  truth: "Each run yields a binary result. Repeated shots estimate a component of the expectation."
+  claim: "The Hadamard test measures the size of an overlap, regardless of its phase."
+  truth: "Its two settings estimate the real and imaginary components separately. The sign and relative phase matter."
 ---
 import Depth from '../../components/stop/Depth.astro';
 import Lab from '../../components/stop/Lab.astro';
