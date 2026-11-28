@@ -1,0 +1,33 @@
+---
+description: "Gate decomposition expresses an operation as a product of smaller operations. Two-level rotations and diagonal phases give one constructive route."
+answer: "Gate decomposition expresses an operation as a product of smaller operations. Two-level rotations and diagonal phases give one constructive route."
+myth:
+  claim: "Every n-qubit unitary has a short circuit of elementary gates."
+  truth: "A generic unitary has exponentially many independent parameters in n; a general decomposition can be exponentially large."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/decomposition.ts';
+
+<Depth level="kid">
+
+Take a complicated transformation and undo small parts until only easy phases are left. Reverse those small steps to reconstruct the original operation.
+
+</Depth>
+
+<Depth level="student">
+
+A two-level unitary acts only on two computational basis amplitudes. You can use such rotations to eliminate entries below a matrix diagonal, like Gaussian elimination but keeping the operation unitary. Reverse the eliminations to reconstruct the original.
+
+</Depth>
+
+<Depth level="engineer">
+
+Complex Givens rotations mix rows of a unitary U to produce an upper-triangular unitary, necessarily diagonal. If $G_m\cdots G_1 U=D$, then $U=G_1^\dagger\cdots G_m^\dagger D$. A dimension-d matrix needs at most $d(d-1)/2$ such eliminations. The lab decomposes 4 by 4 matrices into two-level factors; each factor is still abstract and may itself require elementary gates. A Gray-code path connects any two basis strings by single-bit changes. Conjugate the two-level operation by basis-state transpositions along that path until the two strings differ at just one bit, then use a multi-controlled one-qubit gate and undo the transpositions. This explains how two-level factors reduce to smaller gates.
+
+</Depth>
+
+<Lab title="Reconstruct a unitary" intro="Select a two-qubit example and step through the inverse elimination. Compare the complete matrices.">
+  <GateLab id="decomposition" lab={lab} />
+</Lab>

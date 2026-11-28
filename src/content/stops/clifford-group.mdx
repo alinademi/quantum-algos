@@ -1,0 +1,33 @@
+---
+description: "Clifford gates map Pauli operators to Pauli operators, including their signs, under conjugation."
+answer: "Clifford gates map Pauli operators to Pauli operators, including their signs, under conjugation."
+myth:
+  claim: "Every gate that preserves the length of a Bloch vector is a Clifford."
+  truth: "All single-qubit unitaries preserve its length, but Cliffords permute the Pauli axes with signs."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/clifford-group.ts';
+
+<Depth level="kid">
+
+A small collection of quantum operations moves the basic X, Y and Z questions around without making new kinds of questions.
+
+</Depth>
+
+<Depth level="student">
+
+H exchanges X and Z and changes the sign of Y. S sends X to Y. CNOT can spread a single-wire Pauli across two wires. T sends X to a combination of X and Y, so T is not Clifford.
+
+</Depth>
+
+<Depth level="engineer">
+
+The Clifford group is the normalizer of the n-qubit Pauli group: $UPU^\dagger$ is Pauli for every Pauli P. H, S and CNOT generate it up to global phase. For example $TXT^\dagger=(X+Y)/\sqrt2$ is not a Pauli. This conjugation closure enables tracking stabilizers without an exponential state vector, but Clifford gates can still create entanglement.
+
+</Depth>
+
+<Lab title="Check conjugation" intro="Choose H, S, CNOT or T, then inspect the mapping of every two-qubit Pauli.">
+  <GateLab id="clifford-group" lab={lab} />
+</Lab>

@@ -1,0 +1,33 @@
+---
+description: "A Pauli rotation implements the exponential of a tensor-product Pauli operator, commonly using basis changes, parity CNOTs and one Z rotation."
+answer: "A Pauli rotation implements the exponential of a tensor-product Pauli operator, commonly using basis changes, parity CNOTs and one Z rotation."
+myth:
+  claim: "The exponential of a product of Paulis equals the product of their individual rotations."
+  truth: "A tensor-product interaction generally creates correlations; separate single-qubit rotations cannot reproduce it."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/pauli-rotations.ts';
+
+<Depth level="kid">
+
+Make several wires speak the same basis language, combine their parity into one wire, turn its phase, then undo the combining steps.
+
+</Depth>
+
+<Depth level="student">
+
+For a string such as XYZ, use H on X sites and S† then H on Y sites to map the desired observable into Z. Compute parity with CNOTs into one active wire, apply a Z rotation, then reverse all the preparation.
+
+</Depth>
+
+<Depth level="engineer">
+
+Since $P^2=I$, $e^{-i\theta P}=\cos\theta I-i\sin\theta P$. If B maps P to a product of Z operators, compute their parity onto a chosen target with a CNOT network C. Then $B^\dagger C^\dagger R_Z(2\theta)CB=e^{-i\theta P}$. The factor of two comes from the definition of RZ. A string with k active sites uses $2(k-1)$ CNOTs in this construction.
+
+</Depth>
+
+<Lab title="Build a Pauli rotation" intro="Select a three-wire string and exponent angle; verify the parity-ladder circuit against the exponential.">
+  <GateLab id="pauli-rotations" lab={lab} />
+</Lab>

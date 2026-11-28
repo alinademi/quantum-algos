@@ -1,0 +1,33 @@
+---
+description: "Qubit routing modifies a quantum circuit to respect the available interactions between physical qubits while tracking the logical wire placement."
+answer: "Qubit routing modifies a quantum circuit to respect the available interactions between physical qubits while tracking the logical wire placement."
+myth:
+  claim: "A SWAP means copying both qubits to new locations."
+  truth: "It exchanges the complete states reversibly, including any entanglement with other qubits."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/qubit-routing.ts';
+
+<Depth level="kid">
+
+Suppose wires form a line, and only neighbors can talk. Move one wire’s quantum state closer to the other by swapping it with neighbors.
+
+</Depth>
+
+<Depth level="student">
+
+On a four-site line, a CNOT between 0 and 3 needs a route. Move the control toward the target using two SWAPs, perform CNOT, then reverse the swaps. A SWAP can be expressed using three CNOTs assuming both directions are available.
+
+</Depth>
+
+<Depth level="engineer">
+
+The coupling graph defines legal multi-qubit interactions; a directed graph may also constrain CNOT direction. A route changes the permutation of logical states across physical sites. For endpoints at distance d on an undirected line, the displayed restore-layout method uses $2(d-1)$ SWAPs plus one neighboring CNOT. Retaining the updated layout or using bridge circuits may reduce cost.
+
+</Depth>
+
+<Lab title="Route a CNOT" intro="Choose a control and target on a four-site line; check the matrix after restoring the original layout.">
+  <GateLab id="qubit-routing" lab={lab} />
+</Lab>

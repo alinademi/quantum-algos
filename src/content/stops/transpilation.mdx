@@ -1,0 +1,33 @@
+---
+description: "Transpilation rewrites a logical circuit for a particular target, potentially optimizing gates, mapping wires, routing interactions and translating into."
+answer: "Transpilation rewrites a logical circuit for a particular target, potentially optimizing gates, mapping wires, routing interactions and translating into native operations."
+myth:
+  claim: "A transpiler finds the globally best possible circuit."
+  truth: "It generally uses heuristics; outcomes depend on the optimization objective, target and algorithm."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/transpilation.ts';
+
+<Depth level="kid">
+
+Your circuit might ask distant wires to interact. A device only lets neighbors talk. A compiler moves the qubits, rewrites the instructions, and finds a legal schedule.
+
+</Depth>
+
+<Depth level="student">
+
+In this example a remote CNOT between the ends of a three-qubit line is implemented by SWAPs and a neighboring CNOT. Adjacent identical CNOTs can cancel. The original layout is restored by reversing the SWAPs.
+
+</Depth>
+
+<Depth level="engineer">
+
+A transpiler can choose an initial logical-to-physical layout, insert routing operations, translate to a native gate set and schedule under target constraints. It may track a final permutation instead of restoring the initial layout; this lab restores it. Exact unitary preservation can be checked by column-wise comparison with global phase, whereas cost minimization is a separate problem.
+
+</Depth>
+
+<Lab title="Compile for a line of qubits" intro="Toggle the cancellation pass and follow the routing, translation and scheduling costs.">
+  <GateLab id="transpilation" lab={lab} />
+</Lab>

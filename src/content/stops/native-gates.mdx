@@ -1,0 +1,33 @@
+---
+description: "Native gates are the operations a target device or execution model offers directly. A compiler translates other gates into the target basis."
+answer: "Native gates are the operations a target device or execution model offers directly. A compiler translates other gates into the target basis."
+myth:
+  claim: "Every device supports the same native gates and each takes the same time."
+  truth: "Native operations, couplings, calibrated parameters, duration and error depend on the target."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/native-gates.ts';
+
+<Depth level="kid">
+
+Machines have their own small set of instructions. To use a new machine, rewrite your instructions using the ones it understands.
+
+</Depth>
+
+<Depth level="student">
+
+For this lab imagine a device with RZ, SX and CZ. SX is a square root of X; two SX gates make X. A sequence of RZ, SX and RZ makes H up to global phase. A CZ with H before and after on its target makes CNOT.
+
+</Depth>
+
+<Depth level="engineer">
+
+Here $SX=HSH$, so $SX^2=X$. $R_Z(\pi/2)SX R_Z(\pi/2)=e^{-i\pi/4}H$. Conjugating CZ by H on the target gives CX, and replacing those Hs gives the stated global phase. This basis is a mathematical example, not a claim about a particular currently available backend. For a real device consult its target instructions and calibration data.
+
+</Depth>
+
+<Lab title="Translate into a native basis" intro="Choose a target gate; step through its native decomposition and check the global-phase-adjusted matrix.">
+  <GateLab id="native-gates" lab={lab} />
+</Lab>

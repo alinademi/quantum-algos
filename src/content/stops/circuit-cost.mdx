@@ -1,0 +1,33 @@
+---
+description: "Circuit cost can measure qubit width, gate count, depth and costly operation counts. These metrics depend on the circuit and gate basis."
+answer: "Circuit cost can measure qubit width, gate count, depth and costly operation counts. These metrics depend on the circuit and gate basis."
+myth:
+  claim: "Circuit depth equals the total number of gates."
+  truth: "Operations on disjoint wires can run in the same ideal layer; actual hardware scheduling may impose extra constraints."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/circuit-cost.ts';
+
+<Depth level="kid">
+
+Two workers can finish independent tasks at the same time. On quantum wires, two gates that do not use the same wires can often share a time step.
+
+</Depth>
+
+<Depth level="student">
+
+Width tells how many qubits are allocated. Gate count counts operations. Depth counts layers when operations on disjoint wires can run together. A specified gate basis may also motivate counting CNOT or T gates separately.
+
+</Depth>
+
+<Depth level="engineer">
+
+For a fixed ordered list of nonempty wire sets, assign each gate the earliest layer later than the last layer on any of its wires. The maximum assigned layer is the depth for that dependency ordering and unit-duration model. Commutation-based rewrites can change this value. Hardware duration, connectivity, measurement, classical latency and error are separate costs.
+
+</Depth>
+
+<Lab title="Schedule a circuit" intro="Compare a disjoint-wire schedule with a serial schedule and inspect width, depth and gate counts.">
+  <GateLab id="circuit-cost" lab={lab} />
+</Lab>

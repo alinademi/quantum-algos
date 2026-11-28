@@ -1,0 +1,33 @@
+---
+description: "A universal quantum gate set can implement or approximate any unitary on a fixed number of qubits to arbitrary accuracy."
+answer: "A universal quantum gate set can implement or approximate any unitary on a fixed number of qubits to arbitrary accuracy."
+myth:
+  claim: "A finite universal gate set represents every unitary exactly with a finite word."
+  truth: "There are only countably many finite words, but uncountably many inequivalent unitaries. Approximate universality is enough."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/universal.ts';
+
+<Depth level="kid">
+
+A few types of building blocks can make many different machines. Quantum gates work similarly, although a finite set may need many small steps to approximate a desired turn.
+
+</Depth>
+
+<Depth level="student">
+
+Arbitrary single-qubit rotations together with CNOT are exactly universal for finite registers up to global phase. A finite set such as H, T and CNOT is approximately universal. The lab demonstrates exact examples, not a compiler for arbitrary gates.
+
+</Depth>
+
+<Depth level="engineer">
+
+Single-qubit gates plus CNOT can synthesize any finite-dimensional qubit unitary up to global phase ([Barenco et al.](https://arxiv.org/abs/quant-ph/9503016)). H, T and CNOT generate a dense family up to global phase. One example is $R_Y(\pi/2)R_Z(\pi)=-iH$; another is CZ from conjugating CNOT by H on the target. Universality does not promise short circuits for every unitary.
+
+</Depth>
+
+<Lab title="Build gates from a small alphabet" intro="Choose a target and check the decomposition on all matrix entries, with the stated global phase.">
+  <GateLab id="universal" lab={lab} />
+</Lab>

@@ -1,0 +1,33 @@
+---
+description: "Classical computers can simulate quantum circuits, but the required resources depend strongly on the state representation and circuit structure."
+answer: "Classical computers can simulate quantum circuits, but the required resources depend strongly on the state representation and circuit structure."
+myth:
+  claim: "Classical simulation of n qubits always needs exactly 2ⁿ complex numbers."
+  truth: "Dense pure-state simulation does, but some structured circuits or states have much more compact descriptions."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/classical-simulation.ts';
+
+<Depth level="kid">
+
+A detailed list of every possible quantum basis state gets huge as you add wires. Sometimes a pattern in the list lets you describe it much more simply.
+
+</Depth>
+
+<Depth level="student">
+
+For a dense state vector on n qubits, store 2ⁿ complex amplitudes. At 16 bytes per amplitude this needs 16 × 2ⁿ bytes, before overhead. Product states, certain tensor networks and stabilizer states can have compact descriptions. A GHZ state has only two nonzero amplitudes.
+
+</Depth>
+
+<Depth level="engineer">
+
+A generic pure-state vector requires exponentially many parameters; a dense density matrix has $4^n$ complex entries. Stabilizer tableaux use polynomial space, and tensor networks can exploit bounded bond dimension or favorable circuit structure. These are representation-dependent bounds, not a universal limit on exact or approximate simulation of a particular circuit. A state-vector simulator and a sampling algorithm need not store the same representation.
+
+</Depth>
+
+<Lab title="Explore simulation memory" intro="Change the qubit count to calculate dense storage; compare a four-qubit product or GHZ preparation.">
+  <GateLab id="classical-simulation" lab={lab} />
+</Lab>

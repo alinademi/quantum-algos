@@ -1,0 +1,33 @@
+---
+description: "Circuit languages and software libraries describe quantum operations, measurement and sometimes classical control in different forms."
+answer: "Circuit languages and software libraries describe quantum operations, measurement and sometimes classical control in different forms."
+myth:
+  claim: "A language and its simulator are the same thing."
+  truth: "A circuit description can be executed by different simulators or hardware backends."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/circuit-languages.ts';
+
+<Depth level="kid">
+
+People can describe the same experiment using different programming languages. The written instructions look different, but the ideal gate sequence can be the same.
+
+</Depth>
+
+<Depth level="student">
+
+OpenQASM 3 describes gates and measurements in a circuit-oriented language. Qiskit and Cirq are Python libraries; Q# is a quantum programming language. The four examples prepare a Bell pair and measure both wires. This lab simulates their shared gate sequence, rather than running each language.
+
+</Depth>
+
+<Depth level="engineer">
+
+See the [OpenQASM 3 specification](https://openqasm.com/), [Qiskit circuit guide](https://quantum.cloud.ibm.com/docs/en/guides/construct-circuits), [Cirq circuits](https://quantumai.google/cirq/build/circuits) and [Q# documentation](https://learn.microsoft.com/en-us/azure/quantum/qsharp-overview). The logical state before measurement is $(|00\rangle+|11\rangle)/\sqrt2$. APIs can differ in register ownership, bit display order, and execution semantics; Qiskit commonly displays the highest classical bit first, whereas this lab displays q0 first.
+
+</Depth>
+
+<Lab title="Read equivalent programs" intro="Switch languages, inspect the illustrative source and step through the shared circuit.">
+  <GateLab id="circuit-languages" lab={lab} />
+</Lab>

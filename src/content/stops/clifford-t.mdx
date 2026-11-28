@@ -1,0 +1,33 @@
+---
+description: "Clifford+T combines efficiently trackable Clifford operations with the non-Clifford T gate to form an approximately universal quantum gate set."
+answer: "Clifford+T combines efficiently trackable Clifford operations with the non-Clifford T gate to form an approximately universal quantum gate set."
+myth:
+  claim: "Each T gate makes a circuit necessarily hard to simulate."
+  truth: "Some T gates cancel or combine into Cliffords; simulation cost depends on more than raw T count."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/clifford-t.ts';
+
+<Depth level="kid">
+
+The Clifford tool kit is limited. Adding a small new phase turn lets you build much more general transformations. Some repeated turns, however, add up to old ones.
+
+</Depth>
+
+<Depth level="student">
+
+T is the 45-degree phase gate. Two T gates equal S, four equal Z, and eight equal identity. T† reverses T. Count T and T† separately from the other gates when estimating a circuit resource.
+
+</Depth>
+
+<Depth level="engineer">
+
+T is $\operatorname{diag}(1,e^{i\pi/4})$ and is non-Clifford. H, S, CNOT and T are approximately universal up to global phase. Fault-tolerant resource estimates often count T gates and T depth because a logical T can require expensive magic-state resources in common error-correcting architectures. These are architecture-dependent costs, and syntactic T count may overestimate a simplified circuit.
+
+</Depth>
+
+<Lab title="Combine T gates" intro="Choose an input and a sequence; follow phases and count the non-Clifford gate symbols.">
+  <GateLab id="clifford-t" lab={lab} />
+</Lab>

@@ -1,0 +1,33 @@
+---
+description: "Any two-qubit unitary can be synthesized using at most three CNOTs plus arbitrary one-qubit gates, up to global phase."
+answer: "Any two-qubit unitary can be synthesized using at most three CNOTs plus arbitrary one-qubit gates, up to global phase."
+myth:
+  claim: "Every two-qubit gate needs exactly three CNOTs."
+  truth: "Local gates need none, CNOT needs one, and some nonlocal families need two or three."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/two-qubit-synthesis.ts';
+
+<Depth level="kid">
+
+Two-qubit gates can be complex, but there is a surprisingly small maximum number of CNOTs needed when arbitrary one-qubit gates are allowed. Some gates need fewer.
+
+</Depth>
+
+<Depth level="student">
+
+A SWAP can be made with three CNOTs. A ZZ rotation can be made with CNOT, a Z rotation, then CNOT. A gate made only of independent one-qubit operations needs zero CNOTs.
+
+</Depth>
+
+<Depth level="engineer">
+
+Up to local unitaries and phase, a two-qubit unitary has Cartan form $e^{-i(aXX+bYY+cZZ)}$. The three interaction terms commute. A general synthesis needs at most three CNOTs with arbitrary one-qubit gates, and some gates require three ([Vidal and Dawson](https://arxiv.org/abs/quant-ph/0307177)). In this convention SWAP is the canonical point $(\pi/4,\pi/4,\pi/4)$ times a global phase. The lab uses selected exact examples rather than solving the general KAK factorization.
+
+</Depth>
+
+<Lab title="Compare CNOT costs" intro="Select representative gates requiring different numbers of CNOTs and inspect phase-adjusted matrix agreement.">
+  <GateLab id="two-qubit-synthesis" lab={lab} />
+</Lab>

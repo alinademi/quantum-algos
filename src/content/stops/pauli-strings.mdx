@@ -1,0 +1,33 @@
+---
+description: "A Pauli string is a tensor product of single-qubit I, X, Y and Z operators. Such strings describe observables and form an operator basis."
+answer: "A Pauli string is a tensor product of single-qubit I, X, Y and Z operators. Such strings describe observables and form an operator basis."
+myth:
+  claim: "Every pair of Pauli strings anticommutes if any position differs."
+  truth: "Count sites where both letters are nonidentity and different. The strings anticommute only when that count is odd."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/pauli-strings.ts';
+
+<Depth level="kid">
+
+Write a letter above each wire to say what to do there. The whole row of letters represents one operation on all wires.
+
+</Depth>
+
+<Depth level="student">
+
+XZ means X on the first qubit and Z on the second. At a single site, two different nonidentity Pauli matrices anticommute. When two strings are multiplied, their local sign changes multiply. A pair of sign changes cancels.
+
+</Depth>
+
+<Depth level="engineer">
+
+The $4^n$ strings in $\{I,X,Y,Z\}^{\otimes n}$ satisfy $\operatorname{Tr}(PQ)=2^n\delta_{P,Q}$ and span the complex matrix space. For two strings, $PQ=(-1)^k QP$ with k the number of sites having different nonidentity letters. Each string is Hermitian, unitary and squares to identity. Hermitian matrices have real expansion coefficients in this basis.
+
+</Depth>
+
+<Lab title="Count the sign changes" intro="Choose two strings. Compare their actual matrix products and check the commutation rule.">
+  <GateLab id="pauli-strings" lab={lab} />
+</Lab>
