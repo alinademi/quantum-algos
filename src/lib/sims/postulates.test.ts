@@ -100,6 +100,24 @@ test('Change: the 4x4 matrices act like quantum.ts gates on qubit 0 (A) and CNOT
   closeState(po.change('cnot', wild), q.cnot(wild, 0, 1, 2));
 });
 
+test('Change: a reset to |0> is not the merge map. It is a channel with Kraus |0><0| and |0><1|: trace preserving, |+> and |-> both go to |0><0|, no amplitudes add', () => {
+  const K0: q.Matrix = [[q.c(1), q.c(0)], [q.c(0), q.c(0)]], K1: q.Matrix = [[q.c(0), q.c(1)], [q.c(0), q.c(0)]];
+  // Sum K†K = I: the reset never loses or adds probability, for every state.
+  const kk = [K0, K1].map((k) => q.matMul(q.dagger(k), k));
+  kk[0].forEach((row, i) => row.forEach((x, j) => { close(x.re + kk[1][i][j].re, i === j ? 1 : 0); close(x.im + kk[1][i][j].im, 0); }));
+  // Whichever Kraus branch fires, the output is |0>. For |+> and |-> alike each branch has chance 1/2.
+  for (const s of [q.plus(), q.minus(), q.ket0(), q.ket1(), wild.slice(0, 2)]) {
+    const n = q.normalize(s), outs = [K0, K1].map((k) => q.matVec(k, n));
+    close(outs.reduce((t, v) => t + q.norm2(v), 0), 1);
+    for (const v of outs) if (q.norm2(v) > 1e-12) close(q.abs(q.inner(q.normalize(v), q.ket0())), 1); // |0> up to a global phase
+  }
+  close(q.norm2(q.matVec(K0, q.plus())), 0.5);
+  close(q.norm2(q.matVec(K1, q.minus())), 0.5);
+  // The merge map instead adds amplitudes: |+> gets total 2, |-> gets 0. Not a channel.
+  close(q.norm2(q.matVec(po.MERGE, q.plus())), 2);
+  close(q.norm2(q.matVec(po.MERGE, q.minus())), 0);
+});
+
 test('Change: unitaries keep the total at 1 and keep inner products, for every state the tool reaches and a complex one', () => {
   for (const k of ALLOWED) {
     for (const [bA, bB] of pairs) close(po.total(po.change(k, po.join(po.qubit(bA), po.qubit(bB)))), 1);
