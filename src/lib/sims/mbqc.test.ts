@@ -24,3 +24,4 @@ test('magic-state injection and one-way measurement: corrected branches attain t
  assert.ok(Number(last('mbqc',{input:'+',correct:'No',angle:'0'}).rows![0].value)<.01);
 });
 test('adaptive angle sign yields target in all branches; omission can fail',()=>{for(const input of g.kets)for(const a of [.37,.91]){const bs=chain(g.ket(input),a,.77,true);for(const b of bs){close(b.p,.25);close(b.fidelity,1);close(b.angle,b.m?-.77:.77);}}assert.ok(chain(g.ket('0'),.3,.77,false).some(b=>b.fidelity<.9));});
+test('at Clifford angles unadapted measurement requires only the tracked Pauli frame',()=>{for(const input of g.kets)for(const b of [0,Math.PI/2,Math.PI])for(const r of chain(g.ket(input),.37,b,false)){close(r.fidelity,1);assert.equal(r.frameK,r.k^(b===Math.PI/2?r.m:0));}});

@@ -18,15 +18,15 @@ Imagine preparing a big group of linked quantum pieces before the calculation st
 
 <Depth level="student">
 
-Prepare an entangled cluster from |+⟩ states and CZ edges. Measuring the input in an angled basis transfers its rotated state to the next qubit, with a known X byproduct if the result m is 1. For a second step, an earlier X flips the next angle: use α or −α according to m. Track the final byproducts in a classical record; they need not be physically applied. This [feed-forward](/learn/mid-circuit/) is essential for general non-Clifford angles. A one-dimensional chain implements single-qubit gates, while a universal cluster construction uses a two-dimensional pattern to connect logical wires. [Stabilizers](/learn/stabilizer-states/) describe the ideal cluster resource.
+Prepare an entangled cluster from |+⟩ states and CZ edges. Measuring the input in an angled basis transfers its rotated state to the next qubit, with a known X byproduct if the result m is 1. Call the first measurement angle α and the intended second angle β. For a second step, an earlier X flips the next angle: use β or −β according to m. Track the final byproducts in a classical record; they need not be physically applied. This [feed-forward](/learn/mid-circuit/) is essential for general non-Clifford angles. A one-dimensional chain implements single-qubit gates, while a universal cluster construction uses a two-dimensional pattern to connect logical wires. [Stabilizers](/learn/stabilizer-states/) describe the ideal cluster resource.
 
 </Depth>
 
 <Depth level="engineer">
 
-For $|\pm_\alpha\rangle=(|0\rangle\pm e^{i\alpha}|1\rangle)/\sqrt2$, the two-site cluster yields $X^m H R_Z(-\alpha)|\psi\rangle$ up to global phase, with equiprobable m. Implement measurement by $R_Z(-\alpha)$, H and Z readout. In a two-step chain with intended angles α and β, choose the second angle $(-1)^m\beta$; then the output is $X^{m_2}Z^m H R_Z(-\beta)H R_Z(-\alpha)|\psi\rangle$ up to phase. Keep these known Pauli byproducts in a classical frame and adjust later measurement angles or final interpretation. The lab can remove them mathematically to compare the logical state, not claim physical correction is necessary. Linear chains implement one-qubit gates; universal cluster computation uses a two-dimensional resource with entangling patterns.
+For $|\pm_\alpha\rangle=(|0\rangle\pm e^{i\alpha}|1\rangle)/\sqrt2$, the two-site cluster yields $X^m H R_Z(-\alpha)|\psi\rangle$ up to global phase, with equiprobable m. Implement measurement by $R_Z(-\alpha)$, H and Z readout. In a two-step chain with intended angles α and β, choose the second angle $(-1)^m\beta$; then the output is $X^{m_2}Z^m H R_Z(-\beta)H R_Z(-\alpha)|\psi\rangle$ up to phase. Keep these known Pauli byproducts in a classical frame and adjust later measurement angles or final interpretation. The lab removes them mathematically to compare the logical state; physical correction is not necessary. At Clifford angles a wrong sign contributes only a known Pauli, which can also be tracked. Linear chains implement one-qubit gates; universal cluster computation uses a two-dimensional resource with entangling patterns.
 
-The ideas used here build on [Entanglement](/learn/entanglement/), [Measurement](/learn/measurement/), [CNOT](/learn/cnot/).
+The resource uses [entanglement](/learn/entanglement/) from CZ bonds, equivalent to a [CNOT](/learn/cnot/) conjugated by H on its target. Each [measurement](/learn/measurement/) removes a site from the useful resource but transfers logical information to its neighbor.
 
 </Depth>
 
