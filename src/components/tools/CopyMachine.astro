@@ -62,8 +62,8 @@ const said: Record<string, string> = { '|0⟩': 'zero', '|+⟩': 'plus', '|−�
         {OUTCOMES.map((o, i) => <tr><th scope="row">|{o}⟩</th><td data-o={i}>{amp(p.out[i].re)}</td><td data-t={i}>{amp(p.two[i].re)}</td></tr>)}
       </tbody>
     </table>
-    <p class="match">Match with two true copies <b class="doto" data-match>{pct(p.match)}</b></p>
-    <p class="hint">Each number is an amplitude. Match is |⟨ψψ|out⟩|², which is also the chance that “Undo, then read” gives 00.</p>
+    <p class="match">Squared overlap with two true copies <b class="doto" data-match>{pct(p.match)}</b></p>
+    <p class="hint">Each number is an amplitude. Squared overlap is |⟨ψψ|out⟩|², which is also the chance that “Undo, then read” gives 00.</p>
   </div>
 
   <div class="tool-controls">
@@ -81,7 +81,7 @@ const said: Record<string, string> = { '|0⟩': 'zero', '|+⟩': 'plus', '|−�
   </figure>
 
   <p class="tool-readout" aria-live="polite">{idleText(START, 'z')}</p>
-  <p class="note">A simulation of ideal, noise-free qubits. Each result is drawn from your browser's random numbers with Born rule odds. Inputs here have real amplitudes only: one great circle of the Bloch sphere. The check knows how the input was made; the machine does not. Only two machines are here, but the proof on this page covers every machine.</p>
+  <p class="note">A simulation of ideal, noise-free qubits. Each result is drawn from your browser's random numbers with Born rule odds. Inputs here have real amplitudes only: one great circle of the Bloch sphere. The check knows how the input was made; the machine does not. Only two machines are here, but the proof on this page covers any one machine that must copy every state.</p>
 </qce-copy-machine>
 
 <script>

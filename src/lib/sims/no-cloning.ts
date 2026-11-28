@@ -172,10 +172,10 @@ export const startText = (deg: number, short = false): string => `Input: started
 export function verdict(deg: number, m: Machine): string {
   const p = predict(deg, m, 'read'), name = `The ${MACHINE_NAMES[m]}`;
   if (p.match === 1 && phaseOnly(p.out, p.two)) {
-    return `${name} gives ${ket(p.out)}. Two true copies are ${ket(p.two)}: the same state up to an overall minus sign, a global phase no measurement can see. Match: 100%.`;
+    return `${name} gives ${ket(p.out)}. Two true copies are ${ket(p.two)}: the same state up to an overall minus sign, a global phase no measurement can see. Squared overlap: 100%.`;
   }
-  if (p.match === 1) return `${name} gives ${ket(p.out)}: two true copies. Match: 100%.`;
-  return `${name} gives ${ket(p.out)}. Two true copies would be ${ket(p.two)}. Match: ${pct(p.match)}.`;
+  if (p.match === 1) return `${name} gives ${ket(p.out)}: two true copies. Squared overlap: 100%.`;
+  return `${name} gives ${ket(p.out)}. Two true copies would be ${ket(p.two)}. Squared overlap: ${pct(p.match)}.`;
 }
 
 /** The readout before any run. */
@@ -189,12 +189,12 @@ export function reportText(deg: number, m: Machine, check: Check, counts: number
   const N = counts.reduce((t, x) => t + x, 0), p = predict(deg, m, check);
   const head = `${runs(N)}. ${startText(deg, true)} ${MACHINE_NAMES[m]}, ${check === 'read' ? 'read both' : 'undo, then read'}.`;
   if (check === 'read') {
-    const tail = p.match === 1 ? 'Same odds: this input is copied, match 100%.' : `Not two copies: match ${pct(p.match)}.`;
+    const tail = p.match === 1 ? 'Same odds: this input is copied, squared overlap 100%.' : `Not two copies: squared overlap ${pct(p.match)}.`;
     return `${head} Counts for 00, 01, 10, 11: ${counts.join(', ')}. The machine's output predicts about ${expected(p.pOut, N).map(about).join(', ')}. Two true copies would give about ${expected(p.pTwo, N).map(about).join(', ')}. ${tail}`;
   }
   const rest = `00 came up ${times(counts[0])}; 01, 10, 11: ${counts.slice(1).join(', ')}.`;
   const tail = p.match === 1
-    ? `Two true copies read 00 every time, and so does this output: match 100%.`
-    : `Two true copies would read 00 ${N === 1 ? 'every time' : `all ${times(N)}`}. This machine's match, ${pct(p.match)}, predicts 00 about ${about(N * p.match)} ${N * p.match === 1 ? 'time' : 'times'}.`;
+    ? `Two true copies read 00 every time, and so does this output: squared overlap 100%.`
+    : `Two true copies would read 00 ${N === 1 ? 'every time' : `all ${times(N)}`}. This machine's squared overlap, ${pct(p.match)}, predicts 00 about ${about(N * p.match)} ${N * p.match === 1 ? 'time' : 'times'}.`;
   return `${head} ${rest} ${tail}`;
 }

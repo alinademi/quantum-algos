@@ -135,6 +135,17 @@ test('the inner product proof: machines keep <φ|ψ>, copying squares it, so bot
   close(q.inner(nc.prepare(0), nc.prepare(90)).re, S);
 });
 
+test('scope: a known orthogonal set is copied (any unknown member), a fixed non-orthogonal pair is not, by either machine', () => {
+  for (const [m, set] of [['z', [0, 180]], ['x', [90, -90]]] as const) {
+    for (const d of set) assert.equal(nc.predict(d, m, 'read').match, 1);
+    close(q.abs(q.inner(nc.prepare(set[0]), nc.prepare(set[1]))), 0); // orthogonal
+  }
+  // |0> and |+> overlap 1/√2: no unitary can copy both, since |x| = |x|² fails. Each machine gets one wrong.
+  const x = q.abs(q.inner(nc.prepare(0), nc.prepare(90)));
+  close(x, S); assert.ok(Math.abs(x - x * x) > 0.2);
+  for (const m of MACHINES) assert.ok(Math.min(...[0, 90].map((d) => nc.predict(d, m, 'read').match)) < 1);
+});
+
 test('the +/− copier is the 0/1 copier seen through Hadamards: match_x(ψ) = match_z(Hψ)', () => {
   for (const d of DEGS) {
     const psi = nc.prepare(d), h = q.matVec(q.H, psi);
@@ -264,28 +275,28 @@ test('readouts name the start state and give the right numbers', () => {
   assert.equal(nc.startText(90, true), 'Input: started as 0, turned 90°: |+⟩.');
   assert.equal(nc.startText(0), 'Input: started as 0, turned 0°: |0⟩.');
   assert.equal(nc.startText(60), 'Input: started as 0, turned 60°: 0.866|0⟩ + 0.500|1⟩.');
-  assert.equal(nc.verdict(90, 'z'), 'The 0/1 copier gives 0.707|00⟩ + 0.707|11⟩. Two true copies would be 0.500|00⟩ + 0.500|01⟩ + 0.500|10⟩ + 0.500|11⟩. Match: 50%.');
-  assert.equal(nc.verdict(-90, 'z').endsWith('Match: 0%.'), true);
-  assert.equal(nc.verdict(0, 'z'), 'The 0/1 copier gives |00⟩: two true copies. Match: 100%.');
-  assert.equal(nc.verdict(90, 'x'), 'The +/− copier gives 0.500|00⟩ + 0.500|01⟩ + 0.500|10⟩ + 0.500|11⟩: two true copies. Match: 100%.');
+  assert.equal(nc.verdict(90, 'z'), 'The 0/1 copier gives 0.707|00⟩ + 0.707|11⟩. Two true copies would be 0.500|00⟩ + 0.500|01⟩ + 0.500|10⟩ + 0.500|11⟩. Squared overlap: 50%.');
+  assert.equal(nc.verdict(-90, 'z').endsWith('Squared overlap: 0%.'), true);
+  assert.equal(nc.verdict(0, 'z'), 'The 0/1 copier gives |00⟩: two true copies. Squared overlap: 100%.');
+  assert.equal(nc.verdict(90, 'x'), 'The +/− copier gives 0.500|00⟩ + 0.500|01⟩ + 0.500|10⟩ + 0.500|11⟩: two true copies. Squared overlap: 100%.');
   assert.match(nc.verdict(-180, 'z'), /gives −\|11⟩\. Two true copies are \|11⟩: the same state up to an overall minus sign, a global phase/);
   // A near miss is never rounded up to a perfect copy.
-  assert.equal(nc.verdict(1, 'z').endsWith('Match: >99.9%.'), true);
+  assert.equal(nc.verdict(1, 'z').endsWith('Squared overlap: >99.9%.'), true);
   for (const d of DEGS) for (const m of MACHINES) {
     assert.ok(nc.idleText(d, m).startsWith(`Input: started as 0, turned ${nc.degrees(d)}`));
     for (const ch of CHECKS) assert.ok(nc.reportText(d, m, ch, [1, 2, 3, 4]).includes('started as 0'));
   }
   assert.equal(nc.reportText(90, 'z', 'read', [52, 0, 0, 48]),
-    '100 runs. Input: started as 0, turned 90°: |+⟩. 0/1 copier, read both. Counts for 00, 01, 10, 11: 52, 0, 0, 48. The machine\'s output predicts about 50, 0, 0, 50. Two true copies would give about 25, 25, 25, 25. Not two copies: match 50%.');
+    '100 runs. Input: started as 0, turned 90°: |+⟩. 0/1 copier, read both. Counts for 00, 01, 10, 11: 52, 0, 0, 48. The machine\'s output predicts about 50, 0, 0, 50. Two true copies would give about 25, 25, 25, 25. Not two copies: squared overlap 50%.');
   assert.equal(nc.reportText(90, 'z', 'undo', [52, 0, 0, 48]),
-    '100 runs. Input: started as 0, turned 90°: |+⟩. 0/1 copier, undo, then read. 00 came up 52 times; 01, 10, 11: 0, 0, 48. Two true copies would read 00 all 100 times. This machine\'s match, 50%, predicts 00 about 50 times.');
+    '100 runs. Input: started as 0, turned 90°: |+⟩. 0/1 copier, undo, then read. 00 came up 52 times; 01, 10, 11: 0, 0, 48. Two true copies would read 00 all 100 times. This machine\'s squared overlap, 50%, predicts 00 about 50 times.');
   assert.equal(nc.reportText(0, 'z', 'undo', [1, 0, 0, 0]),
-    '1 run. Input: started as 0, turned 0°: |0⟩. 0/1 copier, undo, then read. 00 came up once; 01, 10, 11: 0, 0, 0. Two true copies read 00 every time, and so does this output: match 100%.');
+    '1 run. Input: started as 0, turned 0°: |0⟩. 0/1 copier, undo, then read. 00 came up once; 01, 10, 11: 0, 0, 0. Two true copies read 00 every time, and so does this output: squared overlap 100%.');
 });
 
 test('one run of the undo check reads naturally: "every time", never "all once"', () => {
   const t = nc.reportText(90, 'z', 'undo', [1, 0, 0, 0]);
-  assert.equal(t, '1 run. Input: started as 0, turned 90°: |+⟩. 0/1 copier, undo, then read. 00 came up once; 01, 10, 11: 0, 0, 0. Two true copies would read 00 every time. This machine\'s match, 50%, predicts 00 about 0.5 times.');
+  assert.equal(t, '1 run. Input: started as 0, turned 90°: |+⟩. 0/1 copier, undo, then read. 00 came up once; 01, 10, 11: 0, 0, 0. Two true copies would read 00 every time. This machine\'s squared overlap, 50%, predicts 00 about 0.5 times.');
   assert.ok(!t.includes('all once'));
   assert.ok(nc.reportText(90, 'z', 'undo', [0, 0, 0, 2]).includes('would read 00 all 2 times'));
 });
