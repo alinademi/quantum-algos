@@ -17,6 +17,9 @@ const {run,last}=await checkLabs(['cv-model']);
 test('Gaussian rotations preserve covariance determinant and Heisenberg bound; displacement does not change variance',()=>{
  for(const r of [0,.3,.7,1])for(const t of [0,.7,Math.PI/2,2.1]){
   const a=gaussian(r,t,2),b=gaussian(r,t,0);
+  const O=[[q.c(Math.cos(t)),q.c(-Math.sin(t))],[q.c(Math.sin(t)),q.c(Math.cos(t))]];
+  const V=[[q.c(Math.exp(-2*r)/2),q.c(0)],[q.c(0),q.c(Math.exp(2*r)/2)]];
+  matrix([[q.c(a.vx),q.c(a.cov)],[q.c(a.cov),q.c(a.vp)]],q.matMul(q.matMul(O,V),q.dagger(O)));
   close(a.vx*a.vp-a.cov*a.cov,.25);close(a.vx,b.vx);close(a.vp,b.vp);close(a.cov,b.cov);
   assert.ok(a.vx*a.vp>=.25-1e-9);close(Math.hypot(a.x,a.p),2);
  }
