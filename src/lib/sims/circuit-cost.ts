@@ -1,4 +1,4 @@
-import { choice,details,row,gate,cx,swap,type Lab,type Op } from './gate-lab.ts';
+import { choice,details,row,gate,cx,type Lab,type Op } from './gate-lab.ts';
 export const recipes:Record<string,Op[]>={'Parallel H and CNOT':[gate('H',0),gate('H',1),cx(0,2),gate('T',1),cx(1,2)],'Serial chain':[gate('H'),cx(0,1),cx(1,2),gate('T',2)],'SWAP and phase':[cx(0,1),cx(1,0),cx(0,1),gate('T',2),gate('T†',2)]};
 export function layers(ops:Op[],n:number):number[]{
  const used=Array(n).fill(0);return ops.map(o=>{const l=1+Math.max(...o.wires.map(w=>used[w]));o.wires.forEach(w=>used[w]=l);return l;});

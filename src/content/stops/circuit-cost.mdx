@@ -1,5 +1,5 @@
 ---
-description: "Circuit cost can measure qubit width, gate count, depth and costly operation counts. These metrics depend on the circuit and gate basis."
+description: "Compare the same circuit under serial and parallel schedules, and count its gates, depth and width."
 answer: "Circuit cost can measure qubit width, gate count, depth and costly operation counts. These metrics depend on the circuit and gate basis."
 myth:
   claim: "Circuit depth equals the total number of gates."
@@ -12,13 +12,13 @@ import { lab } from '../../lib/sims/circuit-cost.ts';
 
 <Depth level="kid">
 
-Two workers can finish independent tasks at the same time. On quantum wires, two gates that do not use the same wires can often share a time step.
+Imagine three workbenches and a list of tasks. Some tasks use one bench, some need two at the same time. If two tasks use different benches, the workers can finish them together. If they share a bench, they have to take turns. Count the total benches, the tasks and the rounds: these are three different measures of the work. You can also count only particular expensive tasks, such as those connecting benches or needing special equipment. This picture is about scheduling, not the quantum state itself. Real quantum hardware may have extra restrictions and tasks may take different amounts of time, so fewer rounds do not always mean a shorter physical runtime.
 
 </Depth>
 
 <Depth level="student">
 
-Width tells how many qubits are allocated. Gate count counts operations. Depth counts layers when operations on disjoint wires can run together. A specified gate basis may also motivate counting CNOT or T gates separately.
+The width of a [circuit](/learn/circuits/) is the number of qubit wires allocated. Gate count is the number of operations. Depth counts sequential layers when gates on disjoint wires may run together. For example two H gates on different wires fit in one layer, but a later CNOT depends on both. Counting CNOT and T separately matters because they can be more expensive than simple local gates on some architectures. Compare a serial schedule with the parallel one in the lab: width and gate count stay unchanged while depth may shrink. These measures help describe how a resource grows with input size ([asymptotic cost](/learn/big-o/)); real hardware time requires durations and constraints.
 
 </Depth>
 
