@@ -18,13 +18,13 @@ Imagine a row of three arrows. Each instruction has a mark above each arrow tell
 
 <Depth level="student">
 
-A [Pauli](/learn/pauli/) string assigns one of I, X, Y or Z to every qubit. XZI means X on the first, Z on the second, and identity on the third. This is a [tensor product](/learn/tensor-product/). To swap the order of two strings, count sites having two different letters, neither I. Each gives a minus sign because those local matrices anticommute. Even count: the strings [commute](/learn/commutators/). Odd count: they anticommute. For example XZ and ZX commute because both sites give a sign change; XZ and ZZ anticommute because only the first site gives one. Try other strings and compare the actual matrix products.
+A [Pauli](/learn/pauli/) string assigns one of I, X, Y or Z to every qubit. XZI means X on the first, Z on the second, and identity on the third. This is a [tensor product](/learn/tensor-product/). To swap the order of two strings, count sites having two different letters, neither I. Each gives a minus sign because those local matrices anticommute. Even count: the strings [commute](/learn/commutators/). Odd count: they anticommute. For example XZ and ZX commute because both sites give a sign change; XZ and ZZ anticommute because only the first site gives one. Even when the order gives a minus sign, the two output states differ only by global phase, invisible to measurement alone. Compare both matrix products.
 
 </Depth>
 
 <Depth level="engineer">
 
-The $4^n$ strings in $\{I,X,Y,Z\}^{\otimes n}$ satisfy $\operatorname{Tr}(PQ)=2^n\delta_{P,Q}$ and span the complex matrix space. For two strings, $PQ=(-1)^k QP$ with k the number of sites having different nonidentity letters. Each string is Hermitian, unitary and squares to identity. Hermitian matrices have real expansion coefficients in this basis.
+The $4^n$ strings in $\{I,X,Y,Z\}^{\otimes n}$ satisfy $\operatorname{Tr}(PQ)=2^n\delta_{P,Q}$ and span the complex matrix space. For two strings, $PQ=(-1)^k QP$ with k the number of sites having different nonidentity letters. Each string is Hermitian, unitary and squares to identity. Anticommuting P and Q give outputs differing by global phase −1, so standalone measurement cannot distinguish their order. The distinction matters for commutators and if one product is applied conditionally. Hermitian matrices have real expansion coefficients in this basis.
 
 </Depth>
 
