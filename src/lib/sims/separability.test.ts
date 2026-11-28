@@ -477,7 +477,7 @@ test('witnessText: detects at 60% and beta = 0 (−0.20); blind at beta = 120° 
   assert.match(s.witnessText(s.rho('white', 0.2, 0)), /separable, so no witness can detect it/);
 });
 
-test('measuredText: asks for shots, then all three settings, then reads the witness with its wobble and a verdict', () => {
+test('measuredText: asks for shots, then all three settings, then reads the witness with its error bar and a verdict', () => {
   const none = { x: [], y: [], z: [] } as Record<s.Basis, s.Pair[]>;
   const bell = s.outer(s.bellPair());
   assert.match(s.measuredText(bell, none), /Measure pairs/);
@@ -486,12 +486,12 @@ test('measuredText: asks for shots, then all three settings, then reads the witn
   const shots = { x: [[0, 0], [1, 1]], y: [[0, 1], [1, 0]], z: [[0, 0], [1, 1]] } as Record<s.Basis, s.Pair[]>;
   const t = s.measuredText(bell, shots);
   assert.match(t, /From 6 measured pairs the witness reads −0\.50/);
-  assert.match(t, /by about 0\.00/);
-  assert.match(t, /shots say entangled/);
+  assert.match(t, /error bar of about 0\.00/);
+  assert.match(t, /point to entangled/);
   // Every pair agrees in every setting: <XX> = <YY> = <ZZ> = 1, so the witness reads (1 - 1 + 1 - 1)/4 = 0, not below 0.
   const flat = { x: [[0, 0]], y: [[0, 0]], z: [[0, 0]] } as Record<s.Basis, s.Pair[]>;
   const f = s.measuredText(s.rho('white', 0.6, 0), flat);
-  assert.match(f, /From 3 measured pairs the witness reads 0, and chance alone moves it by about 0\.35/);
+  assert.match(f, /From 3 measured pairs the witness reads 0, with an approximate error bar of about 0\.35/);
   assert.match(f, /not below 0: the shots do not show entanglement/);
 });
 
@@ -500,14 +500,24 @@ test('measuredText: a reading below 0 by less than two wobbles says luck could d
   // Four pairs a setting: X and Z agree 3 times, Y agrees once: <XX> = 0.5, <YY> = -0.5, <ZZ> = 0.5, so W = -0.125.
   const four = { x: [[0, 0], [0, 0], [0, 0], [0, 1]], y: [[0, 1], [0, 1], [0, 1], [0, 0]], z: [[0, 0], [0, 0], [0, 0], [0, 1]] } as Record<s.Basis, s.Pair[]>;
   const t = s.measuredText(r, four);
-  assert.match(t, /reads −0\.13, and chance alone moves it by about 0\.20/); // -0.125 rounds to -0.13 (0.125 is exact in binary)
-  assert.match(t, /by less than two of those: luck could do this/);
+  assert.match(t, /reads −0\.13, with an approximate error bar of about 0\.20/); // -0.125 rounds to -0.13 (0.125 is exact in binary)
+  assert.match(t, /by less than two error bars: luck could do this/);
   // Fifty pairs a setting at 60%: correlations 0.6, -0.6, 0.6 measured as 0.6, -0.6, 0.6, so W = -0.2, wobble 0.049.
   const agree = (n: number, k: number): s.Pair[] => Array.from({ length: n }, (_, i) => (i < k ? [0, 0] : [0, 1]) as s.Pair);
   const strong = { x: agree(50, 40), y: agree(50, 10), z: agree(50, 40) };
   const u = s.measuredText(s.rho('white', 0.6, 0), strong);
-  assert.match(u, /From 150 measured pairs the witness reads −0\.20, and chance alone moves it by about 0\.05/);
-  assert.match(u, /by more than two of those.*shots say entangled/);
+  assert.match(u, /From 150 measured pairs the witness reads −0\.20, with an approximate error bar of about 0\.05/);
+  assert.match(u, /by more than two error bars.*normal approximation.*about 1 time in 40.*point to entangled.*not a proof/);
+});
+
+test('measuredText: the error bar is labelled simulation-only and approximate, never exact', () => {
+  const agree = (n: number, k: number): s.Pair[] => Array.from({ length: n }, (_, i) => (i < k ? [0, 0] : [0, 1]) as s.Pair);
+  const t = s.measuredText(s.rho('white', 0.6, 0), { x: agree(50, 40), y: agree(50, 10), z: agree(50, 40) });
+  assert.match(t, /approximate error bar/);
+  assert.match(t, /simulation only/);
+  assert.match(t, /true correlations, which a real experiment does not know/);
+  assert.match(t, /normal approximation/);
+  assert.doesNotMatch(t, /luck alone does that about 1 time in 40, so the shots say/);
 });
 
 test('report: starts with the start state, then PPT, witness and shots', () => {

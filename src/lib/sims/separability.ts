@@ -2,7 +2,7 @@
 // Sources: Peres, "Separability criterion for density matrices", PRL 77, 1413 (1996): a separable state is a mix of
 // product states, rho = sum_k w_k rho'_k ⊗ rho''_k (eq. 1); the partial transpose of such a mix is
 // sum_k w_k (rho'_k)^T ⊗ rho''_k (eq. 6), a mix of density matrices, so it has no negative eigenvalue; eigenvalues do not
-// change under U ⊗ V (eqs. 4, 5); a Bell pair with a fraction x of noise has partial transpose eigenvalues (1 + x)/4
+// change under U ⊗ V (eqs. 4, 5); a Bell pair made with chance x, else white noise (x is the Bell fraction, 1 - x is the noise), has partial transpose eigenvalues (1 + x)/4
 // three times and (1 - 3x)/4 (eq. 7 and below), so it is entangled for x > 1/3. Horodecki, Horodecki, Horodecki,
 // "Separability of mixed states: necessary and sufficient conditions", PLA 223, 1 (1996): for 2 ⊗ 2 and 2 ⊗ 3 the PPT
 // test is exact. Horodecki et al., Rev. Mod. Phys. 81, 865 (2009), Sec. VI.B: entanglement witnesses, and the witness
@@ -192,8 +192,8 @@ export const tally = (shots: readonly Pair[]): Tally => ({ pairs: shots.length, 
 /** The measured <σ ⊗ σ>: +1 for each pair with equal results, -1 for each with different results, averaged. */
 export const measuredCorr = (t: Tally): number => (2 * t.agree - t.pairs) / t.pairs;
 
-/** The witness from the shots so far, and how far chance alone moves it (one standard deviation, from the Born rule
- *  correlations): sqrt(sum (1 - c^2)/n)/4. Null until every setting has a pair. */
+/** The witness from the shots so far, and an approximate error bar (one standard deviation, a normal approximation from the
+ *  true Born rule correlations, which only a simulation knows): sqrt(sum (1 - c^2)/n)/4. Null until every setting has a pair. */
 export function estimate(r: Matrix, t: Record<Basis, Tally>): { value: number; wobble: number } | null {
   if (BASES.some((b) => t[b].pairs === 0)) return null;
   const value = witnessFrom(measuredCorr(t.x), measuredCorr(t.y), measuredCorr(t.z));
@@ -296,9 +296,9 @@ export function measuredText(r: Matrix, shots: Record<Basis, readonly Pair[]>): 
   if (!total) return 'Measure pairs to estimate the witness from shots.';
   const e = estimate(r, t);
   if (!e) return `${total} ${total === 1 ? 'pair' : 'pairs'} measured so far. The witness needs all three settings: measure more pairs.`;
-  const head = `From ${total} measured pairs the witness reads ${val(e.value)}, and chance alone moves it by about ${e.wobble.toFixed(2)} either way.`;
-  if (e.value + 2 * e.wobble < 0) return `${head} That is below 0 by more than two of those: luck alone does that about 1 time in 40, so the shots say entangled.`;
-  if (e.value < 0) return `${head} That is below 0 by less than two of those: luck could do this, so measure more pairs.`;
+  const head = `From ${total} measured pairs the witness reads ${val(e.value)}, with an approximate error bar of about ${e.wobble.toFixed(2)} either way (simulation only: the tool computes it from the true correlations, which a real experiment does not know).`;
+  if (e.value + 2 * e.wobble < 0) return `${head} That is below 0 by more than two error bars. In a normal approximation, luck alone does that about 1 time in 40, so the shots point to entangled; this is a rough guide, not a proof.`;
+  if (e.value < 0) return `${head} That is below 0 by less than two error bars: luck could do this, so measure more pairs.`;
   return `${head} That is not below 0: the shots do not show entanglement.`;
 }
 

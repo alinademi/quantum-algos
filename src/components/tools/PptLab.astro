@@ -130,7 +130,7 @@ const bPicks = [[0, 'no gate: the Bell pair'], [90, ''], [180, 'the singlet']] a
   </section>
 
   <p class="tool-readout" aria-live="polite">{madeText(N0, fromPercent(X0), B0)} {eigenText(r0)} {pptText(r0)} {witnessText(r0)} {measuredText(r0, { x: [], y: [], z: [] })}</p>
-  <p class="note">A simulation of ideal, noise-free qubits. Each shot is a Born rule draw from your browser's random numbers. The tool reaches only these states: a Bell pair mixed with white or coin noise, then one gate on B, so every entry is real. It shows two qubits only. For two qubits the PPT test is exact. Beyond two qubits, or a qubit and a three-level system, some entangled states pass it. A witness is one-sided: a value below 0 shows entanglement, and a value of 0 or more shows nothing. Changing the state clears the shots.</p>
+  <p class="note">A simulation of ideal, noise-free qubits. Each shot is a Born rule draw from your browser's random numbers. The tool reaches only these states: a Bell pair mixed with white or coin noise, then one gate on B, so every entry is real. It shows two qubits only. For two qubits the PPT test is exact. Beyond two qubits, or a qubit and a three-level system, some entangled states pass it. A witness is one-sided: a value below 0 shows entanglement, and a value of 0 or more shows nothing. The error bar beside the shots is a simulation-only approximation: it uses the true state, which a real experiment does not know, and it is a rough guide, not a proof. Changing the state clears the shots.</p>
 </qce-ppt-lab>
 
 <script>
@@ -242,7 +242,7 @@ const bPicks = [[0, 'no gate: the Bell pair'], [90, ''], [180, 'the singlet']] a
         }
         const r = state(), e = estimate(r, { x: tally(pairs().x), y: tally(pairs().y), z: tally(pairs().z) });
         $('[data-wm]').textContent = e ? val(e.value) : '–';
-        $('[data-wn]').textContent = e ? `${made()} pairs, chance alone moves it by about ${e.wobble.toFixed(2)}` : made() ? `${made()} pairs: needs all three settings` : 'no pairs yet';
+        $('[data-wn]').textContent = e ? `${made()} pairs, approximate error bar about ${e.wobble.toFixed(2)} (simulation only)` : made() ? `${made()} pairs: needs all three settings` : 'no pairs yet';
         const full = made() + queue >= 3 * CAP;
         makes.forEach((b) => b.setAttribute('aria-disabled', String(full)));
       }
