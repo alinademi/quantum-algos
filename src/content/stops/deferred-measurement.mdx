@@ -1,6 +1,6 @@
 ---
-description: "Under the deferred-measurement principle, suitable intermediate measurements and classical controls can be replaced by coherent controls and measurements."
-answer: "Under the deferred-measurement principle, suitable intermediate measurements and classical controls can be replaced by coherent controls and measurements at the end."
+description: "Compare early measurement with a quantum-controlled replacement, including when the measured wire is used again."
+answer: "Any intermediate measurement in a circuit can be moved to the end by retaining its quantum record and replacing classical control with quantum control."
 myth:
   claim: "Deferred and early measurements always leave the same unmeasured quantum state."
   truth: "They match the relevant classical output statistics when the coherent replacement is made correctly; intermediate coherence can differ."
@@ -12,19 +12,19 @@ import { lab } from '../../lib/sims/deferred-measurement.ts';
 
 <Depth level="kid">
 
-Instead of reading a switch now, keep it as a quantum switch. Read it later. When nothing else needs the earlier answer, the final recorded answers can match.
+Imagine a machine that makes a decision using a recorded number. Instead of reading the number immediately, arrange the next instruction to depend on the number held inside the machine. Then read the record at the very end. You can get the same statistics as reading it earlier. If the original number is needed for a new operation in the meantime, first preserve a separate record and use that record to guide the next step. The picture breaks because a quantum record is not a normal written number: keeping it unread preserves relationships that an early reading may destroy. The agreement is about final recorded results.
 
 </Depth>
 
 <Depth level="student">
 
-Measure the control in Z, flip the target if the result is 1, and read both bits. Compare this with a CNOT followed by measuring both. The probabilities agree despite different states before the final readout.
+The [deferred-measurement principle](/learn/mid-circuit/) says intermediate measurements can be moved to the end by replacing classical conditional actions with [quantum controls](/learn/controlled-gates/). If q0 is measured in the standard basis and q1 flipped on outcome 1, a CNOT followed by measuring both yields the same joint statistics. If q0 will be used again, first copy its standard-basis label into a fresh |0⟩ helper using CNOT. Use the helper as the control, let q0 undergo its later gate, and measure the helper at the end. Keeping the record separate prevents later changes to q0 from corrupting it. Intermediate states need not be identical.
 
 </Depth>
 
 <Depth level="engineer">
 
-For input $\sum_m|m\rangle|\psi_m\rangle$, coherent controlled $U_m$ gives $\sum_m|m\rangle U_m|\psi_m\rangle$. Measuring the control in the same basis yields the same branches and weights as early measurement and feed-forward. This requires preserving the relevant control record; later interference of the control can invalidate an unqualified substitution.
+For $\sum_m|m\rangle|\psi_m\rangle$, coherent control yields $\sum_m|m\rangle U_m|\psi_m\rangle$, so measuring the record gives the same branches as early measurement and feed-forward. If the measured qubit is used again, copy its computational-basis label by CNOT into a fresh helper before the later operation. Control from that preserved record. This is coherent copying of orthogonal labels, not cloning an unknown state. General measurements can be implemented by a unitary dilation with a retained outcome register. Any intermediate measurement in such a circuit can therefore be deferred, with extra workspace if necessary. Equality concerns the relevant final classical outputs, not the intermediate quantum states.
 
 </Depth>
 
