@@ -1,5 +1,5 @@
 ---
-description: "A pure stabilizer state is the unique common +1 eigenstate of n independent commuting signed Pauli generators on n qubits."
+description: "Describe a pure stabilizer state with signed Pauli rules and follow how those rules change under gates."
 answer: "A pure stabilizer state is the unique common +1 eigenstate of n independent commuting signed Pauli generators on n qubits."
 myth:
   claim: "A stabilizer state must be a product of one-qubit states."
@@ -12,13 +12,13 @@ import { lab } from '../../lib/sims/stabilizer-states.ts';
 
 <Depth level="kid">
 
-You can describe some quantum states by a list of questions they answer with certainty, rather than listing every wave amplitude.
+Imagine a puzzle with a huge list of possible patterns, but a few rules specify exactly one answer. Instead of writing the whole list, you write just the rules. Some quantum states can be described this way too. The rules are tests whose answers are certain even though other questions about the state have unpredictable answers. A state of three linked quantum pieces needs just three such independent rules instead of eight wave amplitudes. The picture breaks because these rules are mathematical operations acting on the state, not ordinary clues about hidden values. They can describe linked states that cannot be described piece by piece.
 
 </Depth>
 
 <Depth level="student">
 
-For |0⟩ the generator is +Z. For |+⟩ it is +X. For the Bell state (00 + 11)/√2, XX and ZZ both have eigenvalue +1. As Clifford gates act, the corresponding questions change by conjugation.
+A pure stabilizer state is specified by n independent commuting signed [Pauli strings](/learn/pauli-strings/) with eigenvalue +1. For |0⟩ the rule is +Z; for |+⟩ it is +X; for |1⟩ it is −Z. A Bell pair has rules XX and ZZ, so stabilizer states need not be product states. As [Clifford gates](/learn/clifford-group/) act, conjugate each rule to get the new rules. Since we only need n generators, three qubits need three rules rather than eight amplitudes, and 50 need 50 rather than 2⁵⁰. See [eigenvectors](/learn/eigen/) and [stabilizers](/learn/stabilizers/) for the links between these rules and certainty. Not every quantum state has this representation.
 
 </Depth>
 

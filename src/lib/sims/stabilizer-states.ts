@@ -20,5 +20,5 @@ export const format=(s:Signed)=>(s.sign<0?'−':'+')+s.p;
 export const prep=(n:number,mode:string):Op[]=>mode==='GHZ'?[gate('H'),...Array.from({length:n-1},(_,i)=>cx(i,i+1))]:mode==='Product plus'?Array.from({length:n},(_,i)=>gate('H',i)):[gate('X'),gate('H',1),gate('S',1)];
 export const lab:Lab={
  controls:[choice('mode','State',['GHZ','Product plus','Signed example'])],
- run:v=>{const n=3,ops=prep(n,v.mode),s=sequence(product('0','0','0'),ops,'The generators uniquely specify this pure stabilizer state.');s.forEach((step,i)=>{const gen=evolveGenerators(n,ops.slice(0,i));step.rows=gen.map(g=>row(format(g),'Signed expectation: '+inner(step.state!,apply(step.state!,op(format(g),pauli(g.p).map(r=>r.map(x=>scale(x,g.sign))),0,1,2))).re.toFixed(6)))});return s}
+ run:v=>{const n=3,ops=prep(n,v.mode),s=sequence(product('0','0','0'),ops,'The generators uniquely specify this pure stabilizer state.');s.forEach((step,i)=>{const gen=evolveGenerators(n,ops.slice(0,i));step.rows=[...gen.map(g=>row(format(g),'Signed expectation: '+inner(step.state!,apply(step.state!,op(format(g),pauli(g.p).map(r=>r.map(x=>scale(x,g.sign))),0,1,2))).re.toFixed(6))),row('Independent generators',n),row('Dense amplitudes',2**n)]});return s}
 };
