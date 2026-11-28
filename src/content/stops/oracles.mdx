@@ -1,0 +1,33 @@
+---
+description: "A quantum oracle is an assumed black-box unitary that encodes a function, often by XOR into an output register or by changing phase."
+answer: "A quantum oracle is an assumed black-box unitary that encodes a function, often by XOR into an output register or by changing phase."
+myth:
+  claim: "An oracle can irreversibly overwrite its input with any function result."
+  truth: "The standard quantum bit oracle preserves the input and XORs the output, so it is reversible even for many-to-one functions."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/oracles.ts';
+
+<Depth level="kid">
+
+A secret box answers a question without showing how it works. In a quantum algorithm the box must also work when the question is in superposition.
+
+</Depth>
+
+<Depth level="student">
+
+A bit oracle adds a Boolean answer into a target using XOR. With target 0 the result is the function value. With target |−⟩ the target stays the same and the input receives a phase of −1 wherever the function is 1.
+
+</Depth>
+
+<Depth level="engineer">
+
+The bit oracle is $U_f|x,y\rangle=|x,y\oplus f(x)\rangle$, hence $U_f^2=I$. A phase oracle is $O_f|x\rangle=(-1)^{f(x)}|x\rangle$. Since X has eigenvalue −1 on |−⟩, $U_f(|x\rangle|{-}\rangle)=(O_f|x\rangle)|{-}\rangle$. Oracle query counts treat the oracle as a primitive; actual construction can be expensive.
+
+</Depth>
+
+<Lab title="Try two oracle encodings" intro="Pick a function, input and target preparation or phase-oracle mode; compare output amplitudes.">
+  <GateLab id="oracles" lab={lab} />
+</Lab>

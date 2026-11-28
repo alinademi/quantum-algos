@@ -1,0 +1,33 @@
+---
+description: "The swap test estimates the squared overlap of two independently prepared pure quantum states using a controlled-SWAP and a helper measurement."
+answer: "The swap test estimates the squared overlap of two independently prepared pure quantum states using a controlled-SWAP and a helper measurement."
+myth:
+  claim: "A helper outcome 0 proves the states are identical."
+  truth: "Even orthogonal pure states yield 0 half the time. The overlap is estimated over repeated runs."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/swap-test.ts';
+
+<Depth level="kid">
+
+Two wave shapes enter a test. A helper compares the two possibilities of swapping them or leaving them in place. The result is more often 0 when the shapes are similar.
+
+</Depth>
+
+<Depth level="student">
+
+Prepare a helper in 0, apply H, controlled-SWAP of the two states, then H on the helper. Identical pure states give 0 every time. Orthogonal ones give 0 and 1 equally often.
+
+</Depth>
+
+<Depth level="engineer">
+
+For input $|\psi\rangle|\phi\rangle$, the symmetric and antisymmetric components have weights $p(0)=(1+|\langle\psi|\phi\rangle|^2)/2$ and $p(1)=(1-|\langle\psi|\phi\rangle|^2)/2$. The helper Z expectation is the squared overlap. For independent mixed states the same test estimates $\operatorname{Tr}(\rho\sigma)$, not generally their Uhlmann fidelity.
+
+</Depth>
+
+<Lab title="Compare two states" intro="Choose the first state and the Bloch angles of the second, then measure the helper.">
+  <GateLab id="swap-test" lab={lab} />
+</Lab>

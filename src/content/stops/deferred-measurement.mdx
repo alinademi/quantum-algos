@@ -1,0 +1,33 @@
+---
+description: "Under the deferred-measurement principle, suitable intermediate measurements and classical controls can be replaced by coherent controls and measurements."
+answer: "Under the deferred-measurement principle, suitable intermediate measurements and classical controls can be replaced by coherent controls and measurements at the end."
+myth:
+  claim: "Deferred and early measurements always leave the same unmeasured quantum state."
+  truth: "They match the relevant classical output statistics when the coherent replacement is made correctly; intermediate coherence can differ."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/deferred-measurement.ts';
+
+<Depth level="kid">
+
+Instead of reading a switch now, keep it as a quantum switch. Read it later. When nothing else needs the earlier answer, the final recorded answers can match.
+
+</Depth>
+
+<Depth level="student">
+
+Measure the control in Z, flip the target if the result is 1, and read both bits. Compare this with a CNOT followed by measuring both. The probabilities agree despite different states before the final readout.
+
+</Depth>
+
+<Depth level="engineer">
+
+For input $\sum_m|m\rangle|\psi_m\rangle$, coherent controlled $U_m$ gives $\sum_m|m\rangle U_m|\psi_m\rangle$. Measuring the control in the same basis yields the same branches and weights as early measurement and feed-forward. This requires preserving the relevant control record; later interference of the control can invalidate an unqualified substitution.
+
+</Depth>
+
+<Lab title="Defer a measurement" intro="Compare early classical feed-forward against coherent CNOT and the final joint distribution.">
+  <GateLab id="deferred-measurement" lab={lab} />
+</Lab>

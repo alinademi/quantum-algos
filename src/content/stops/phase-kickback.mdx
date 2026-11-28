@@ -1,0 +1,33 @@
+---
+description: "A controlled unitary can transfer its target eigenvalue into the relative phase of the control, while leaving the target in its eigenstate."
+answer: "A controlled unitary can transfer its target eigenvalue into the relative phase of the control, while leaving the target in its eigenstate."
+myth:
+  claim: "The target always stays unchanged after a controlled gate."
+  truth: "That is guaranteed for an eigenstate of the applied unitary, not an arbitrary target."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/phase-kickback.ts';
+
+<Depth level="kid">
+
+A switch controls a wave that already has a special shape. The wave keeps its shape, but the switch branches now have different phases. A later H can reveal that phase.
+
+</Depth>
+
+<Depth level="student">
+
+Prepare the control in |+⟩ and the target in |−⟩. X acts on |−⟩ by multiplying it by −1. Consequently CNOT changes the control to |−⟩ while leaving the target in |−⟩. Try a non-eigenstate to see how this can fail.
+
+</Depth>
+
+<Depth level="engineer">
+
+If $U|u\rangle=e^{i\phi}|u\rangle$, then $C(U)(a|0\rangle+b|1\rangle)|u\rangle=(a|0\rangle+be^{i\phi}|1\rangle)|u\rangle$. H on a control initially in |+⟩ gives $p(1)=\sin^2(\phi/2)$. If the target is not an eigenstate, the control may become entangled with it. This is the mechanism used in phase estimation.
+
+</Depth>
+
+<Lab title="Kick a phase back" intro="Choose a controlled gate and target state. Look for relative phase on the control before and after H.">
+  <GateLab id="phase-kickback" lab={lab} />
+</Lab>

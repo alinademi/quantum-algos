@@ -1,0 +1,33 @@
+---
+description: "One coherent oracle call can evaluate a function on a superposition of inputs, but a measurement does not reveal every value."
+answer: "One coherent oracle call can evaluate a function on a superposition of inputs, but a measurement does not reveal every value."
+myth:
+  claim: "Quantum parallelism means reading all function outputs in a single shot."
+  truth: "A basis measurement reveals one input-output pair; an algorithm must use interference to extract useful global information."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/quantum-parallelism.ts';
+
+<Depth level="kid">
+
+A secret box acts on a mix of many possible questions. The answers are part of a shared wave. When you read it, you get just one pair.
+
+</Depth>
+
+<Depth level="student">
+
+With two input qubits in |+⟩ and an output in 0, the oracle maps all four input amplitudes into corresponding input-output pairs. The lab lists the classical truth table only for comparison, not as information extracted by a quantum measurement.
+
+</Depth>
+
+<Depth level="engineer">
+
+For a uniform input on n qubits, $U_f 2^{-n/2}\sum_x|x,0\rangle=2^{-n/2}\sum_x|x,f(x)\rangle$. Measuring in the computational basis yields each pair with probability $2^{-n}$. A query advantage requires operations that turn structure in amplitudes into measurable information; it does not follow solely from having exponentially many basis amplitudes.
+
+</Depth>
+
+<Lab title="Query on a superposition" intro="Prepare each input in 0, 1 or +, and run shots on the resulting register.">
+  <GateLab id="quantum-parallelism" lab={lab} />
+</Lab>

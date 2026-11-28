@@ -1,0 +1,33 @@
+---
+description: "Ancillas are helper qubits used for intermediate computations, measurements or control, with specified initial and final state requirements."
+answer: "Ancillas are helper qubits used for intermediate computations, measurements or control, with specified initial and final state requirements."
+myth:
+  claim: "Any spare qubit can be treated as 0 and discarded afterward."
+  truth: "A dirty ancilla can be unknown or correlated. A valid protocol must respect its required state and restore it if promised."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/ancillas.ts';
+
+<Depth level="kid">
+
+Use a spare work surface to hold an intermediate result. If it is already being used, you must not assume it is blank, and must return it as you found it.
+
+</Depth>
+
+<Depth level="student">
+
+A clean scratch qubit starts in a known state such as |0⟩. A dirty scratch qubit may start in an arbitrary state. CNOT twice restores the helper, including its correlations with another register, whereas one CNOT need not.
+
+</Depth>
+
+<Depth level="engineer">
+
+If the intended operation is $V$ on data, a clean-ancilla circuit may satisfy $U|\psi\rangle|0\rangle=V|\psi\rangle|0\rangle$. A borrowed dirty ancilla must instead satisfy the analogous identity for arbitrary helper states, also when entangled with an external system. A lone compute step can entangle scratch with data; discarding it can decohere the data.
+
+</Depth>
+
+<Lab title="Try clean and dirty scratch" intro="Choose the helper and control, then compare a compute step with the compute-and-uncompute pair.">
+  <GateLab id="ancillas" lab={lab} />
+</Lab>

@@ -1,0 +1,33 @@
+---
+description: "Uncomputation reverses a temporary coherent computation to return its workspace to the required initial state while retaining the desired result."
+answer: "Uncomputation reverses a temporary coherent computation to return its workspace to the required initial state while retaining the desired result."
+myth:
+  claim: "Resetting scratch is the same as uncomputing it."
+  truth: "Reset can erase correlations and coherence. Uncomputation reverses gates coherently."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/uncomputation.ts';
+
+<Depth level="kid">
+
+Write an answer on scratch paper, transfer the useful part to the result register, then run the scratch instructions backward. Keep the answer and clear the workspace.
+
+</Depth>
+
+<Depth level="student">
+
+Toffoli computes AND into q2. CNOT from q2 into a fresh q3 stores the result. The inverse Toffoli returns q2 to 0. If the inputs were superposed, the desired result can remain entangled with them.
+
+</Depth>
+
+<Depth level="engineer">
+
+For a reversible compute $U_f:|x,0\rangle\mapsto|x,f(x)\rangle$, compute, XOR the Boolean basis label into a fresh output, then $U_f^\dagger$ implements $|x,0,0\rangle\mapsto|x,0,f(x)\rangle$. The XOR does not clone arbitrary unknown states. This technique prevents needless garbage entanglement, provided the intervening operation leaves the information needed by the inverse intact.
+
+</Depth>
+
+<Lab title="Clear the workspace" intro="Use superposed or definite inputs and choose whether to reverse the Toffoli computation.">
+  <GateLab id="uncomputation" lab={lab} />
+</Lab>

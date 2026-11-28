@@ -1,0 +1,33 @@
+---
+description: "Mid-circuit measurement produces a classical outcome during a circuit, which can determine the next operation."
+answer: "Mid-circuit measurement produces a classical outcome during a circuit, which can determine the next operation."
+myth:
+  claim: "A measurement followed by a conditional X can restore an unknown superposition."
+  truth: "A reset can prepare 0, but does not restore the coherence lost by measurement."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/mid-circuit.ts';
+
+<Depth level="kid">
+
+You can ask one qubit a question while the experiment is running. Use that answer to decide what to do next. The other parts of the experiment can keep running.
+
+</Depth>
+
+<Depth level="student">
+
+Prepare two qubits, entangle them with CNOT, and measure the first. The lab displays each possible branch and its probability. If the outcome is 1, you can flip the other wire or reset the measured wire. Without conditioning on the outcome the result is a mixture.
+
+</Depth>
+
+<Depth level="engineer">
+
+For projectors $P_m$, branch probability is $p_m=\langle\psi|P_m|\psi\rangle$ and conditional state is $P_m|\psi\rangle/\sqrt{p_m}$ for $p_m>0$. Outcome-dependent gates $U_m$ produce the ensemble $\sum_m U_mP_m\rho P_mU_m^\dagger$. Resetting a measured bit by conditional X is not a unitary inverse.
+
+</Depth>
+
+<Lab title="Measure and feed forward" intro="Change the initial state and conditional action. Compare the weighted branches with the final averaged outcomes.">
+  <GateLab id="mid-circuit" lab={lab} />
+</Lab>

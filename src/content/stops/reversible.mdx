@@ -1,0 +1,33 @@
+---
+description: "Reversible computation preserves enough information to recover its input. Quantum gates require reversible linear evolution."
+answer: "Reversible computation preserves enough information to recover its input. Quantum gates require reversible linear evolution."
+myth:
+  claim: "Every classical logic operation must dissipate exactly kBT ln 2 of heat."
+  truth: "Landauer’s bound applies to erasing one unbiased independent bit in an ideal isothermal reset; actual costs depend on the process."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/reversible.ts';
+
+<Depth level="kid">
+
+If you forget the two switches after recording AND, you cannot always recover them. Keep the inputs and write the answer into a third bit so you can undo it.
+
+</Depth>
+
+<Depth level="student">
+
+AND erases distinctions if only its output is retained. Toffoli instead XORs the AND into a target while keeping inputs. This mapping is reversible even when the target begins in 1. Physically erasing information can have a thermodynamic cost.
+
+</Depth>
+
+<Depth level="engineer">
+
+A reversible classical gate is a bijection of bit strings and therefore extends to a unitary permutation matrix. For an independent equiprobable bit erased isothermally into a thermal bath at T, the ideal Landauer heat bound is $k_BT\ln2$. It is not a universal energy price for each gate. Reversible logic by itself does not ensure zero dissipation in a real device.
+
+</Depth>
+
+<Lab title="Keep the information" intro="Change the temperature and three input bits, then run and reverse Toffoli.">
+  <GateLab id="reversible" lab={lab} />
+</Lab>

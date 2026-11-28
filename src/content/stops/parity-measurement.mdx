@@ -1,0 +1,33 @@
+---
+description: "Parity measurement distinguishes even from odd parity, without necessarily revealing the individual values of the data qubits."
+answer: "Parity measurement distinguishes even from odd parity, without necessarily revealing the individual values of the data qubits."
+myth:
+  claim: "Measuring parity means measuring both bits separately and taking XOR."
+  truth: "That gives the same parity statistic but can destroy coherence within a parity subspace."
+---
+import Depth from '../../components/stop/Depth.astro';
+import Lab from '../../components/stop/Lab.astro';
+import GateLab from '../../components/tools/GateLab.astro';
+import { lab } from '../../lib/sims/parity-measurement.ts';
+
+<Depth level="kid">
+
+Ask whether two bits agree, not which bits they are. A helper can record the answer without learning the individual values.
+
+</Depth>
+
+<Depth level="student">
+
+Start a helper in 0. CNOT from each data wire into it computes XOR. Measuring only the helper distinguishes 00 or 11 from 01 or 10. For two |+⟩ inputs the conditional data state is an entangled Bell state.
+
+</Depth>
+
+<Depth level="engineer">
+
+The observable is $Z\otimes Z$, with projectors $P_+=(I+ZZ)/2$ and $P_-=(I-ZZ)/2$. The two CNOTs map $|a,b,0\rangle$ to $|a,b,a\oplus b\rangle$. Helper outcome 0 has eigenvalue +1; 1 has eigenvalue −1. The post-measurement state preserves superpositions within the corresponding subspace. Measuring both data qubits separately is a finer measurement.
+
+</Depth>
+
+<Lab title="Measure only parity" intro="Prepare the data, compute the XOR into the helper and inspect both possible conditional states.">
+  <GateLab id="parity-measurement" lab={lab} />
+</Lab>
